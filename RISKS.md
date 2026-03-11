@@ -1,6 +1,6 @@
 
 | ID | Risco | Descrição | Probabilidade | Impacto | Prioridade | Estratégia de Mitigação |
-|:---:|-------|-----------|:-------------:|:-------:|:----------:|-------------------------|
+|:---:|:-------:|-----------|:-------------:|:-------:|:----------:|-------------------------|
 | **R01** | Membro sai do grupo | Desistência ou doença de integrante | Média | Alto | **ALTA** | • Documentar todas as tarefas<br>• Fazer pair programming<br>• Ter backup de conhecimento |
 | **R02** | Complexidade técnica | Dificuldade com criptografia/segurança do voto | Alta | Alto | **ALTA** | • Prototipar segurança na Semana 4<br>• Usar bibliotecas maduras (bcrypt, JWT)<br>• Tutoriais |
 | **R03** | Stakeholder indisponível | Comissão de Estudantes não responde | Média | Médio | **MÉDIA** | • Agendar reunião cedo<br>• Ter contacto alternativo<br>• Usar cenários simulados |
