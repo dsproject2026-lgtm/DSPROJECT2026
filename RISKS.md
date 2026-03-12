@@ -8,4 +8,4 @@
 | **R05** | Indisponibilidade durante votação | Servidor cair no dia da eleição | Média | Alto | **ALTA** | • Testes de carga<br>• Monitoramento<br>• Plano de contingência (extensão de prazo) |
 | **R06** | Escopo crescer (scope creep) | Adicionar funcionalidades não planejadas | Alta | Médio | **ALTA** | • Revisar backlog semanalmente<br>• Dizer "não" a pedidos fora do MVP<br>• Priorizar MoSCoW |
 | **R07** | Conflitos na equipe | Desentendimentos sobre tecnologia/arquitetura | Média | Médio | **MÉDIA** | • Daily meetings<br>• Decisão democrática<br>• Intervenção do docente se necessário |
-| **R08** | Falta de acesso à UP | Não conseguir email institucional para testes | Baixa | Médio | **BAIXA** | • Criar contas de teste<br>• Usar domínio alternativo para desenvolvimento |
+| **R08** | Falta de acesso à UP-Maputo | Não conseguir numeros dos estudantes | Baixa | Médio | **BAIXA** | • Criar contas de teste<br>• Usar domínio alternativo para desenvolvimento |
