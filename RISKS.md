@@ -1,10 +1,13 @@
+# Matriz de Riscos do Projeto
 
-| ID | Risco | Descrição | Probabilidade | Impacto | Prioridade | Estratégia de Mitigação |
-|:---:|:-------:|-----------|:-------------:|:-------:|:----------:|-------------------------|
-| **R01** |  Membrosai do grupo | Desistência ou doença de integrante | Média | Alto | **ALTA** | • Documentar todas as tarefas<br>• Fazer pair programming<br>• Ter backup de conhecimento |
-| **R02** | Complexidade técnica | Dificuldade com criptografia/segurança do voto | Alta | Alto | **ALTA** | • Prototipar segurança <br>• Usar bibliotecas maduras<br>• Tutoriais |
-| **R03** | Stakeholder indisponível | Comissão de Estudantes não responde | Média | Médio | **MÉDIA** | • Agendar reunião cedo<br>• Usar cenários simulados |
-| **R04** | Indisponibilidade durante votação | Servidor cair no dia da eleição | Média | Alto | **ALTA** | • Testes de carga<br>• Monitoramento<br>• Plano de contingência (extensão de prazo) |
-| **R05** | Escopo crescer  | Adicionar funcionalidades não planejadas | Alta | Médio | **ALTA** | • Revisar backlog semanalmente<br>• Dizer "não" a pedidos fora do MVP(Minimum Viable Product) |
-| **R06** | Conflitos na equipe | Desentendimentos sobre tecnologia/arquitetura | Média | Médio | **MÉDIA** | • Daily meetings<br>• Decisão democrática<br>• Intervenção do docente se necessário |
-| **R07** | Falta de acesso à UP-Maputo | Não conseguir numeros dos estudantes | Baixa | Médio | **BAIXA** | • Criar contas de teste<br>• Usar domínio alternativo para desenvolvimento |
+| ID  | Risco                                                        | Probabilidade | Impacto | Prioridade | Mitigação                                                                                                   |
+| --- | ------------------------------------------------------------ | ------------- | ------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| R01 | Membro sai do grupo durante o desenvolvimento      | Médio         | Alto    | Alta       | Documentar tarefas e decisões do projeto • Partilhar conhecimento entre membros • Manter backup do trabalho |
+| R02 | Tecnologia escolhida ser complexa para a equipa              | Alto          | Médio   | Alta       | Fazer protótipos iniciais • Utilizar tutoriais e documentação • Dividir tarefas técnicas entre membros      |
+| R03 | Falhas de segurança que comprometam a integridade da votação | Médio         | Alto    | Alta       | Implementar autenticação segura • Validar dados de entrada • Testar vulnerabilidades                        |
+| R04 | Erros no sistema que permitam votos duplicados               | Médio         | Alto    | Alta       | Implementar validação de voto único • Testes de sistema antes da eleição • Registo de votos no sistema      |
+| R05 | Problemas técnicos no servidor durante a votação             | Baixo         | Alto    | Média      | Monitorizar o sistema • Criar backups regulares • Garantir infraestrutura estável                           |
+| R06 | Atrasos no desenvolvimento das funcionalidades principais    | Médio         | Médio   | Média      | Definir cronograma realista • Dividir tarefas entre a equipa • Monitorizar progresso do projeto             |
+| R07 | Dados incorretos na lista de estudantes elegíveis            | Médio         | Médio   | Média      | Validar dados antes da importação • Permitir revisão da lista de estudantes                                 |
+| R08 | Baixa adesão dos estudantes ao sistema de votação            | Baixo         | Médio   | Baixa      | Divulgar o sistema entre estudantes • Garantir interface simples e acessível   
+
