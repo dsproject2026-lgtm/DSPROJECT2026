@@ -1,20 +1,20 @@
-# Cronograma Macro – Sistema de Votação Online
-
-| Semana | Actividades Principais | Entregáveis |
-|------|------------------------|-------------|
-| S1 | Definir objectivo do sistema. Identificar stakeholders. Criar repositório GitHub e organizar tarefas do projecto. | Documento de visão do sistema |
-| S2 | Levantar requisitos funcionais e não funcionais. Criar backlog inicial de funcionalidades do sistema. | Lista de requisitos + backlog |
-| S3 | Validar requisitos. Criar WBS do projecto. Identificar riscos e planejar mitigação. | WBS + matriz de riscos |
-| S4 | Definir arquitectura do sistema. Criar diagramas UML (casos de uso). Criar protótipo inicial das interfaces. | Arquitectura + UML + protótipo |
-| S5 | Configurar ambiente de desenvolvimento. Criar estrutura do projecto. Criar base de dados inicial. | Estrutura do sistema + base de dados |
-| S6 | Implementar autenticação de utilizadores (login e registo). Criar interface inicial do sistema. | Módulo de autenticação |
-| S7 | Desenvolver gestão de candidatos (adicionar, editar, remover). Criar painel administrativo básico. | Módulo de gestão de candidatos |
-| S8 | Implementar criação e gestão de eleições. Permitir definir período de votação. | Módulo de eleições |
-| S9 | Desenvolver funcionalidade de votação online para estudantes. | Sistema de votação funcional |
-| S10 | Implementar validação de voto (um voto por estudante). Melhorar segurança do sistema. | Controlo de votação |
-| S11 | Implementar contagem automática de votos e geração de resultados. | Módulo de resultados |
-| S12 | Melhorar interface do sistema e experiência do utilizador. Corrigir erros identificados. | Sistema mais estável |
-| S13 | Realizar testes com utilizadores simulados. Ajustar funcionalidades com base no feedback. | Relatório de testes |
-| S14 | Optimizar segurança e desempenho do sistema. Ajustar funcionalidades finais. | Versão candidata do sistema |
-| S15 | Preparar documentação do projecto. Criar slides e ensaiar apresentação. | Relatório + apresentação |
-| S16 | Apresentação final do sistema com demonstração da votação online. | Sistema final + entrega completa |
+# Cronograma 
+| Semana | Actividades Principais                                                                                                                                     | Entregáveis                                  |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| S1     | Definir objetivos do sistema. Identificar stakeholders. Criar repositório GitHub e organizar tarefas do projeto.                                           | Documento de visão do sistema                |
+| S2     | Levantar requisitos funcionais e não funcionais. Criar backlog inicial de funcionalidades do sistema.                                                      | Lista de requisitos + backlog                |
+| S3     | Validar requisitos. Criar WBS do projeto. Identificar riscos e planejar mitigação.                                                                         | WBS + matriz de riscos                       |
+| S4     | Definir arquitetura do sistema. Criar diagramas UML (casos de uso, sequência e atividades). Criar protótipo inicial das interfaces.                        | Arquitectura + UML + protótipo               |
+| S5     | Configurar ambiente de desenvolvimento. Criar estrutura do projeto. Criar base de dados inicial.                                                           | Estrutura do sistema + base de dados         |
+| S6     | Implementar autenticação de utilizadores (login e registo). Criar interface inicial do sistema.                                                            | Módulo de autenticação                       |
+| S7     | Desenvolver funcionalidades de submissão de candidatura por estudantes. Implementar aprovação/rejeição de candidaturas pelos membros da Comissão.          | Módulo de candidaturas                       |
+| S8     | Implementar período de edição de propostas de candidatos e bloqueio automático após prazo definido.                                                        | Módulo de edição de propostas                |
+| S9     | Desenvolver gestão de candidatos (adicionar, editar, remover), painel administrativo e visualização de candidatos pelos estudantes.                        | Painel administrativo + módulo de candidatos |
+| S10    | Implementar criação e gestão de eleições, definição de fases (submissão, edição, votação) e períodos de abertura e encerramento automáticos.               | Módulo de eleições completo                  |
+| S11    | Desenvolver funcionalidade de votação online para estudantes e candidatos. Garantir anonimato do voto e confirmação de submissão.                          | Sistema de votação funcional                 |
+| S12    | Implementar validação de voto (um voto por estudante por cargo). Melhorar segurança e controle de integridade do sistema.                                  | Controlo de votação                          |
+| S13    | Implementar contagem automática de votos, geração de resultados e estatísticas de participação.                                                            | Módulo de resultados e estatísticas          |
+| S14    | Testes do sistema com utilizadores simulados. Ajustar funcionalidades com base no feedback. Otimizar interface e experiência do utilizador.                | Relatório de testes + sistema ajustado       |
+| S15    | Optimizar segurança e desempenho do sistema. Ajustar funcionalidades finais. Implementar logs de auditoria e backup automático.                            | Versão candidata do sistema                  |
+| S16    | Preparar documentação do projeto. Criar slides e ensaiar apresentação.                                                                                     | Relatório final + apresentação               |
+| S17    | Apresentação final do sistema com demonstração completa da votação online, incluindo submissão de candidaturas, edição de propostas, votação e resultados. | Sistema final + entrega completa             |
