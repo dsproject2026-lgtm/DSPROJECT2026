@@ -1,4 +1,4 @@
-# Stakeholders Primários (Utilizadores Diretos)
+# Stakeholders Primários (Utilizadores Directos)
 
 | Stakeholder                       | Objetivos Principais                                                                                                       |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
