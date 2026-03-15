@@ -1,20 +1,20 @@
-# Cronograma
+# Cronograma Macro – Sistema de Votação Online
 
-| Semana  | Período        | Marco                                  | Entregáveis                                                              | Dependências |
-| ------- | -------------- | -------------------------------------- | ------------------------------------------------------------------------ | ------------ |
-| **S1**  | 23–28 Fev      | **Kickoff do Projeto**                 | Equipe formada, tema definido, repositório Git criado                    | -            |
-| **S2**  | 1–6 Mar        | **Elicitação de Requisitos**           | Backlog inicial (≥20 User Stories), RF, RNF                              | S1           |
-| **S3**  | 8–13 Mar       | **Planeamento do Projeto**             | WBS, Cronograma detalhado, Matriz de Riscos (≥6)                         | S2           |
-| **S4**  | 15–20 Mar      | **Arquitetura e Modelação**            | Diagramas UML (UC, Classes, Seq.), Protótipo UI, Arquitetura justificada | S3           |
-| **S5**  | 22–27 Mar      | **Preparação do Incremento 1**         | Planeamento do Sprint, Definição de métricas, Definition of Done (DoD)   | S4           |
-| **S6**  | 29 Mar – 3 Abr | **Qualidade e Integração**             | Plano de Testes, Testes unitários iniciais, Configuração CI/CD           | S5           |
-| **S7**  | 5–10 Abr       | **Incremento 1**                       | Autenticação, Gestão de Utilizadores                                     | S6           |
-| **S8**  | 12–17 Abr      | **Avaliação 1**                        | **Teste 1 (20%)**, Demo do Incremento 1                                  | S7           |
-| **S9**  | 19–24 Abr      | **Incremento 2 (Parte 1)**             | Gestão de Eleições, Gestão de Cargos                                     | S8           |
-| **S10** | 26 Abr – 1 Mai | **Incremento 2 (Parte 2)**             | Gestão de Candidatos, Sistema de Votação                                 | S9           |
-| **S11** | 3–8 Mai        | **Consolidação do Sistema**            | Apuração de votos, Resultados, melhorias UI                              | S10          |
-| **S12** | 10–15 Mai      | **Preparação da Apresentação Parcial** | Revisão rastreabilidade (RF → UML → Código), Slides                      | S11          |
-| **S13** | 17–22 Mai      | **Avaliação 2**                        | **Apresentação Parcial 1 (10%)** + Demo sistema                          | S12          |
-| **S14** | 24–29 Mai      | **Avaliação 3**                        | **Apresentação Parcial 2 (10%)**, melhorias do sistema                   | S13          |
-| **S15** | 31 Mai – 5 Jun | **Preparação Final**                   | **Teste 2 (20%)**, documentação final, checklist de entrega              | S14          |
-| **S16** | 7–12 Jun       | **Entrega Final do Projeto**           | **Apresentação Final (20%)**, Sistema completo, Relatório final          | S15          |
+| Semana | Actividades Principais | Entregáveis |
+|------|------------------------|-------------|
+| S1 | Definir objectivo do sistema. Identificar stakeholders. Criar repositório GitHub e organizar tarefas do projecto. | Documento de visão do sistema |
+| S2 | Levantar requisitos funcionais e não funcionais. Criar backlog inicial de funcionalidades do sistema. | Lista de requisitos + backlog |
+| S3 | Validar requisitos. Criar WBS do projecto. Identificar riscos e planejar mitigação. | WBS + matriz de riscos |
+| S4 | Definir arquitectura do sistema. Criar diagramas UML (casos de uso). Criar protótipo inicial das interfaces. | Arquitectura + UML + protótipo |
+| S5 | Configurar ambiente de desenvolvimento. Criar estrutura do projecto. Criar base de dados inicial. | Estrutura do sistema + base de dados |
+| S6 | Implementar autenticação de utilizadores (login e registo). Criar interface inicial do sistema. | Módulo de autenticação |
+| S7 | Desenvolver gestão de candidatos (adicionar, editar, remover). Criar painel administrativo básico. | Módulo de gestão de candidatos |
+| S8 | Implementar criação e gestão de eleições. Permitir definir período de votação. | Módulo de eleições |
+| S9 | Desenvolver funcionalidade de votação online para estudantes. | Sistema de votação funcional |
+| S10 | Implementar validação de voto (um voto por estudante). Melhorar segurança do sistema. | Controlo de votação |
+| S11 | Implementar contagem automática de votos e geração de resultados. | Módulo de resultados |
+| S12 | Melhorar interface do sistema e experiência do utilizador. Corrigir erros identificados. | Sistema mais estável |
+| S13 | Realizar testes com utilizadores simulados. Ajustar funcionalidades com base no feedback. | Relatório de testes |
+| S14 | Optimizar segurança e desempenho do sistema. Ajustar funcionalidades finais. | Versão candidata do sistema |
+| S15 | Preparar documentação do projecto. Criar slides e ensaiar apresentação. | Relatório + apresentação |
+| S16 | Apresentação final do sistema com demonstração da votação online. | Sistema final + entrega completa |
