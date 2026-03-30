@@ -25,7 +25,7 @@
 | **RF-16** | O sistema deve permitir que membros da Comissão Eleitoral acompanhem estatísticas de participação durante a votação. | Média |
 | **RF-17** | O sistema deve permitir que o Administrador registe conta dos fiscais e membros da Comissão Eleitoral. | Alta |
 | **RF-18** | O sistema deve gerar comprovativo digital de votação. | Média |
-| **RF-19** | O sistema deve permitir que membros da Comissão Eleitoral da AEUP registem os candidatos. | Alta |
+| **RF-19** | O sistema deve permitir que membros da Comissão Eleitoral da AEUP possam gerir os candidatos. | Alta |
 ---
 
 ## Requisitos Não-Funcionais (RNF)
