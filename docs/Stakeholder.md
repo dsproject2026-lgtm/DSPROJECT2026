@@ -7,10 +7,10 @@
 
 | Stakeholder | Objetivos Principais |
 |---|---|
-| **Estudante da UP-Maputo** | Autenticar-se no sistema, consultar candidatos e propostas, exercer o direito de voto de forma anónima e verificar os resultados oficiais após encerramento. |
-| **Candidato** | Submeter candidatura, editar perfil e proposta eleitoral durante o período definido, e consultar os resultados detalhados após encerramento. |
-| **Administrador da AEUP** | Importar listas de estudantes elegíveis, validar candidatos, registar membros da comissão. |
-| **Comissão Eleitoral da AEUP** | Configurar as regras da eleição, definir o calendário eleitoral e exportar resultados em um arquivo pdf/excel. |
+| **Estudante da UP-Maputo** |Consultar candidatos e propostas, exercer o direito de voto de forma anónima e verificar os resultados oficiais após encerramento. |
+| **Candidato** | Editar perfil e proposta eleitoral durante o período definido, e consultar os resultados detalhados após encerramento. |
+| **Administrador da AEUP** | Importar listas de estudantes elegíveis,registar membros da comissão e fiscais. |
+| **Comissão Eleitoral da AEUP** | Configurar as regras da eleição, registar candidatos, definir o calendário eleitoral e exportar resultados em um arquivo pdf/excel. |
 | **Auditor / Fiscal da Comissão Eleitoral** | Consultar logs de auditoria, relatórios de actividade e registos de acesso para verificar a regularidade e integridade de todo o processo eleitoral, sem poder alterar qualquer dado. |
 
 ---
