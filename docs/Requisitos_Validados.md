@@ -7,7 +7,7 @@
 
 | ID | Requisito | Prioridade |
 |---|---|---|
-| **RF-01** | O sistema deve permitir autenticação de estudantes da UP-Maputo através de número de estudante e senha. | Alta |
+| **RF-01** | O sistema deve permitir autenticação dos utlizadores através de codigo e senha. | Alta |
 | **RF-02** | O sistema deve permitir que membros da Comissão Eleitoral da AEUP criem e configurem eleições, definindo cargos e datas das fases eleitorais. | Alta |
 | **RF-03** | O sistema deve permitir que candidatos editem foto, biografia e proposta durante o período permitido antes da eleição. | Média |
 | **RF-04** | O sistema deve bloquear automaticamente a edição de propostas e informações dos candidatos após o período de edição. | Alta |
@@ -23,8 +23,9 @@
 | **RF-14** | O sistema deve manter registo de auditoria (logs) das acções realizadas no sistema com data, hora e identificação do utilizador. | Alta |
 | **RF-15** | O sistema deve permitir que estudantes recuperem a senha da sua conta. | Média |
 | **RF-16** | O sistema deve permitir que membros da Comissão Eleitoral acompanhem estatísticas de participação durante a votação. | Média |
-| **RF-17** | O sistema deve permitir que o Administrador crie conta dos fiscais e membros da Comissão Eleitoral. | Alta |
+| **RF-17** | O sistema deve permitir que o Administrador registe conta dos fiscais e membros da Comissão Eleitoral. | Alta |
 | **RF-18** | O sistema deve gerar comprovativo digital de votação. | Média |
+| **RF-19** | O sistema deve permitir que membros da Comissão Eleitoral da AEUP registem os candidatos. | Alta |
 ---
 
 ## Requisitos Não-Funcionais (RNF)
