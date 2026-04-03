@@ -34,13 +34,13 @@ Padrão: **Arquitectura em Camadas (Layered Architecture)**.
 
 ## 🖼️ Diagrama da Arquitectura
 
-![Arquitectura](./arquitetura.png)
+![Arquitectura](./imagens/arquitetura.png)
 
 
 
 ## 🖼️ Diagrama de Casos de Uso
 
-![Casos de Uso](./casos_de_uso.png)
+![Casos de Uso](./imagens/caso_de_uso.png)
 
 
 
