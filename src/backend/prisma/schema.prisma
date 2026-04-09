@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Add your models below and run `npm run prisma:migrate:dev`.
+
+// ─────────────────────────────────────────────
+// CARGOS
+// Entidade independente. Ex: Presidente, Secretário-Geral
+// ─────────────────────────────────────────────
+model Cargo {
+  id        String    @id @default(uuid())
+  nome      String    @db.VarChar(100)
+  descricao String?   @db.Text
+
+  eleicoes  Eleicao[]
+
+  @@map("cargos")
+}
+
+// ─────────────────────────────────────────────
+// ELEICOES
+// Uma eleição é criada para um cargo específico
+// ─────────────────────────────────────────────
+model Eleicao {
+  id                     String    @id @default(uuid())
+  cargoId                String    @map("cargo_id")
+  titulo                 String    @db.VarChar(200)
+  descricao              String?   @db.Text
+  estado                 EstadoEleicao @default(RASCUNHO)
+  dataInicioCandidatura  DateTime? @map("data_inicio_candidatura") @db.Timestamptz
+  dataFimCandidatura     DateTime? @map("data_fim_candidatura")    @db.Timestamptz
+  dataInicioVotacao      DateTime? @map("data_inicio_votacao")     @db.Timestamptz
+  dataFimVotacao         DateTime? @map("data_fim_votacao")        @db.Timestamptz
+
+  cargo         Cargo          @relation(fields: [cargoId], references: [id])
+  candidatos    Candidato[]
+  elegiveis     Elegivel[]
+  comprovativos Comprovativo[]
+
+  @@map("eleicoes")
+}
+
+enum EstadoEleicao {
+  RASCUNHO
+  CANDIDATURAS_ABERTAS
+  CANDIDATURAS_ENCERRADAS
+  VOTACAO_ABERTA
+  VOTACAO_ENCERRADA
+  CONCLUIDA
+
+  @@map("estado_eleicao")
+}
+
+// ─────────────────────────────────────────────
+// UTILIZADORES
+// Autenticação e perfis do sistema
+// ─────────────────────────────────────────────
+model Utilizador {
+  id          String   @id @default(uuid())
+  codigo      String   @unique @db.VarChar(50)
+  nome        String   @db.VarChar(150)
+  senhaHash   String   @map("senha_hash") @db.Text
+  perfil      Perfil
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  elegiveis           Elegivel[]
+  comprovativos       Comprovativo[]
+  logsAuditoria       LogAuditoria[]
+  candidaturas        Candidato[] @relation("CandidaturaDoUtilizador")
+  candidatosRegistados Candidato[] @relation("RegistadoPor")
+
+  @@map("utilizadores")
+}
+
+enum Perfil {
+  ADMIN
+  GESTOR_ELEITORAL
+  AUDITOR
+  ELEITOR
+
+  @@map("perfil")
+}
+
+// ─────────────────────────────────────────────
+// CANDIDATOS
+// O candidato autentica-se como Utilizador usando `codigo` e `senha`.
+// A candidatura pertence a um utilizador e pode ser registada por um membro da comissão.
+// ─────────────────────────────────────────────
+model Candidato {
+  id           String          @id @default(uuid())
+  eleicaoId    String          @map("eleicao_id")
+  utilizadorId String          @map("utilizador_id")
+  registadoPor String?         @map("registado_por")
+  nome         String          @db.VarChar(150)
+  fotoUrl      String?         @map("foto_url") @db.Text
+  biografia    String?         @db.Text
+  proposta     String?         @db.Text
+  estado       EstadoCandidato @default(PENDENTE)
+
+  eleicao    Eleicao    @relation(fields: [eleicaoId], references: [id])
+  utilizador Utilizador @relation("CandidaturaDoUtilizador", fields: [utilizadorId], references: [id])
+  registador Utilizador? @relation("RegistadoPor", fields: [registadoPor], references: [id])
+  votos      Voto[]
+
+  @@unique([eleicaoId, utilizadorId])
+  @@map("candidatos")
+}
+
+enum EstadoCandidato {
+  PENDENTE
+  APROVADO
+  REJEITADO
+
+  @@map("estado_candidato")
+}
+
+model Elegivel {
+  id           String   @id @default(uuid())
+  eleicaoId    String   @map("eleicao_id")
+  utilizadorId String   @map("utilizador_id")
+  jaVotou      Boolean  @default(false) @map("ja_votou")
+  importadoEm  DateTime @default(now()) @map("importado_em") @db.Timestamptz
+
+  eleicao    Eleicao    @relation(fields: [eleicaoId], references: [id])
+  utilizador Utilizador @relation(fields: [utilizadorId], references: [id])
+
+  @@unique([eleicaoId, utilizadorId])
+  @@map("elegiveis")
+}
+
+
+model Voto {
+  id           String   @id @default(uuid())
+  candidatoId  String   @map("candidato_id")
+  tokenAnonimo String   @unique @map("token_anonimo") @db.Text
+  dataHora     DateTime @default(now()) @map("data_hora") @db.Timestamptz
+
+  candidato Candidato @relation(fields: [candidatoId], references: [id])
+
+  @@map("votos")
+}
+
+
+model Comprovativo {
+  id                String   @id @default(uuid())
+  utilizadorId      String   @map("utilizador_id")
+  eleicaoId         String   @map("eleicao_id")
+  codigoVerificacao String   @unique @map("codigo_verificacao") @db.Text
+  emitidoEm         DateTime @default(now()) @map("emitido_em") @db.Timestamptz
+
+  utilizador Utilizador @relation(fields: [utilizadorId], references: [id])
+  eleicao    Eleicao    @relation(fields: [eleicaoId], references: [id])
+
+  @@map("comprovativos")
+}
+
+model LogAuditoria {
+  id           String   @id @default(uuid())
+  utilizadorId String?  @map("utilizador_id")
+  accao        String   @db.VarChar(100)
+  entidade     String?  @db.VarChar(100)
+  entidadeId   String?  @map("entidade_id") @db.Uuid
+  ip           String?  @db.VarChar(45)
+  timestamp    DateTime @default(now()) @db.Timestamptz
+
+  utilizador Utilizador? @relation(fields: [utilizadorId], references: [id])
+
+  @@map("logs_auditoria")
+}
