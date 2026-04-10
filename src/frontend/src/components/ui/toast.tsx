@@ -45,12 +45,27 @@ function ToastProvider({ placement = 'top end', ...props }: ToastProviderProps) 
   return (
     <Toaster
       closeButton
-      duration={3500}
+      duration={4200}
+      expand
+      offset={20}
+      mobileOffset={14}
       position={toSonnerPosition(placement)}
-      richColors
+      richColors={false}
       toastOptions={{
         classNames: {
-          toast: '!font-[IBM_Plex_Sans]',
+          toast:
+            '!font-[IBM_Plex_Sans] !rounded-xl !border !border-[#DDE3EE] !bg-white/95 !text-[#111827] !shadow-[0_10px_30px_rgba(17,24,39,0.12)] backdrop-blur-sm !px-4 !py-3',
+          content: '!gap-1',
+          title: '!text-[0.95rem] !font-semibold !leading-5 !tracking-[-0.01em] !text-[#111827]',
+          description: '!text-[0.84rem] !leading-5 !text-[#5F6776]',
+          icon: '!text-[#1A56DB]',
+          closeButton:
+            '!border !border-[#D9E0EC] !bg-white !text-[#6B7280] hover:!bg-[#F3F5F9] hover:!text-[#111827] !transition-colors',
+          success: '!border-l-4 !border-l-[#057A55] !bg-[#F7FCFA]',
+          error: '!border-l-4 !border-l-[#C81E1E] !bg-[#FFF8F8]',
+          warning: '!border-l-4 !border-l-[#C27803] !bg-[#FFFCF5]',
+          info: '!border-l-4 !border-l-[#1A56DB] !bg-[#F7FAFF]',
+          default: '!border-l-4 !border-l-[#1A56DB] !bg-[#F7FAFF]',
         },
       }}
       {...props}
