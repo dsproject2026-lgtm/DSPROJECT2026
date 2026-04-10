@@ -8,6 +8,8 @@ const { authServiceMock } = vi.hoisted(() => ({
     finishLogin: vi.fn(),
     startFirstAccess: vi.fn(),
     finishFirstAccess: vi.fn(),
+    startPasswordRecovery: vi.fn(),
+    finishPasswordRecovery: vi.fn(),
     refreshSession: vi.fn(),
     revokeRefreshSession: vi.fn(),
     getCurrentUser: vi.fn(),

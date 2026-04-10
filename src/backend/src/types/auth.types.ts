@@ -26,6 +26,16 @@ export interface FirstAccessFinishInput {
   novaSenha: string;
 }
 
+export interface PasswordRecoveryStartInput {
+  codigo: string;
+}
+
+export interface PasswordRecoveryFinishInput {
+  codigo: string;
+  token: string;
+  novaSenha: string;
+}
+
 export interface RegisterInput {
   codigo: string;
   nome: string;
@@ -74,6 +84,11 @@ export type LoginStartResult =
     };
 
 export interface FirstAccessStartResult {
+  expiresInSeconds: number;
+  nextStep: 'EMAIL_TOKEN';
+}
+
+export interface PasswordRecoveryStartResult {
   expiresInSeconds: number;
   nextStep: 'EMAIL_TOKEN';
 }

@@ -40,6 +40,7 @@ const envSchema = z.object({
   SMTP_FROM: z.string().trim().min(1).optional(),
   FIRST_ACCESS_TOKEN_EXPIRES_IN_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
   FIRST_ACCESS_URL: z.string().url().optional(),
+  PASSWORD_RECOVERY_URL: z.string().url().optional(),
   REFRESH_TOKEN_EXPIRES_IN_DAYS: z.coerce.number().int().min(1).max(90).default(14),
   RATE_LIMIT_GLOBAL_MAX_REQUESTS: z.coerce.number().int().min(1).default(120),
   RATE_LIMIT_GLOBAL_WINDOW_MS: z.coerce.number().int().min(1_000).default(60_000),

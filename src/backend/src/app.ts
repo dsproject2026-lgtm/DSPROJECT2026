@@ -56,6 +56,8 @@ export const createApp = () => {
           authMe: `${env.API_PREFIX}/auth/me`,
           authFirstAccessStart: `${env.API_PREFIX}/auth/first-access/start`,
           authFirstAccessFinish: `${env.API_PREFIX}/auth/first-access/finish`,
+          authPasswordRecoveryStart: `${env.API_PREFIX}/auth/password-recovery/start`,
+          authPasswordRecoveryFinish: `${env.API_PREFIX}/auth/password-recovery/finish`,
           health: `${env.API_PREFIX}/health`,
           events: `${env.API_PREFIX}/events/stream`,
         },

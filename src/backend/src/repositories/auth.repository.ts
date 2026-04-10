@@ -85,6 +85,19 @@ class AuthRepository {
     });
   }
 
+  async completePasswordRecoveryById(userId: string, senhaHash: string) {
+    return prisma.utilizador.update({
+      where: { id: userId },
+      data: {
+        senhaHash,
+        mustSetPassword: false,
+        passwordSetupTokenHash: null,
+        passwordSetupTokenExpiresAt: null,
+      },
+      select: utilizadorAuthSelect,
+    });
+  }
+
   async createRefreshToken({
     userId,
     tokenHash,

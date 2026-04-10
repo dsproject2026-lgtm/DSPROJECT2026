@@ -58,6 +58,7 @@ Exemplo base em [`.env.example`](./.env.example).
 | `SMTP_FROM`                             | não         | Remetente padrão dos emails                  |
 | `FIRST_ACCESS_TOKEN_EXPIRES_IN_SECONDS` | não         | Expiração do token de primeiro acesso        |
 | `FIRST_ACCESS_URL`                      | não         | URL frontend para concluir primeiro acesso   |
+| `PASSWORD_RECOVERY_URL`                 | não         | URL frontend para recuperação de senha       |
 | `REFRESH_TOKEN_EXPIRES_IN_DAYS`         | não         | Expiração do refresh token em dias           |
 | `RATE_LIMIT_GLOBAL_MAX_REQUESTS`        | não         | Limite global por IP                         |
 | `RATE_LIMIT_GLOBAL_WINDOW_MS`           | não         | Janela do limite global em milissegundos     |
@@ -147,6 +148,8 @@ O cliente Prisma gerado fica em [`src/generated/prisma`](./src/generated/prisma)
 | `GET`  | `/api/v1/auth/me`                  | Obter utilizador autenticado       |
 | `POST` | `/api/v1/auth/first-access/start`  | Iniciar primeiro acesso            |
 | `POST` | `/api/v1/auth/first-access/finish` | Concluir primeiro acesso           |
+| `POST` | `/api/v1/auth/password-recovery/start`  | Iniciar recuperação de senha       |
+| `POST` | `/api/v1/auth/password-recovery/finish` | Concluir recuperação de senha      |
 | `GET`  | `/api/v1/events/stream`            | Abrir stream SSE                   |
 | `GET`  | `/api/v1/events/stats`             | Obter estatísticas SSE (protegido) |
 | `GET`  | `/api/v1/health`                   | Visão geral de saúde               |
@@ -308,6 +311,31 @@ Pré-condições no utilizador:
 
 - `mustSetPassword = true`
 - `email` preenchido
+
+Exemplo de início:
+
+```json
+{
+  "codigo": "2026001"
+}
+```
+
+Exemplo de conclusão:
+
+```json
+{
+  "codigo": "2026001",
+  "token": "token-recebido-no-email",
+  "novaSenha": "SenhaForte123"
+}
+```
+
+## Fluxo de recuperação de senha por email
+
+Para utilizadores com senha já configurada:
+
+1. `POST /api/v1/auth/password-recovery/start` com `codigo`
+2. `POST /api/v1/auth/password-recovery/finish` com `codigo`, `token` e `novaSenha`
 
 Exemplo de início:
 

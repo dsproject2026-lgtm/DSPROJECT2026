@@ -32,7 +32,7 @@ export const verifyAccessToken = (token: string): AccessTokenPayload => {
       typeof decoded.codigo !== 'string' ||
       typeof decoded.perfil !== 'string'
     ) {
-      throw new AppError('Authentication token is invalid.', 401, 'AUTH_INVALID_TOKEN');
+      throw new AppError('O token de autenticação é inválido.', 401, 'AUTH_INVALID_TOKEN');
     }
 
     return {
@@ -42,7 +42,7 @@ export const verifyAccessToken = (token: string): AccessTokenPayload => {
       purpose: 'ACCESS',
     };
   } catch {
-    throw new AppError('Authentication token is invalid.', 401, 'AUTH_INVALID_TOKEN');
+    throw new AppError('O token de autenticação é inválido.', 401, 'AUTH_INVALID_TOKEN');
   }
 };
 
@@ -73,7 +73,7 @@ export const verifyLoginFlowToken = (token: string): LoginFlowTokenPayload => {
       typeof decoded.codigo !== 'string'
     ) {
       throw new AppError(
-        'Invalid or expired login flow token.',
+        'Token do fluxo de login inválido ou expirado.',
         401,
         'AUTH_INVALID_LOGIN_FLOW_TOKEN',
       );
@@ -85,7 +85,7 @@ export const verifyLoginFlowToken = (token: string): LoginFlowTokenPayload => {
     };
   } catch {
     throw new AppError(
-      'Invalid or expired login flow token.',
+      'Token do fluxo de login inválido ou expirado.',
       401,
       'AUTH_INVALID_LOGIN_FLOW_TOKEN',
     );

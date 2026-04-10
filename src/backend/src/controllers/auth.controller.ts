@@ -9,6 +9,9 @@ import type {
   LoginFinishInput,
   LoginResult,
   LoginStartInput,
+  PasswordRecoveryFinishInput,
+  PasswordRecoveryStartInput,
+  PasswordRecoveryStartResult,
   RefreshTokenInput,
   RefreshTokenResult,
   RegisterInput,
@@ -48,6 +51,16 @@ const firstAccessFinishSchema = z.object({
   novaSenha: z.string().min(8).max(255),
 });
 
+const passwordRecoveryStartSchema = z.object({
+  codigo: z.string().trim().min(1).max(50),
+});
+
+const passwordRecoveryFinishSchema = z.object({
+  codigo: z.string().trim().min(1).max(50),
+  token: z.string().trim().min(20).max(255),
+  novaSenha: z.string().min(8).max(255),
+});
+
 const refreshTokenSchema = z.object({
   refreshToken: z.string().trim().min(20).max(255),
 });
@@ -69,7 +82,7 @@ export const registerUser: RequestHandler = async (request, response) => {
 
   response.status(201).json(
     buildSuccessResponse({
-      message: 'User registered successfully.',
+      message: 'Utilizador registado com sucesso.',
       data: user,
       request,
       statusCode: 201,
@@ -84,8 +97,8 @@ export const startLogin: RequestHandler = async (request, response) => {
   const result = await authService.startLogin(input);
   const message =
     result.nextStep === 'PASSWORD'
-      ? 'Login flow initiated. Please provide your password.'
-      : 'Password setup required. A first-access token has been sent to your email.';
+      ? 'Fluxo de login iniciado. Introduza a sua senha.'
+      : 'Configuração de senha obrigatória. Foi enviado um token de primeiro acesso para o seu email.';
 
   response.status(200).json(
     buildSuccessResponse({
@@ -105,7 +118,7 @@ export const startFirstAccess: RequestHandler = async (request, response) => {
 
   response.status(200).json(
     buildSuccessResponse({
-      message: 'First access flow initiated. Check your email for the access token.',
+      message: 'Fluxo de primeiro acesso iniciado. Verifique o seu email para obter o token.',
       data: result,
       request,
       statusCode: 200,
@@ -130,7 +143,48 @@ export const finishFirstAccess: RequestHandler = async (request, response) => {
 
   response.status(200).json(
     buildSuccessResponse({
-      message: 'First access completed successfully.',
+      message: 'Primeiro acesso concluído com sucesso.',
+      data: result,
+      request,
+      statusCode: 200,
+    }),
+  );
+};
+
+export const startPasswordRecovery: RequestHandler = async (request, response) => {
+  const { codigo } = passwordRecoveryStartSchema.parse(request.body);
+
+  const input: PasswordRecoveryStartInput = { codigo };
+  const result: PasswordRecoveryStartResult = await authService.startPasswordRecovery(input);
+
+  response.status(200).json(
+    buildSuccessResponse({
+      message: 'Recuperação de senha iniciada. Verifique o seu email para obter o link.',
+      data: result,
+      request,
+      statusCode: 200,
+    }),
+  );
+};
+
+export const finishPasswordRecovery: RequestHandler = async (request, response) => {
+  const { codigo, token, novaSenha } = passwordRecoveryFinishSchema.parse(request.body);
+  const userAgentHeader = request.headers['user-agent'];
+  const userAgent = typeof userAgentHeader === 'string' ? userAgentHeader : undefined;
+
+  const input: PasswordRecoveryFinishInput = {
+    codigo,
+    token,
+    novaSenha,
+  };
+  const result: LoginResult = await authService.finishPasswordRecovery(input, {
+    ip: getClientIp(request),
+    ...(userAgent !== undefined ? { userAgent } : {}),
+  });
+
+  response.status(200).json(
+    buildSuccessResponse({
+      message: 'Senha redefinida com sucesso.',
       data: result,
       request,
       statusCode: 200,
@@ -155,7 +209,7 @@ export const finishLogin: RequestHandler = async (request, response) => {
 
   response.status(200).json(
     buildSuccessResponse({
-      message: 'Login successful.',
+      message: 'Login concluído com sucesso.',
       data: result,
       request,
       statusCode: 200,
@@ -175,7 +229,7 @@ export const refreshAccessToken: RequestHandler = async (request, response) => {
 
   response.status(200).json(
     buildSuccessResponse({
-      message: 'Access token refreshed successfully.',
+      message: 'Access token renovado com sucesso.',
       data: result,
       request,
       statusCode: 200,
@@ -190,7 +244,7 @@ export const logout: RequestHandler = async (request, response) => {
 
   response.status(200).json(
     buildSuccessResponse({
-      message: 'Logout completed successfully.',
+      message: 'Sessão terminada com sucesso.',
       data: {
         revoked: true,
       },
@@ -202,14 +256,14 @@ export const logout: RequestHandler = async (request, response) => {
 
 export const getCurrentUser: RequestHandler = async (request, response) => {
   if (!request.auth) {
-    throw new AppError('Authentication token is required.', 401, 'AUTH_TOKEN_REQUIRED');
+    throw new AppError('O token de autenticação é obrigatório.', 401, 'AUTH_TOKEN_REQUIRED');
   }
 
   const user = await authService.getCurrentUser(request.auth.sub);
 
   response.status(200).json(
     buildSuccessResponse({
-      message: 'Authenticated user loaded successfully.',
+      message: 'Utilizador autenticado carregado com sucesso.',
       data: user,
       request,
       statusCode: 200,

@@ -10,14 +10,14 @@ export const authenticateAccessToken: RequestHandler = (request, _response, next
   const authorization = request.headers.authorization;
 
   if (!authorization || !authorization.startsWith(BEARER_PREFIX)) {
-    next(new AppError('Authentication token is required.', 401, 'AUTH_TOKEN_REQUIRED'));
+    next(new AppError('O token de autenticação é obrigatório.', 401, 'AUTH_TOKEN_REQUIRED'));
     return;
   }
 
   const token = authorization.slice(BEARER_PREFIX.length).trim();
 
   if (!token) {
-    next(new AppError('Authentication token is required.', 401, 'AUTH_TOKEN_REQUIRED'));
+    next(new AppError('O token de autenticação é obrigatório.', 401, 'AUTH_TOKEN_REQUIRED'));
     return;
   }
 
@@ -30,13 +30,13 @@ export const requirePerfis = (...perfis: Perfil[]): RequestHandler => {
     const authenticatedPerfil = request.auth?.perfil;
 
     if (!authenticatedPerfil) {
-      next(new AppError('Authentication token is required.', 401, 'AUTH_TOKEN_REQUIRED'));
+      next(new AppError('O token de autenticação é obrigatório.', 401, 'AUTH_TOKEN_REQUIRED'));
       return;
     }
 
     if (!perfis.includes(authenticatedPerfil)) {
       next(
-        new AppError('You do not have permission to access this resource.', 403, 'AUTH_FORBIDDEN'),
+        new AppError('Não tem permissão para aceder a este recurso.', 403, 'AUTH_FORBIDDEN'),
       );
       return;
     }

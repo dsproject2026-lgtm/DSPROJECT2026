@@ -8,6 +8,7 @@ const { authRepositoryMock, emailServiceMock } = vi.hoisted(() => ({
   },
   emailServiceMock: {
     sendFirstAccessEmail: vi.fn(),
+    sendPasswordRecoveryEmail: vi.fn(),
   },
 }));
 
