@@ -12,6 +12,10 @@
     "dev": "npm run prisma:generate && nodemon",
     "build": "npm run prisma:generate && tsc -p tsconfig.json",
     "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:watch": "vitest",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --check .",
@@ -59,15 +63,18 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.5.2",
     "@types/nodemailer": "^8.0.0",
+    "@types/supertest": "^7.2.0",
     "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
     "prisma": "^7.7.0",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.1"
+    "typescript-eslint": "^8.58.1",
+    "vitest": "^4.1.4"
   }
 }

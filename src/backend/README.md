@@ -89,6 +89,10 @@ npm run dev
 npm run dev
 npm run build
 npm run start
+npm run test
+npm run test:unit
+npm run test:integration
+npm run test:watch
 npm run lint
 npm run lint:fix
 npm run format
@@ -100,6 +104,21 @@ npm run prisma:push
 npm run prisma:pull
 npm run prisma:studio
 ```
+
+## Testes
+
+O backend usa `Vitest` para testes unitários e de integração.
+
+```bash
+npm run test
+npm run test:unit
+npm run test:integration
+```
+
+Estrutura:
+
+- `tests/unit`: testes unitários (ex.: utilitários de token e regras de serviço)
+- `tests/integration`: testes de integração HTTP com `supertest` (rotas e middleware)
 
 ## Base de dados e migrations
 
