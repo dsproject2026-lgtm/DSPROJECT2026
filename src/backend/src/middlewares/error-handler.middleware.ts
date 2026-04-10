@@ -11,22 +11,21 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, next
     return;
   }
 
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'type' in error &&
-    error.type === 'entity.too.large'
-  ) {
-    response.status(413).json(
-      buildErrorResponse({
-        code: 'PAYLOAD_TOO_LARGE',
-        message: 'Request body exceeds the allowed size limit.',
-        statusCode: 413,
-        ...(error instanceof Error ? { error } : {}),
-        request,
-      }),
-    );
-    return;
+  if (typeof error === 'object' && error !== null) {
+    const errorWithType = error as { type?: unknown };
+
+    if (errorWithType.type === 'entity.too.large') {
+      response.status(413).json(
+        buildErrorResponse({
+          code: 'PAYLOAD_TOO_LARGE',
+          message: 'Request body exceeds the allowed size limit.',
+          statusCode: 413,
+          ...(error instanceof Error ? { error } : {}),
+          request,
+        }),
+      );
+      return;
+    }
   }
 
   if (error instanceof ZodError) {

@@ -38,9 +38,11 @@ export interface UtilizadorEntity {
   id: EntityId;
   codigo: string;
   nome: string;
-  senhaHash: string;
+  email: Nullable<string>;
+  senhaHash: Nullable<string>;
   perfil: Perfil;
   activo: boolean;
+  mustSetPassword: boolean;
   createdAt: Timestamp;
 }
 
@@ -158,19 +160,21 @@ export type UpdateEleicaoInput = Partial<CreateEleicaoInput>;
 export interface CreateUtilizadorInput {
   codigo: string;
   nome: string;
+  email?: Nullable<string>;
   perfil: Perfil;
   activo?: boolean;
+  mustSetPassword?: boolean;
 }
 
 export interface CreateUtilizadorComSenhaHashInput extends CreateUtilizadorInput {
-  senhaHash: string;
+  senhaHash?: Nullable<string>;
 }
 
 export interface UpdateUtilizadorInput {
   nome?: string;
   perfil?: Perfil;
   activo?: boolean;
-  senhaHash?: string;
+  senhaHash?: Nullable<string>;
 }
 
 export interface CreateCandidatoInput {

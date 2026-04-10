@@ -65,9 +65,13 @@ model Utilizador {
   id          String   @id @default(uuid())
   codigo      String   @unique @db.VarChar(50)
   nome        String   @db.VarChar(150)
-  senhaHash   String   @map("senha_hash") @db.Text
+  email       String?  @unique @db.VarChar(255)
+  senhaHash   String?  @map("senha_hash") @db.Text
   perfil      Perfil
   activo      Boolean  @default(true)
+  mustSetPassword Boolean @default(false) @map("must_set_password")
+  passwordSetupTokenHash String? @map("password_setup_token_hash") @db.Text
+  passwordSetupTokenExpiresAt DateTime? @map("password_setup_token_expires_at") @db.Timestamptz
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   elegiveis           Elegivel[]
@@ -75,8 +79,27 @@ model Utilizador {
   logsAuditoria       LogAuditoria[]
   candidaturas        Candidato[] @relation("CandidaturaDoUtilizador")
   candidatosRegistados Candidato[] @relation("RegistadoPor")
+  refreshTokens       RefreshToken[]
 
   @@map("utilizadores")
+}
+
+model RefreshToken {
+  id                 String    @id @default(uuid())
+  utilizadorId       String    @map("utilizador_id")
+  tokenHash          String    @unique @map("token_hash") @db.Text
+  expiresAt          DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt          DateTime? @map("revoked_at") @db.Timestamptz
+  replacedByTokenHash String?  @map("replaced_by_token_hash") @db.Text
+  ip                 String?   @db.VarChar(45)
+  userAgent          String?   @map("user_agent") @db.VarChar(255)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  utilizador Utilizador @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
+
+  @@index([utilizadorId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
 }
 
 enum Perfil {

@@ -1,12 +1,13 @@
 import jwt from 'jsonwebtoken';
 
 import { env } from '../config/env.js';
-import type { JwtPayload, LoginFlowTokenPayload } from '../types/auth.types.js';
+import type { AccessTokenPayload, JwtPayload, LoginFlowTokenPayload } from '../types/auth.types.js';
 import { AppError } from './app-error.js';
 
 const JWT_ISSUER = 'dsproject2026-backend';
-const ACCESS_TOKEN_EXPIRES_IN = '12h';
-export const LOGIN_FLOW_TOKEN_EXPIRES_IN_SECONDS = 30000;
+export const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 12 * 60 * 60;
+const ACCESS_TOKEN_EXPIRES_IN = `${ACCESS_TOKEN_EXPIRES_IN_SECONDS}s`;
+export const LOGIN_FLOW_TOKEN_EXPIRES_IN_SECONDS = 300;
 
 export const generateAccessToken = (payload: JwtPayload) => {
   return jwt.sign(payload, env.JWT_SECRET, {
@@ -14,6 +15,35 @@ export const generateAccessToken = (payload: JwtPayload) => {
     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
     issuer: JWT_ISSUER,
   });
+};
+
+export const verifyAccessToken = (token: string): AccessTokenPayload => {
+  try {
+    const decoded = jwt.verify(token, env.JWT_SECRET, {
+      audience: 'api',
+      issuer: JWT_ISSUER,
+    });
+
+    if (
+      typeof decoded !== 'object' ||
+      decoded === null ||
+      decoded.purpose !== 'ACCESS' ||
+      typeof decoded.sub !== 'string' ||
+      typeof decoded.codigo !== 'string' ||
+      typeof decoded.perfil !== 'string'
+    ) {
+      throw new AppError('Authentication token is invalid.', 401, 'AUTH_INVALID_TOKEN');
+    }
+
+    return {
+      sub: decoded.sub,
+      codigo: decoded.codigo,
+      perfil: decoded.perfil as AccessTokenPayload['perfil'],
+      purpose: 'ACCESS',
+    };
+  } catch {
+    throw new AppError('Authentication token is invalid.', 401, 'AUTH_INVALID_TOKEN');
+  }
 };
 
 export const generateLoginFlowToken = (codigo: string) => {

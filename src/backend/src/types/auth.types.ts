@@ -16,12 +16,24 @@ export interface LoginFinishInput {
   loginFlowToken: string;
 }
 
+export interface FirstAccessStartInput {
+  codigo: string;
+}
+
+export interface FirstAccessFinishInput {
+  codigo: string;
+  token: string;
+  novaSenha: string;
+}
+
 export interface RegisterInput {
   codigo: string;
   nome: string;
-  senha: string;
+  email?: string;
+  senha?: string;
   perfil: Perfil;
   activo?: boolean;
+  mustSetPassword?: boolean;
 }
 
 export type CreateAuthUserInput = CreateUtilizadorComSenhaHashInput;
@@ -31,6 +43,7 @@ export interface JwtPayload {
   sub: EntityId;
   codigo: string;
   perfil: Perfil;
+  purpose: 'ACCESS';
 }
 
 export interface LoginFlowTokenPayload {
@@ -38,17 +51,48 @@ export interface LoginFlowTokenPayload {
   purpose: 'LOGIN_FLOW';
 }
 
+export type AccessTokenPayload = JwtPayload;
+
+export interface RequestSecurityContext {
+  ip?: string;
+  userAgent?: string;
+}
+
 export interface AuthenticatedUser extends UtilizadorPublico {
   candidaturas: CandidatoEntity[];
 }
 
-export interface LoginStartResult {
-  loginFlowToken: string;
-  nextStep: 'PASSWORD';
+export type LoginStartResult =
+  | {
+      loginFlowToken: string;
+      nextStep: 'PASSWORD';
+      expiresInSeconds: number;
+    }
+  | {
+      nextStep: 'EMAIL_TOKEN';
+      expiresInSeconds: number;
+    };
+
+export interface FirstAccessStartResult {
   expiresInSeconds: number;
+  nextStep: 'EMAIL_TOKEN';
 }
 
 export interface LoginResult {
   accessToken: string;
+  refreshToken: string;
+  accessTokenExpiresInSeconds: number;
+  refreshTokenExpiresInSeconds: number;
   user: AuthenticatedUser;
+}
+
+export interface RefreshTokenInput {
+  refreshToken: string;
+}
+
+export interface RefreshTokenResult {
+  accessToken: string;
+  refreshToken: string;
+  accessTokenExpiresInSeconds: number;
+  refreshTokenExpiresInSeconds: number;
 }
