@@ -6,11 +6,14 @@ import { PageTitle } from '@/components/common/PageTitle';
 import { Spinner } from '@/components/ui';
 import { ApiError } from '@/lib/http/api-error';
 import type { ElectionSummary } from '@/types/election';
+import { useSearchParams } from "react-router-dom";
 
 export function ElectionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [elections, setElections] = useState<ElectionSummary[]>([]);
+  const [searchParams] = useSearchParams();
+  const electionId = searchParams.get("id");
 
   useEffect(() => {
     const load = async () => {

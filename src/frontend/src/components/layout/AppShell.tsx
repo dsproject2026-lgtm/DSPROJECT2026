@@ -15,7 +15,7 @@ export function AppShell({ children }: PropsWithChildren) {
       try {
         await authApi.logout(session.refreshToken);
       } catch {
-        // ignore remote logout failures, local logout still happens
+        // ignore remote logout failures
       }
     }
 
@@ -24,44 +24,35 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg w-full">
+      
+      {/* HEADER */}
       <header className="border-b border-border bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="text-lg font-semibold text-text-primary">SiVOU-P Frontend</div>
+        <div className="max-w-[1024px] mx-auto flex flex-row sm:flex-row items-center justify-between p-4 gap-3">
 
-          <nav className="flex items-center gap-2">
-            <NavLink
-              className={({ isActive }) =>
-                `rounded-md px-3 py-2 text-sm font-medium ${
-                  isActive ? 'bg-primary-light text-primary' : 'text-text-secondary hover:bg-bg-subtle'
-                }`
-              }
-              to="/dashboard"
-            >
-              Dashboard
-            </NavLink>
-            <NavLink
-              className={({ isActive }) =>
-                `rounded-md px-3 py-2 text-sm font-medium ${
-                  isActive ? 'bg-primary-light text-primary' : 'text-text-secondary hover:bg-bg-subtle'
-                }`
-              }
-              to="/elections"
-            >
-              Elections
-            </NavLink>
-            <Button size="sm" variant="danger" onPress={handleLogout}>
-              Logout
-            </Button>
-          </nav>
+          {/* LOGO */}
+          <div className="flex items-center gap-3">
+            <img src="/images/logo.svg" alt="logoup" className="h-10 w-10 sm:h-12 sm:w-12" />
+            <h2 className="text-xl sm:text-2xl font-bold">SIVO-UP</h2>
+          </div>
+
+          {/* AVATAR / ACTIONS */}
+          <div className="h-10 w-10 sm:h-12 sm:w-12 bg-gray-500 rounded-[50%]" >
+            
+          </div>
+
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl p-6">
+      {/* MAIN */}
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-6">
         <Card>
-          <CardContent className="p-6">{children}</CardContent>
+          <CardContent className="p-4 sm:p-6">
+            {children}
+          </CardContent>
         </Card>
       </main>
+
     </div>
   );
 }
