@@ -105,14 +105,14 @@ export function AppRouter() {
       <Route
         path="/admin"
         element={
-          <ProtectedRoute allowedPerfis={['ADMIN']}>
+          // <ProtectedRoute allowedPerfis={['ADMIN']}>
             <BackofficeLayout
               basePath={adminConfig.basePath}
               identityLabel={adminConfig.identityLabel}
               identityCampus={adminConfig.identityCampus}
               navItems={adminConfig.navItems}
             />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         }
       >
         <Route index element={<Navigate to="dashboard" replace />} />
@@ -127,14 +127,14 @@ export function AppRouter() {
       <Route
         path="/comissao"
         element={
-          <ProtectedRoute allowedPerfis={['GESTOR_ELEITORAL']}>
+          // <ProtectedRoute allowedPerfis={['GESTOR_ELEITORAL']}>
             <BackofficeLayout
               basePath={commissionConfig.basePath}
               identityLabel={commissionConfig.identityLabel}
               identityCampus={commissionConfig.identityCampus}
               navItems={commissionConfig.navItems}
             />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         }
       >
         <Route index element={<Navigate to="dashboard" replace />} />
@@ -149,14 +149,14 @@ export function AppRouter() {
       <Route
         path="/fiscal"
         element={
-          <ProtectedRoute allowedPerfis={['AUDITOR']}>
+          // <ProtectedRoute allowedPerfis={['AUDITOR']}>
             <BackofficeLayout
               basePath={fiscalConfig.basePath}
               identityLabel={fiscalConfig.identityLabel}
               identityCampus={fiscalConfig.identityCampus}
               navItems={fiscalConfig.navItems}
             />
-          </ProtectedRoute>
+          // </ProtectedRoute>
         }
       >
         <Route index element={<Navigate to="dashboard" replace />} />
