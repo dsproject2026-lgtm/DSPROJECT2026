@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { electorElectionsData } from '@/features/elector/data/elections';
+
 const filters = [
   { key: 'TODAS', label: 'Todas' },
   { key: 'ACTIVA', label: 'Activa' },
@@ -10,35 +12,11 @@ const filters = [
 
 type ElectionFilter = (typeof filters)[number]['key'];
 
-const electionsData = [
-  {
-    id: 1,
-    status: 'ACTIVA',
-    title: 'Eleições AEUP 2026',
-    desc: 'Associação de Estudantes da Universidade Pedagógica - Mandato Bienal.',
-    date: '12 MAI - 14 MAI, 2026',
-  },
-  {
-    id: 2,
-    status: 'PROGRAMADA',
-    title: 'Eleições AEUP 2026',
-    desc: 'Associação de Estudantes da Universidade Pedagógica - Mandato Bienal.',
-    date: '12 MAI - 14 MAI, 2026',
-  },
-  {
-    id: 3,
-    status: 'PARTICIPOU',
-    title: 'Conselho Universitário',
-    desc: 'Representantes de curso para o Conselho Geral da Gestão Universitária.',
-    date: '20 JUN - 22 JUN, 2026',
-  },
-];
-
 export function ElectorDashboardPage() {
   const [filter, setFilter] = useState<ElectionFilter>('TODAS');
   const navigate = useNavigate();
 
-  const filtered = electionsData.filter((e) => {
+  const filtered = electorElectionsData.filter((e) => {
     if (filter === 'TODAS') return true;
     return e.status === filter;
   });
@@ -78,7 +56,7 @@ export function ElectorDashboardPage() {
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={`rounded-xl border px-4 py-2 text-[11px] leading-none font-medium transition sm:text-[12px] ${
+                className={`rounded-xl border px-4 py-2 text-[14px] leading-none font-medium transition ${
                   filter === f.key
                     ? 'border-[#dbe1ea] bg-white text-[#151923]'
                     : 'border-transparent text-[#464c56]'
@@ -120,9 +98,9 @@ export function ElectorDashboardPage() {
               <h3 className="text-[20px] leading-[1.08] font-bold tracking-[-0.02em] text-[#171d2a] sm:text-[22px]">
                 {e.title}
               </h3>
-              <p className="mt-2 text-[12px] leading-[1.4] text-[#5d6472]">{e.desc}</p>
+              <p className="mt-2 text-[14px] leading-[1.4] text-[#5d6472]">{e.desc}</p>
 
-              <div className="mt-4 flex items-center gap-2 text-[10px] font-medium tracking-[0.08em] text-[#7f8693] uppercase">
+              <div className="mt-4 flex items-center gap-2 text-[14px] font-medium text-[#7f8693]">
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
@@ -152,6 +130,7 @@ export function ElectorDashboardPage() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => navigate(`/eleitor/election-details/${e.id}`)}
                       className="h-12 min-w-0 flex-1 rounded-[2px] border border-[#d6d8dd] bg-[#f7f8fa] px-3 text-[11px] font-semibold tracking-[0.02em] text-[#2050d8] uppercase sm:min-w-[114px] sm:flex-none"
                     >
                       Detalhes
@@ -160,6 +139,7 @@ export function ElectorDashboardPage() {
                 ) : (
                   <button
                     type="button"
+                    onClick={() => navigate(`/eleitor/election-details/${e.id}`)}
                     className="h-12 w-full rounded-[2px] border border-[#d8dbe1] bg-[#f7f8fa] text-[11px] font-semibold tracking-[0.02em] text-[#1f2531] uppercase"
                   >
                     Ver detalhes
@@ -173,4 +153,3 @@ export function ElectorDashboardPage() {
     </div>
   );
 }
-

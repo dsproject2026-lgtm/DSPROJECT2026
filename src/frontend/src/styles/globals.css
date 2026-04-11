@@ -66,3 +66,54 @@ a {
 .animate-logo-flicker {
   animation: logo-flicker 1.7s ease-in-out infinite;
 }
+
+@keyframes elector-skeleton-flicker {
+  0% {
+    opacity: 0.48;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.48;
+  }
+}
+
+.elector-flicker {
+  animation: elector-skeleton-flicker 1.25s ease-in-out infinite;
+}
+
+@keyframes elector-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.elector-page-enter {
+  animation: elector-page-enter 220ms ease-out both;
+}
+
+@keyframes skeleton-flicker-shimmer {
+  0% {
+    background-position: 200% 0;
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    background-position: -200% 0;
+    opacity: 0.7;
+  }
+}
+
+.skeleton-flicker {
+  background: linear-gradient(90deg, #e5e7eb 20%, #f3f4f6 45%, #e5e7eb 70%);
+  background-size: 220% 100%;
+  animation: skeleton-flicker-shimmer 1.25s linear infinite;
+}

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { saveElectorVoteReceipt } from '@/features/elector/lib/vote-receipt';
+
 interface CandidateOption {
   id: string;
   nome: string;
@@ -266,7 +268,7 @@ function CandidateDetailsModal({
                   Proposta Eleitoral
                 </h4>
               </div>
-              <p className="text-[13px] leading-5 text-[#374151]}">{candidate.propostaEleitoral}</p>
+              <p className="text-[13px] leading-5 text-[#374151]">{candidate.propostaEleitoral}</p>
             </div>
           </div>
         </div>
@@ -279,12 +281,14 @@ function VoteConfirmationModal({
   isOpen,
   candidateName,
   officeName,
+  isSubmitting,
   onClose,
   onConfirm,
 }: {
   isOpen: boolean;
   candidateName: string;
   officeName: string;
+  isSubmitting: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }) {
@@ -294,11 +298,12 @@ function VoteConfirmationModal({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 px-4">
-      <div className="relative w-full max-w-sm rounded-[24px] bg-white px-5 pb-5 pt-6 shadow-2xl">
+      <div className="relative w-full max-w-sm rounded-[24px] border border-[#e5e7eb] bg-white px-5 pb-5 pt-6 shadow-2xl">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 text-[#7b8794]"
+          disabled={isSubmitting}
+          className="absolute right-4 top-4 rounded-full p-1 text-[#7b8794] transition hover:bg-[#f3f4f6] disabled:opacity-50"
           aria-label="Fechar"
         >
           <svg
@@ -314,7 +319,7 @@ function VoteConfirmationModal({
           </svg>
         </button>
 
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center text-center">
           <div className="flex items-center gap-2 text-[#16a34a]">
             <svg
               viewBox="0 0 24 24"
@@ -328,10 +333,22 @@ function VoteConfirmationModal({
             </span>
           </div>
 
-          <p className="mt-7 max-w-[260px] text-center text-[18px] leading-8 text-[#1f2937]">
-            Tem certeza que deseja votar em{' '}
-            <span className="font-extrabold">{candidateName}</span> para o cargo de{' '}
-            <span className="font-extrabold">{officeName}</span>?
+          <p className="mt-6 text-[15px] leading-6 text-[#374151]">
+            Você está prestes a confirmar o seu voto.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-[#e5e7eb] bg-[#f8fafc] px-4 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#6b7280]">Candidato</p>
+          <p className="mt-1 text-[15px] font-extrabold text-[#111827]">{candidateName}</p>
+          <div className="mt-3 h-px bg-[#e5e7eb]" />
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#6b7280]">Cargo</p>
+          <p className="mt-1 text-[14px] font-semibold text-[#1f2937]">{officeName}</p>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-[#f3d48f] bg-[#fff7e6] px-3 py-2">
+          <p className="text-[11px] text-[#8a5a00]">
+            Após confirmar, não será possível alterar esta escolha.
           </p>
         </div>
 
@@ -339,7 +356,8 @@ function VoteConfirmationModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-xl bg-[#f3f4f6] px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#111827]"
+            disabled={isSubmitting}
+            className="flex-1 rounded-xl bg-[#f3f4f6] px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Rever escolha
           </button>
@@ -347,9 +365,17 @@ function VoteConfirmationModal({
           <button
             type="button"
             onClick={onConfirm}
-            className="flex-1 rounded-xl bg-[#16a34a] px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-white"
+            disabled={isSubmitting}
+            className="flex-1 rounded-xl bg-[#16a34a] px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-white disabled:cursor-not-allowed disabled:opacity-80"
           >
-            Confirmar
+            {isSubmitting ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/45 border-t-white" />
+                A processar...
+              </span>
+            ) : (
+              'Confirmar'
+            )}
           </button>
         </div>
       </div>
@@ -364,6 +390,7 @@ export function ElectorElectionsPage() {
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [detailsCandidateId, setDetailsCandidateId] = useState<string | null>(null);
   const [isVoteConfirmationOpen, setIsVoteConfirmationOpen] = useState(false);
+  const [isSubmittingVote, setIsSubmittingVote] = useState(false);
 
   const election = useMemo(() => {
     if (!electionId) return null;
@@ -416,18 +443,21 @@ export function ElectorElectionsPage() {
   }
 
   const handleConfirmVote = () => {
-    if (!selectedCandidate) return;
+    if (!selectedCandidate || isSubmittingVote) return;
+    setIsSubmittingVote(true);
 
     const confirmedAt = new Date().toISOString();
     const confirmationCode = buildConfirmationCode();
+    saveElectorVoteReceipt({
+      electionId: election.id,
+      candidateId: selectedCandidate.id,
+      confirmedAt,
+      confirmationCode,
+    });
 
-    navigate(
-      `/eleitor/confirmacao?electionId=${encodeURIComponent(
-        election.id,
-      )}&candidateId=${encodeURIComponent(selectedCandidate.id)}&confirmedAt=${encodeURIComponent(
-        confirmedAt,
-      )}&confirmationCode=${encodeURIComponent(confirmationCode)}`,
-    );
+    window.setTimeout(() => {
+      navigate('/eleitor/confirmacao');
+    }, 900);
   };
 
   return (
@@ -550,7 +580,12 @@ export function ElectorElectionsPage() {
         isOpen={isVoteConfirmationOpen && Boolean(selectedCandidate)}
         candidateName={selectedCandidate?.nome ?? ''}
         officeName={election.cargo}
-        onClose={() => setIsVoteConfirmationOpen(false)}
+        isSubmitting={isSubmittingVote}
+        onClose={() => {
+          if (!isSubmittingVote) {
+            setIsVoteConfirmationOpen(false);
+          }
+        }}
         onConfirm={handleConfirmVote}
       />
     </>

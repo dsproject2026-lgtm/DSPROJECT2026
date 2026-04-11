@@ -1,0 +1,1 @@
+export { ElectorConfirmationPage } from './ElectorPages';

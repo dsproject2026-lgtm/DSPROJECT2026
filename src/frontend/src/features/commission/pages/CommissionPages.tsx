@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   BadgeCheck,
@@ -9,16 +10,16 @@ import {
   FileDown,
   GraduationCap,
   Image as ImageIcon,
+  ListFilter,
   Lock,
   Pencil,
   Plus,
   Save,
   Search,
   Trash2,
-  Upload,
-  User,
   Users,
   Vote,
+  X,
 } from 'lucide-react';
 
 type ElectionStatus = 'rascunho' | 'programada' | 'activa' | 'encerrada';
@@ -122,7 +123,7 @@ const STORAGE_KEYS = {
 const DEFAULT_PROFILE: UserProfile = {
   name: 'João Machava',
   email: 'joao.machava@up.ac.mz',
-  photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+  photo: '',
   theme: 'Claro',
 };
 
@@ -372,9 +373,9 @@ function StatCard({ label, value, icon, accent }: { label: string; value: string
 
 function PageSection({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <section className="rounded-sm bg-white p-4 shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
+    <section className="rounded-md bg-white p-5 shadow-[0_0_0_1px_rgba(15,23,42,0.05)]">
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="text-[14px] font-semibold text-slate-900">{title}</h2>
+        <h2 className="text-[16px] font-semibold text-slate-900">{title}</h2>
         {right}
       </div>
       {children}
@@ -398,47 +399,22 @@ function FormField({ label, error, children }: { label: string; error?: string; 
 }
 
 function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[13px] outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${props.className ?? ''}`} />;
+  return <input {...props} className={`h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[14px] outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${props.className ?? ''}`} />;
 }
 
 function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={`min-h-[110px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-[13px] outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${props.className ?? ''}`} />;
+  return <textarea {...props} className={`min-h-[110px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-[14px] outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${props.className ?? ''}`} />;
 }
 
 function SecondaryButton({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button {...props} className={`inline-flex h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 ${props.className ?? ''}`}>{children}</button>;
+  return <button {...props} className={`inline-flex h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 ${props.className ?? ''}`}>{children}</button>;
 }
 
 function PrimaryButton({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button {...props} className={`inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-[12px] font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 ${props.className ?? ''}`}>{children}</button>;
+  return <button {...props} className={`inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-[13px] font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 ${props.className ?? ''}`}>{children}</button>;
 }
 
-function AppShell({ active, title, actions, children }: { active: string; title: string; actions?: React.ReactNode; children: React.ReactNode }) {
-  const [profile, setProfile] = useStoredState<UserProfile>(STORAGE_KEYS.profile, DEFAULT_PROFILE);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'view' | 'edit'>('view');
-  const [draftProfile, setDraftProfile] = useState<UserProfile>(profile);
-
-  useEffect(() => {
-    setDraftProfile(profile);
-  }, [profile]);
-
-  function saveProfile() {
-    setProfile(draftProfile);
-    setViewMode('view');
-  }
-
-  function handlePhotoUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === 'string' ? reader.result : profile.photo;
-      setDraftProfile((prev) => ({ ...prev, photo: result }));
-    };
-    reader.readAsDataURL(file);
-  }
-
+function AppShell({ active: _active, title, actions, children }: { active: string; title: string; actions?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#f3f4f6] px-6 py-5 text-slate-900">
       <main>
@@ -447,61 +423,8 @@ function AppShell({ active, title, actions, children }: { active: string; title:
             <h1 className="text-[32px] font-semibold tracking-[-0.02em] text-slate-900">{title}</h1>
             <p className="mt-1 text-[11px] capitalize text-slate-500">{formatDateTime(new Date())}</p>
           </div>
-          <div className="flex items-center gap-3">
-            {actions}
-            <button type="button" onClick={() => setProfileOpen((prev) => !prev)} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm" aria-label="Abrir perfil">
-              {profile.photo ? <img src={profile.photo} alt={profile.name} className="h-full w-full object-cover" /> : <User className="h-5 w-5 text-slate-500" />}
-            </button>
-          </div>
+          <div className="flex items-center gap-3">{actions}</div>
         </div>
-
-        {profileOpen && (
-          <div className="mb-6 rounded-sm bg-white p-5 shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="h-20 w-20 overflow-hidden rounded-full bg-slate-100">
-                  <img src={viewMode === 'edit' ? draftProfile.photo : profile.photo} alt={profile.name} className="h-full w-full object-cover" />
-                </div>
-                <div>
-                  <p className="text-[16px] font-semibold text-slate-900">{viewMode === 'edit' ? draftProfile.name : profile.name}</p>
-                  <p className="text-[13px] text-slate-500">{viewMode === 'edit' ? draftProfile.email : profile.email}</p>
-                  <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-slate-400">{active}</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {viewMode === 'view' ? (
-                  <>
-                    <SecondaryButton type="button" onClick={() => setProfileOpen(false)} className="h-9">Fechar</SecondaryButton>
-                    <PrimaryButton type="button" onClick={() => setViewMode('edit')} className="h-9"><Pencil className="mr-2 h-4 w-4" />Editar Perfil</PrimaryButton>
-                  </>
-                ) : (
-                  <>
-                    <SecondaryButton type="button" onClick={() => setViewMode('view')} className="h-9">Cancelar</SecondaryButton>
-                    <PrimaryButton type="button" onClick={saveProfile} className="h-9"><Save className="mr-2 h-4 w-4" />Guardar</PrimaryButton>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {viewMode === 'edit' && (
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <FormField label="Nome"><TextInput value={draftProfile.name} onChange={(e) => setDraftProfile((prev) => ({ ...prev, name: e.target.value }))} /></FormField>
-                <FormField label="Email"><TextInput value={draftProfile.email} onChange={(e) => setDraftProfile((prev) => ({ ...prev, email: e.target.value }))} /></FormField>
-                <div className="md:col-span-2">
-                  <FormField label="Foto do Perfil">
-                    <div className="flex flex-wrap gap-3">
-                      <TextInput value={draftProfile.photo} onChange={(e) => setDraftProfile((prev) => ({ ...prev, photo: e.target.value }))} placeholder="URL da imagem" />
-                      <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">
-                        <Upload className="mr-2 h-4 w-4" />Carregar Foto
-                        <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-                      </label>
-                    </div>
-                  </FormField>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {children}
       </main>
@@ -519,30 +442,6 @@ function ElectionActions({ election, onView, onEdit, onDelete }: { election: Ele
           <button type="button" onClick={onDelete} className="rounded p-1 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
         </>
       )}
-    </div>
-  );
-}
-
-function ElectionDetailCard({ election, onClose }: { election: Election; onClose: () => void }) {
-  return (
-    <div className="rounded-sm bg-white p-5 shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <div>
-          <h3 className="text-[18px] font-semibold text-slate-900">Detalhes da Eleição</h3>
-          <p className="text-[12px] text-slate-500">Consulta da programação e parâmetros do processo eleitoral.</p>
-        </div>
-        <SecondaryButton type="button" onClick={onClose} className="h-9">Fechar</SecondaryButton>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Título</p><p className="mt-1 text-[14px] font-semibold text-slate-900">{election.name}</p></div>
-        <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Estado</p><p className="mt-1 text-[14px] text-slate-700">{getStatusMeta(election.status).label}</p></div>
-        <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Início</p><p className="mt-1 text-[14px] text-slate-700">{election.startDate}</p></div>
-        <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Fim</p><p className="mt-1 text-[14px] text-slate-700">{election.endDate}</p></div>
-        <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Período de Candidaturas</p><p className="mt-1 text-[14px] text-slate-700">{election.candidatureStart} — {election.candidatureEnd}</p></div>
-        <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Período de Votação</p><p className="mt-1 text-[14px] text-slate-700">{election.votingStart} — {election.votingEnd}</p></div>
-        <div className="md:col-span-2"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Descrição</p><p className="mt-1 text-[14px] leading-7 text-slate-700">{election.description}</p></div>
-        <div className="md:col-span-2"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Cargo em Disputa</p><div className="mt-2 flex flex-wrap gap-2">{election.roles.map((role) => <span key={role} className="rounded-md bg-blue-50 px-3 py-1.5 text-[12px] font-medium text-blue-700">{role}</span>)}</div></div>
-      </div>
     </div>
   );
 }
@@ -719,10 +618,25 @@ function AddElectionPanel({ onCreate, initialElection, onCancel }: { onCreate: (
 }
 
 function ElectionTable({ elections, message, onView, onEdit, onDelete, showStats = true }: { elections: Election[]; message?: string; onView: (election: Election) => void; onEdit: (election: Election) => void; onDelete: (election: Election) => void; showStats?: boolean }) {
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'todos' | ElectionStatus>('todos');
   const activeCount = elections.filter((item) => item.status === 'activa').length;
   const totalVotes = elections.reduce((sum, item) => sum + item.registeredVotes, 0);
   const eligibleStudents = elections.reduce((sum, item) => sum + item.eligibleStudents, 0);
   const participation = calculateParticipation(totalVotes, eligibleStudents);
+  const filteredElections = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return elections.filter((election) => {
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        [election.name, election.subtitle, election.startDate, election.endDate]
+          .join(' ')
+          .toLowerCase()
+          .includes(normalizedQuery);
+      const matchesStatus = statusFilter === 'todos' || election.status === statusFilter;
+      return matchesQuery && matchesStatus;
+    });
+  }, [elections, query, statusFilter]);
 
   return (
     <div className="space-y-4">
@@ -736,10 +650,38 @@ function ElectionTable({ elections, message, onView, onEdit, onDelete, showStats
         </div>
       )}
       <div>
-        <h2 className="mb-4 text-[14px] font-semibold text-slate-900">Eleições em Curso e Programadas</h2>
-        <div className="overflow-hidden rounded-sm border border-slate-200 bg-white">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-[16px] font-semibold text-slate-900">Eleições em Curso e Programadas</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[240px]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <TextInput
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Pesquisar por nome, subtítulo ou data..."
+                className="pl-10"
+              />
+            </div>
+            <label className="relative inline-flex items-center">
+              <ListFilter className="pointer-events-none absolute left-3 h-4 w-4 text-slate-400" />
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as 'todos' | ElectionStatus)}
+                className="h-10 min-w-[170px] appearance-none rounded-md border border-slate-300 bg-white pl-9 pr-8 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="todos">Todos os estados</option>
+                <option value="activa">Activa</option>
+                <option value="programada">Programada</option>
+                <option value="encerrada">Encerrada</option>
+                <option value="rascunho">Rascunho</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-[10px] uppercase tracking-[0.16em] text-slate-400">
+            <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.14em] text-slate-500">
               <tr>
                 <th className="px-4 py-3">Nome da Eleição</th>
                 <th className="px-4 py-3">Estado</th>
@@ -749,12 +691,12 @@ function ElectionTable({ elections, message, onView, onEdit, onDelete, showStats
                 <th className="px-4 py-3 text-right">Acções</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-[12px] text-slate-700">
-              {elections.map((election) => {
+            <tbody className="divide-y divide-slate-100 text-[14px] text-slate-700">
+              {filteredElections.map((election) => {
                 const statusMeta = getStatusMeta(election.status);
                 return (
-                  <tr key={election.id}>
-                    <td className="px-4 py-4"><div><p className="font-semibold text-blue-600">{election.name}</p><p className="text-[11px] text-slate-400">{election.subtitle}</p></div></td>
+                  <tr key={election.id} className="transition hover:bg-slate-50">
+                    <td className="px-4 py-4"><div><p className="font-semibold text-blue-600">{election.name}</p><p className="text-[12px] text-slate-500">{election.subtitle}</p></div></td>
                     <td className="px-4 py-4"><span className={`inline-flex rounded px-2 py-1 text-[10px] font-semibold ${statusMeta.className}`}>{statusMeta.label}</span></td>
                     <td className="px-4 py-4">{election.startDate}</td>
                     <td className="px-4 py-4">{election.endDate}</td>
@@ -763,6 +705,13 @@ function ElectionTable({ elections, message, onView, onEdit, onDelete, showStats
                   </tr>
                 );
               })}
+              {filteredElections.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-[14px] text-slate-500">
+                    Nenhuma eleição encontrada para os filtros selecionados.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -799,22 +748,59 @@ function ResultRow({ candidate, totalVotes, maxVotes }: { candidate: CandidateRe
   );
 }
 
+function DetailsModal({
+  isOpen,
+  title,
+  subtitle,
+  onClose,
+  children,
+}: {
+  isOpen: boolean;
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-lg bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+          <div>
+            <h3 className="text-[18px] font-semibold text-slate-900">{title}</h3>
+            {subtitle && <p className="mt-1 text-[13px] text-slate-500">{subtitle}</p>}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+            aria-label="Fechar modal"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="max-h-[calc(90vh-88px)] overflow-y-auto px-5 py-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export function CommissionDashboardPage() {
+  const navigate = useNavigate();
   const [elections, setElections] = useStoredState<Election[]>(STORAGE_KEYS.elections, INITIAL_ELECTIONS);
   const [message, setMessage] = useState('');
-  const [showCreateCard, setShowCreateCard] = useState(false);
   const [selectedElection, setSelectedElection] = useState<Election | null>(null);
-  const [editingElection, setEditingElection] = useState<Election | null>(null);
-
-  function saveElection(election: Election) {
-    setElections((prev) => {
-      const exists = prev.some((item) => item.id === election.id);
-      return exists ? prev.map((item) => (item.id === election.id ? election : item)) : [election, ...prev];
-    });
-    setShowCreateCard(false);
-    setEditingElection(null);
-    setMessage('Eleição guardada com sucesso.');
-  }
 
   function removeElection(election: Election) {
     setElections((prev) => prev.filter((item) => item.id !== election.id));
@@ -823,16 +809,32 @@ export function CommissionDashboardPage() {
   }
 
   return (
-    <AppShell active="overview" title="Painel de Controlo" actions={<PrimaryButton type="button" onClick={() => { setShowCreateCard((prev) => !prev); setEditingElection(null); }}><Plus className="mr-2 h-4 w-4" />Nova Eleição</PrimaryButton>}>
-      {showCreateCard && <div className="mb-6"><AddElectionPanel onCreate={saveElection} initialElection={editingElection} onCancel={() => { setShowCreateCard(false); setEditingElection(null); }} /></div>}
-      {selectedElection && <div className="mb-6"><ElectionDetailCard election={selectedElection} onClose={() => setSelectedElection(null)} /></div>}
-      <ElectionTable elections={elections} message={message} onView={setSelectedElection} onEdit={(election) => { setEditingElection(election); setShowCreateCard(true); }} onDelete={removeElection} />
+    <AppShell active="overview" title="Painel de Controlo" actions={<PrimaryButton type="button" onClick={() => navigate('/comissao/eleicoes/registrar')}><Plus className="mr-2 h-4 w-4" />Nova Eleição</PrimaryButton>}>
+      <ElectionTable elections={elections} message={message} onView={setSelectedElection} onEdit={() => navigate('/comissao/configuracoes')} onDelete={removeElection} />
+      <DetailsModal
+        isOpen={Boolean(selectedElection)}
+        title="Detalhes da Eleição"
+        subtitle="Consulta completa do processo eleitoral selecionado."
+        onClose={() => setSelectedElection(null)}
+      >
+        {selectedElection && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Nome</p><p className="mt-1 text-[16px] font-semibold text-slate-900">{selectedElection.name}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Estado</p><p className="mt-1 text-[14px] text-slate-700">{getStatusMeta(selectedElection.status).label}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Subtítulo</p><p className="mt-1 text-[14px] text-slate-700">{selectedElection.subtitle}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Período</p><p className="mt-1 text-[14px] text-slate-700">{selectedElection.startDate} — {selectedElection.endDate}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Votos Registados</p><p className="mt-1 text-[14px] text-slate-700">{formatNumber(selectedElection.registeredVotes)}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Estudantes Elegíveis</p><p className="mt-1 text-[14px] text-slate-700">{formatNumber(selectedElection.eligibleStudents)}</p></div>
+            <div className="md:col-span-2"><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Descrição</p><p className="mt-1 text-[14px] leading-7 text-slate-700">{selectedElection.description}</p></div>
+          </div>
+        )}
+      </DetailsModal>
     </AppShell>
   );
 }
 
 export function CommissionElectionsPage() {
-  const [elections, setElections] = useStoredState<Election[]>(STORAGE_KEYS.elections, INITIAL_ELECTIONS);
+  const [, setElections] = useStoredState<Election[]>(STORAGE_KEYS.elections, INITIAL_ELECTIONS);
   const [message, setMessage] = useState('');
   const [editingElection, setEditingElection] = useState<Election | null>(null);
 
@@ -909,26 +911,99 @@ export function CommissionResultsPage() {
 }
 
 export function CommissionCandidatesPage() {
+  const navigate = useNavigate();
   const [elections] = useStoredState<Election[]>(STORAGE_KEYS.elections, INITIAL_ELECTIONS);
+  const [candidateRows, setCandidateRows] = useState<CandidateItem[]>(INITIAL_CANDIDATES);
   const [selectedElectionId, setSelectedElectionId] = useState<string>('todos');
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateItem | null>(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'todos' | CandidateItem['status']>('todos');
+  const [roleFilter, setRoleFilter] = useState<string>('todos');
+
+  const roleOptions = useMemo(
+    () => ['todos', ...new Set(candidateRows.map((candidate) => candidate.role))],
+    [candidateRows],
+  );
 
   const candidates = useMemo(() => {
-    if (selectedElectionId === 'todos') return INITIAL_CANDIDATES;
-    return INITIAL_CANDIDATES.filter((candidate) => candidate.electionId === selectedElectionId);
-  }, [selectedElectionId]);
+    const normalizedQuery = search.trim().toLowerCase();
+    return candidateRows.filter((candidate) => {
+      const matchesElection =
+        selectedElectionId === 'todos' || candidate.electionId === selectedElectionId;
+      const matchesStatus = statusFilter === 'todos' || candidate.status === statusFilter;
+      const matchesRole = roleFilter === 'todos' || candidate.role === roleFilter;
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        [candidate.name, candidate.email, candidate.listName, candidate.role]
+          .join(' ')
+          .toLowerCase()
+          .includes(normalizedQuery);
+      return matchesElection && matchesStatus && matchesRole && matchesQuery;
+    });
+  }, [candidateRows, roleFilter, search, selectedElectionId, statusFilter]);
+
+  const deleteCandidate = (candidateId: string) => {
+    setCandidateRows((current) => current.filter((candidate) => candidate.id !== candidateId));
+    if (selectedCandidate?.id === candidateId) {
+      setSelectedCandidate(null);
+    }
+  };
 
   return (
     <AppShell active="candidates" title="Candidatos">
-      <PageSection title="Lista de Candidatos">
-        <div className="mb-4 flex flex-wrap gap-2">
-          <button type="button" onClick={() => setSelectedElectionId('todos')} className={`rounded-md px-3 py-2 text-[12px] font-semibold ${selectedElectionId === 'todos' ? 'bg-blue-600 text-white' : 'border border-slate-300 bg-white text-slate-700'}`}>Todas as Eleições</button>
-          {elections.map((election) => <button key={election.id} type="button" onClick={() => setSelectedElectionId(election.id)} className={`rounded-md px-3 py-2 text-[12px] font-semibold ${selectedElectionId === election.id ? 'bg-blue-600 text-white' : 'border border-slate-300 bg-white text-slate-700'}`}>{election.name}</button>)}
+      <PageSection
+        title="Lista de Candidatos"
+        right={
+          <div className="relative w-full max-w-[340px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <TextInput
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Pesquisar por nome, email ou lista"
+              className="pl-10"
+            />
+          </div>
+        }
+      >
+        <div className="mb-4 grid gap-2 md:grid-cols-3">
+          <select
+            value={selectedElectionId}
+            onChange={(event) => setSelectedElectionId(event.target.value)}
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          >
+            <option value="todos">Todas as eleições</option>
+            {elections.map((election) => (
+              <option key={election.id} value={election.id}>
+                {election.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as 'todos' | CandidateItem['status'])}
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          >
+            <option value="todos">Todos os estados</option>
+            <option value="Aprovado">Aprovado</option>
+            <option value="Em análise">Em análise</option>
+            <option value="Rejeitado">Rejeitado</option>
+          </select>
+          <select
+            value={roleFilter}
+            onChange={(event) => setRoleFilter(event.target.value)}
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          >
+            {roleOptions.map((role) => (
+              <option key={role} value={role}>
+                {role === 'todos' ? 'Todos os cargos' : role}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="overflow-hidden rounded-md border border-slate-200">
-          <table className="w-full text-left text-[12px]">
-            <thead className="bg-slate-50 text-[10px] uppercase tracking-[0.16em] text-slate-400">
+          <table className="w-full text-left text-[14px]">
+            <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.12em] text-slate-500">
               <tr>
                 <th className="px-4 py-3">Candidato</th>
                 <th className="px-4 py-3">Email</th>
@@ -940,63 +1015,131 @@ export function CommissionCandidatesPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {candidates.map((candidate) => (
-                <tr key={candidate.id}>
+                <tr key={candidate.id} className="transition hover:bg-slate-50">
                   <td className="px-4 py-4 font-semibold text-slate-800">{candidate.name}</td>
                   <td className="px-4 py-4 text-slate-600">{candidate.email}</td>
                   <td className="px-4 py-4">{candidate.role}</td>
                   <td className="px-4 py-4">{candidate.listName}</td>
-                  <td className="px-4 py-4"><span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600">{candidate.status}</span></td>
-                  <td className="px-4 py-4"><div className="flex justify-end gap-2"><SecondaryButton type="button" onClick={() => setSelectedCandidate(candidate)} className="h-8 px-3">Ver</SecondaryButton></div></td>
+                  <td className="px-4 py-4"><span className="rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">{candidate.status}</span></td>
+                  <td className="px-4 py-4">
+                    <div className="flex justify-end gap-2 text-slate-500">
+                      <button type="button" onClick={() => setSelectedCandidate(candidate)} className="rounded p-1 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Visualizar">
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => navigate('/comissao/configuracoes')} className="rounded p-1 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Editar">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => deleteCandidate(candidate.id)} className="rounded p-1 transition hover:bg-red-50 hover:text-red-600" aria-label="Deletar">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
+              {candidates.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-[14px] text-slate-500">
+                    Nenhum candidato encontrado para os filtros selecionados.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </PageSection>
 
-      {selectedCandidate && (
-        <div className="mt-6 rounded-sm bg-white p-5 shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
-          <div className="mb-5 flex items-center justify-between gap-4"><div><h2 className="text-[18px] font-semibold text-slate-900">Detalhes do Candidato</h2><p className="text-[12px] text-slate-500">Consulta completa da candidatura submetida.</p></div><SecondaryButton type="button" onClick={() => setSelectedCandidate(null)} className="h-9">Fechar</SecondaryButton></div>
+      <DetailsModal
+        isOpen={Boolean(selectedCandidate)}
+        title="Detalhes do Candidato"
+        subtitle="Consulta completa da candidatura submetida."
+        onClose={() => setSelectedCandidate(null)}
+      >
+        {selectedCandidate && (
           <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
             <img src={selectedCandidate.image} alt={selectedCandidate.name} className="h-[220px] w-full rounded-md object-cover" />
             <div className="space-y-4">
-              <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Nome</p><p className="mt-1 text-[16px] font-semibold text-slate-900">{selectedCandidate.name}</p></div>
-              <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Email</p><p className="mt-1 text-[14px] text-slate-700">{selectedCandidate.email}</p></div>
-              <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Cargo / Lista</p><p className="mt-1 text-[14px] text-slate-700">{selectedCandidate.role} — {selectedCandidate.listName}</p></div>
-              <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Biografia</p><p className="mt-1 text-[14px] leading-7 text-slate-700">{selectedCandidate.biography}</p></div>
-              <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Proposta</p><p className="mt-1 text-[14px] leading-7 text-slate-700">{selectedCandidate.proposal}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Nome</p><p className="mt-1 text-[18px] font-semibold text-slate-900">{selectedCandidate.name}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Email</p><p className="mt-1 text-[14px] text-slate-700">{selectedCandidate.email}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Cargo / Lista</p><p className="mt-1 text-[14px] text-slate-700">{selectedCandidate.role} — {selectedCandidate.listName}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Biografia</p><p className="mt-1 text-[14px] leading-7 text-slate-700">{selectedCandidate.biography}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Proposta</p><p className="mt-1 text-[14px] leading-7 text-slate-700">{selectedCandidate.proposal}</p></div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </DetailsModal>
     </AppShell>
   );
 }
 
 export function CommissionStudentsPage() {
+  const navigate = useNavigate();
+  const [studentRows, setStudentRows] = useState<StudentItem[]>(INITIAL_STUDENTS);
   const [search, setSearch] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<StudentItem | null>(null);
+  const [eligibilityFilter, setEligibilityFilter] = useState<'todos' | 'elegiveis' | 'inativos'>('todos');
+  const [facultyFilter, setFacultyFilter] = useState<string>('todas');
+  const facultyOptions = useMemo(
+    () => ['todas', ...new Set(studentRows.map((student) => student.faculty))],
+    [studentRows],
+  );
 
   const students = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return INITIAL_STUDENTS;
-    return INITIAL_STUDENTS.filter((student) => [student.name, student.email, student.faculty, student.course, student.id].some((value) => value.toLowerCase().includes(query)));
-  }, [search]);
+    return studentRows.filter((student) => {
+      const matchesQuery =
+        query.length === 0 ||
+        [student.name, student.email, student.faculty, student.course, student.id]
+          .some((value) => value.toLowerCase().includes(query));
+      const matchesEligibility =
+        eligibilityFilter === 'todos' ||
+        (eligibilityFilter === 'elegiveis' ? student.eligible : !student.eligible);
+      const matchesFaculty = facultyFilter === 'todas' || student.faculty === facultyFilter;
+      return matchesQuery && matchesEligibility && matchesFaculty;
+    });
+  }, [eligibilityFilter, facultyFilter, search, studentRows]);
 
   const eligibleCount = students.filter((student) => student.eligible).length;
+  const deleteStudent = (studentId: string) => {
+    setStudentRows((current) => current.filter((student) => student.id !== studentId));
+    if (selectedStudent?.id === studentId) {
+      setSelectedStudent(null);
+    }
+  };
 
   return (
     <AppShell active="students" title="Lista de Estudantes">
       <div className="mb-6 grid gap-4 md:grid-cols-3">
-        <StatCard label="Total de Estudantes" value={String(INITIAL_STUDENTS.length)} icon={<Users className="h-4 w-4 text-blue-600" />} />
+        <StatCard label="Total de Estudantes" value={String(studentRows.length)} icon={<Users className="h-4 w-4 text-blue-600" />} />
         <StatCard label="Elegíveis" value={String(eligibleCount)} icon={<Check className="h-4 w-4 text-blue-600" />} />
-        <StatCard label="Faculdades Abrangidas" value={String(new Set(INITIAL_STUDENTS.map((student) => student.faculty)).size)} icon={<GraduationCap className="h-4 w-4 text-blue-600" />} />
+        <StatCard label="Faculdades Abrangidas" value={String(new Set(studentRows.map((student) => student.faculty)).size)} icon={<GraduationCap className="h-4 w-4 text-blue-600" />} />
       </div>
 
       <PageSection title="Gestão de Elegibilidade" right={<div className="relative w-full max-w-[320px]"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><TextInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Pesquisar estudante" className="pl-10" /></div>}>
+        <div className="mb-4 grid gap-2 md:grid-cols-2">
+          <select
+            value={eligibilityFilter}
+            onChange={(event) => setEligibilityFilter(event.target.value as 'todos' | 'elegiveis' | 'inativos')}
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          >
+            <option value="todos">Todas as elegibilidades</option>
+            <option value="elegiveis">Somente elegíveis</option>
+            <option value="inativos">Somente inativos</option>
+          </select>
+          <select
+            value={facultyFilter}
+            onChange={(event) => setFacultyFilter(event.target.value)}
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          >
+            {facultyOptions.map((faculty) => (
+              <option key={faculty} value={faculty}>
+                {faculty === 'todas' ? 'Todas as faculdades' : faculty}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="overflow-hidden rounded-md border border-slate-200">
-          <table className="w-full text-left text-[12px]">
-            <thead className="bg-slate-50 text-[10px] uppercase tracking-[0.16em] text-slate-400">
+          <table className="w-full text-left text-[14px]">
+            <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.12em] text-slate-500">
               <tr>
                 <th className="px-4 py-3">Estudante</th>
                 <th className="px-4 py-3">Faculdade</th>
@@ -1007,32 +1150,55 @@ export function CommissionStudentsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {students.map((student) => (
-                <tr key={student.id}>
-                  <td className="px-4 py-4"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-[12px] font-semibold text-blue-700">{student.name.split(' ').map((part) => part[0]).slice(0, 2).join('')}</div><div><p className="font-semibold text-slate-800">{student.name}</p><p className="text-[11px] text-slate-500">{student.email}</p></div></div></td>
+                <tr key={student.id} className="transition hover:bg-slate-50">
+                  <td className="px-4 py-4"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-[12px] font-semibold text-blue-700">{student.name.split(' ').map((part) => part[0]).slice(0, 2).join('')}</div><div><p className="font-semibold text-slate-800">{student.name}</p><p className="text-[12px] text-slate-500">{student.email}</p></div></div></td>
                   <td className="px-4 py-4">{student.faculty}</td>
                   <td className="px-4 py-4">{student.course}</td>
-                  <td className="px-4 py-4"><span className={`rounded-full px-3 py-1 text-[10px] font-semibold ${student.eligible ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>{student.eligible ? 'ELEGÍVEL' : 'INATIVO'}</span></td>
-                  <td className="px-4 py-4 text-right"><SecondaryButton type="button" onClick={() => setSelectedStudent(student)} className="h-8 px-3">Ver</SecondaryButton></td>
+                  <td className="px-4 py-4"><span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${student.eligible ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>{student.eligible ? 'ELEGÍVEL' : 'INATIVO'}</span></td>
+                  <td className="px-4 py-4">
+                    <div className="flex justify-end gap-2 text-slate-500">
+                      <button type="button" onClick={() => setSelectedStudent(student)} className="rounded p-1 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Visualizar">
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => navigate('/comissao/configuracoes')} className="rounded p-1 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Editar">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => deleteStudent(student.id)} className="rounded p-1 transition hover:bg-red-50 hover:text-red-600" aria-label="Deletar">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
+              {students.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-[14px] text-slate-500">
+                    Nenhum estudante encontrado para os filtros selecionados.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </PageSection>
 
-      {selectedStudent && (
-        <div className="mt-6 rounded-sm bg-white p-5 shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
-          <div className="mb-5 flex items-center justify-between gap-4"><div><h2 className="text-[18px] font-semibold text-slate-900">Perfil do Estudante</h2><p className="text-[12px] text-slate-500">Consulta detalhada do estudante elegível.</p></div><SecondaryButton type="button" onClick={() => setSelectedStudent(null)} className="h-9">Fechar</SecondaryButton></div>
+      <DetailsModal
+        isOpen={Boolean(selectedStudent)}
+        title="Perfil do Estudante"
+        subtitle="Consulta detalhada do estudante elegível."
+        onClose={() => setSelectedStudent(null)}
+      >
+        {selectedStudent && (
           <div className="grid gap-4 md:grid-cols-2">
-            <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Número</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.id}</p></div>
-            <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Nome</p><p className="mt-1 text-[14px] font-semibold text-slate-900">{selectedStudent.name}</p></div>
-            <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Email</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.email}</p></div>
-            <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Ano</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.year}</p></div>
-            <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Faculdade</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.faculty}</p></div>
-            <div><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Curso</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.course}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Número</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.id}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Nome</p><p className="mt-1 text-[16px] font-semibold text-slate-900">{selectedStudent.name}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Email</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.email}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Ano</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.year}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Faculdade</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.faculty}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Curso</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.course}</p></div>
           </div>
-        </div>
-      )}
+        )}
+      </DetailsModal>
     </AppShell>
   );
 }
@@ -1115,7 +1281,9 @@ export function CommissionSettingsPage() {
         <PageSection title="Perfil do Utilizador">
           <div className="space-y-4 text-[12px] text-slate-600">
             <div className="flex items-center gap-4">
-              <div className="h-20 w-20 overflow-hidden rounded-full bg-slate-100"><img src={draftPhoto} alt={draftName} className="h-full w-full object-cover" /></div>
+              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-[18px] font-semibold text-slate-600">
+                {draftPhoto ? <img src={draftPhoto} alt={draftName} className="h-full w-full object-cover" /> : draftName.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}
+              </div>
               <div className="flex-1"><p className="text-[14px] font-semibold text-slate-900">{profile.name}</p><p className="text-[12px] text-slate-500">{profile.email}</p></div>
             </div>
             <FormField label="Nome"><TextInput value={draftName} onChange={(e) => setDraftName(e.target.value)} /></FormField>

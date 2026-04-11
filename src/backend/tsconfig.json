@@ -4,7 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2023"],
-    "rootDir": "src",
+    "rootDir": "src
     "outDir": "dist",
     "strict": true,
     "skipLibCheck": true,
@@ -23,6 +23,6 @@
     "sourceMap": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts
   "exclude": ["dist", "node_modules"]
 }

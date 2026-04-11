@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { getElectorVoteReceipt } from '@/features/elector/lib/vote-receipt';
+
 interface CandidateResult {
   id: string;
   nome: string;
@@ -50,7 +52,7 @@ const electionResultsData: Record<string, ElectionResultData> = {
   },
   '2': {
     id: '2',
-    titulo: 'Conselho Universitário',
+    titulo: 'Eleições AEUP 2026',
     cargo: 'Representante Principal',
     initialCountdownSeconds: 12 * 60 * 60 + 1 * 60 + 10,
     candidatos: [
@@ -70,7 +72,7 @@ const electionResultsData: Record<string, ElectionResultData> = {
   },
   '3': {
     id: '3',
-    titulo: 'Assembleia de Faculdade',
+    titulo: 'Conselho Universitário',
     cargo: 'Representante da Faculdade',
     initialCountdownSeconds: 9 * 60 * 60 + 58 * 60 + 22,
     candidatos: [
@@ -92,8 +94,8 @@ const electionResultsData: Record<string, ElectionResultData> = {
 
 const electionNamesById: Record<string, string> = {
   '1': 'Eleições AEUP 2026',
-  '2': 'Conselho Universitário',
-  '3': 'Assembleia de Faculdade',
+  '2': 'Eleições AEUP 2026',
+  '3': 'Conselho Universitário',
 };
 
 const candidateNamesById: Record<string, string> = {
@@ -228,12 +230,27 @@ function CheckCircleIcon() {
 
 export function ElectorConfirmationPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const voteReceipt = useMemo(() => getElectorVoteReceipt(), []);
 
-  const electionId = searchParams.get('electionId') ?? '';
-  const candidateId = searchParams.get('candidateId') ?? '';
-  const confirmedAtParam = searchParams.get('confirmedAt');
-  const confirmationCodeParam = searchParams.get('confirmationCode');
+  if (!voteReceipt) {
+    return (
+      <section className="mx-auto w-full max-w-md rounded-[28px] bg-white p-5 shadow-sm">
+        <h1 className="text-lg font-semibold text-[#0f172a]">Comprovativo indisponível</h1>
+        <p className="mt-2 text-sm text-[#64748b]">
+          O comprovativo é exibido apenas após confirmar um voto válido.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate('/eleitor/dashboard')}
+          className="mt-4 rounded-xl bg-[#2563eb] px-4 py-2 text-sm font-semibold text-white"
+        >
+          Voltar
+        </button>
+      </section>
+    );
+  }
+
+  const { electionId, candidateId, confirmedAt: confirmedAtParam, confirmationCode } = voteReceipt;
 
   const electionName = useMemo(
     () => electionNamesById[electionId] ?? 'Eleição selecionada',
@@ -253,15 +270,6 @@ export function ElectorConfirmationPage() {
     const parsed = new Date(confirmedAtParam);
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
   }, [confirmedAtParam]);
-
-  const confirmationCode = useMemo(() => {
-    if (confirmationCodeParam) {
-      return confirmationCodeParam;
-    }
-
-    const random = Math.floor(1000 + Math.random() * 9000);
-    return `UP-${random}-M-VOT-${new Date().getFullYear()}`;
-  }, [confirmationCodeParam]);
 
   return (
     <section className="mx-auto w-full max-w-md rounded-[28px] bg-white p-5 shadow-sm">
@@ -352,14 +360,24 @@ export function ElectorConfirmationPage() {
 export function ElectorResultsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const voteReceipt = useMemo(() => getElectorVoteReceipt(), []);
 
-  const electionId = searchParams.get('electionId') ?? '';
-  const candidateId = searchParams.get('candidateId') ?? '';
+  const candidateIdFromQuery = searchParams.get('candidateId');
+  const electionIdFromQuery = searchParams.get('electionId');
+  const fallbackElectionId = voteReceipt?.electionId ?? '1';
+  const resolvedElectionId =
+    electionIdFromQuery && electionResultsData[electionIdFromQuery]
+      ? electionIdFromQuery
+      : fallbackElectionId;
 
   const election = useMemo(
-    () => electionResultsData[electionId] ?? null,
-    [electionId],
+    () => electionResultsData[resolvedElectionId] ?? electionResultsData['1'] ?? null,
+    [resolvedElectionId],
   );
+
+  const candidateId =
+    candidateIdFromQuery ??
+    (voteReceipt?.electionId === election?.id ? voteReceipt.candidateId : '');
 
   const countdown = useElectionCountdown(
     election?.id ?? 'fallback-results-election',

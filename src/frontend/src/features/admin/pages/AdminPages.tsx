@@ -1,16 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
   Check,
   Download,
   Eye,
   Filter,
+  Pencil,
   Plus,
   Search,
+  Trash2,
   Upload,
   Users,
   Vote,
-  X,
 } from 'lucide-react';
 import { Button, Card, CardContent, Chip } from '@/components/ui';
 
@@ -87,6 +89,8 @@ type CandidateFormState = {
   proposta: string;
   imagemUrl: string;
 };
+
+type StudentDetails = StudentRow | null;
 
 const dashboardInitialRows: DashboardElectionRow[] = [
   {
@@ -408,7 +412,49 @@ function FormCard({
   );
 }
 
+function DetailsModal({
+  isOpen,
+  title,
+  onClose,
+  children,
+}: {
+  isOpen: boolean;
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/45 px-4 py-6">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-md border border-[#d1d9e6] bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
+          <h3 className="text-lg font-semibold text-[#0f172a]">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-[#d1d9e6] px-3 py-1.5 text-sm font-semibold text-[#475569] hover:bg-[#f8fafc]"
+          >
+            Fechar
+          </button>
+        </div>
+        <div className="max-h-[calc(90vh-72px)] overflow-y-auto p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export function AdminDashboardPage() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState<DashboardElectionRow[]>(dashboardInitialRows);
   const [message, setMessage] = useState<string>('');
   const [selectedElection, setSelectedElection] = useState<DashboardElectionRow | null>(null);
@@ -480,20 +526,15 @@ export function AdminDashboardPage() {
                   <td className="px-5 py-4 text-sm text-[#1e293b]">{row.fim}</td>
                   <td className="px-5 py-4 text-base font-semibold text-[#0b73c9]">{formatNumber(row.votos)}</td>
                   <td className="px-5 py-4">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedElection(row)}
-                        className="rounded-md border border-[#d1d9e6] px-3 py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#f8fafc]"
-                      >
-                        Ver
+                    <div className="flex justify-end gap-2 text-[#64748b]">
+                      <button type="button" onClick={() => setSelectedElection(row)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
+                        <Eye className="h-4 w-4" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => blockElection(row.id)}
-                        className="rounded-md bg-[#dc2626] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#b91c1c]"
-                      >
-                        Bloquear
+                      <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => blockElection(row.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -504,21 +545,13 @@ export function AdminDashboardPage() {
         </div>
       </Card>
 
-      {selectedElection ? (
-        <Card className="rounded-sm border-[#e2e8f0] shadow-none">
-          <SectionHeader
-            title="Detalhes da Eleição"
-            right={
-              <button
-                type="button"
-                onClick={() => setSelectedElection(null)}
-                className="rounded-md border border-[#d1d9e6] px-3 py-2 text-sm text-[#475569]"
-              >
-                Fechar
-              </button>
-            }
-          />
-          <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+      <DetailsModal
+        isOpen={Boolean(selectedElection)}
+        title="Detalhes da Eleição"
+        onClose={() => setSelectedElection(null)}
+      >
+        {selectedElection ? (
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">Nome</p>
               <p className="text-base font-semibold text-[#0f172a]">{selectedElection.nome}</p>
@@ -539,15 +572,17 @@ export function AdminDashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">Descrição</p>
               <p className="text-base text-[#334155]">{selectedElection.subtitulo}</p>
             </div>
-          </CardContent>
-        </Card>
-      ) : null}
+          </div>
+        ) : null}
+      </DetailsModal>
     </section>
   );
 }
 
 export function AdminStudentsPage() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState<StudentRow[]>(studentsInitialRows);
+  const [selectedStudent, setSelectedStudent] = useState<StudentDetails>(null);
   const [search, setSearch] = useState('');
   const [faculty, setFaculty] = useState('Todas as Faculdades');
   const [academicYear, setAcademicYear] = useState('2024');
@@ -591,15 +626,12 @@ export function AdminStudentsPage() {
     setPage(1);
   }
 
-  function toggleEligibility(id: string) {
-    setRows((current) =>
-      current.map((row) =>
-        row.id === id
-          ? { ...row, elegibilidade: row.elegibilidade === 'ELEGÍVEL' ? 'INATIVO' : 'ELEGÍVEL' }
-          : row,
-      ),
-    );
-    setMessage('Elegibilidade actualizada com sucesso.');
+  function deleteStudent(id: string) {
+    setRows((current) => current.filter((row) => row.id !== id));
+    if (selectedStudent?.id === id) {
+      setSelectedStudent(null);
+    }
+    setMessage('Estudante removido com sucesso.');
   }
 
   function applyFilters() {
@@ -718,13 +750,15 @@ export function AdminStudentsPage() {
                     </Chip>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleEligibility(row.id)}
-                        className="rounded-md border border-[#dbeafe] px-3 py-1.5 text-xs font-semibold text-[#2563eb] hover:bg-[#eff6ff]"
-                      >
-                        Alternar Estado
+                    <div className="flex justify-end gap-2 text-[#64748b]">
+                      <button type="button" onClick={() => setSelectedStudent(row)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => deleteStudent(row.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -772,14 +806,48 @@ export function AdminStudentsPage() {
           </div>
         </div>
       </Card>
+
+      <DetailsModal isOpen={Boolean(selectedStudent)} title="Detalhes do Estudante" onClose={() => setSelectedStudent(null)}>
+        {selectedStudent ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">Nome</p>
+              <p className="text-base font-semibold text-[#0f172a]">{selectedStudent.nome}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">Email</p>
+              <p className="text-base text-[#334155]">{selectedStudent.email}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">Número</p>
+              <p className="text-base text-[#334155]">{selectedStudent.numero}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">Curso</p>
+              <p className="text-base text-[#334155]">{selectedStudent.curso}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">Faculdade</p>
+              <p className="text-base text-[#334155]">{selectedStudent.faculdade}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">Elegibilidade</p>
+              <p className="text-base text-[#334155]">{selectedStudent.elegibilidade}</p>
+            </div>
+          </div>
+        ) : null}
+      </DetailsModal>
     </section>
   );
 }
 
 export function AdminCandidatesPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isRegisterRoute = location.pathname.endsWith('/registrar');
   const [rows, setRows] = useState<CandidateRow[]>(candidatesInitialRows);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateRow | null>(null);
-  const [showAddCard, setShowAddCard] = useState(false);
+  const [showAddCard, setShowAddCard] = useState(isRegisterRoute);
   const [showAddCargoCard, setShowAddCargoCard] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -793,6 +861,10 @@ export function AdminCandidatesPage() {
     'Representante Suplente',
   ]);
   const electionOptions = Array.from(new Set(dashboardInitialRows.map((row) => row.nome)));
+
+  useEffect(() => {
+    setShowAddCard(isRegisterRoute);
+  }, [isRegisterRoute]);
 
   function addCargo() {
     const clean = cargoName.trim();
@@ -848,6 +920,7 @@ export function AdminCandidatesPage() {
     setShowAddCargoCard(false);
     setError('');
     setMessage('Candidato adicionado com sucesso.');
+    navigate('/admin/candidatos/visualizar');
   }
 
   function deleteCandidate(id: string) {
@@ -863,7 +936,7 @@ export function AdminCandidatesPage() {
       <PageHeader
         title="Gestão de Candidatos"
         actions={
-          <Button type="button" className="rounded-md" onClick={() => setShowAddCard(true)}>
+          <Button type="button" className="rounded-md" onClick={() => navigate('/admin/candidatos/registrar')}>
             <Plus className="mr-2 h-4 w-4" />
             Adicionar Candidato
           </Button>
@@ -878,7 +951,7 @@ export function AdminCandidatesPage() {
       ) : null}
 
       {showAddCard ? (
-        <FormCard title="Adicionar Novo Candidato" onClose={() => setShowAddCard(false)}>
+        <FormCard title="Adicionar Novo Candidato" onClose={() => navigate('/admin/candidatos/visualizar')}>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">Nome</label>
@@ -1029,20 +1102,15 @@ export function AdminCandidatesPage() {
                   <td className="px-5 py-4 text-[#334155]">{row.cargo}</td>
                   <td className="px-5 py-4 text-[#334155]">{row.eleicao}</td>
                   <td className="px-5 py-4">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCandidate(row)}
-                        className="rounded-md border border-[#d1d9e6] px-3 py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#f8fafc]"
-                      >
-                        Ver
+                    <div className="flex justify-end gap-2 text-[#64748b]">
+                      <button type="button" onClick={() => setSelectedCandidate(row)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
+                        <Eye className="h-4 w-4" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteCandidate(row.id)}
-                        className="rounded-md bg-[#dc2626] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#b91c1c]"
-                      >
-                        Eliminar
+                      <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => deleteCandidate(row.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -1053,21 +1121,13 @@ export function AdminCandidatesPage() {
         </div>
       </Card>
 
-      {selectedCandidate ? (
-        <Card className="rounded-sm border-[#e2e8f0] shadow-none">
-          <SectionHeader
-            title="Detalhes do Candidato"
-            right={
-              <button
-                type="button"
-                onClick={() => setSelectedCandidate(null)}
-                className="rounded-md border border-[#d1d9e6] px-3 py-2 text-sm text-[#475569]"
-              >
-                Fechar
-              </button>
-            }
-          />
-          <CardContent className="grid gap-6 p-5 lg:grid-cols-[220px_1fr]">
+      <DetailsModal
+        isOpen={Boolean(selectedCandidate)}
+        title="Detalhes do Candidato"
+        onClose={() => setSelectedCandidate(null)}
+      >
+        {selectedCandidate ? (
+          <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
             <div>
               <img
                 src={selectedCandidate.imagem}
@@ -1101,14 +1161,15 @@ export function AdminCandidatesPage() {
                 <p className="text-base leading-7 text-[#334155]">{selectedCandidate.proposta}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      ) : null}
+          </div>
+        ) : null}
+      </DetailsModal>
     </section>
   );
 }
 
 export function AdminCommissionPage() {
+  const navigate = useNavigate();
   const [members, setMembers] = useState<CommissionMember[]>(commissionInitialMembers);
   const [showAddCard, setShowAddCard] = useState(false);
   const [form, setForm] = useState({ nome: '', email: '', funcao: 'Comissão' as AdminRole });
@@ -1146,6 +1207,11 @@ export function AdminCommissionPage() {
       ),
     );
     setMessage('Estado do membro actualizado com sucesso.');
+  }
+
+  function deleteMember(id: string) {
+    setMembers((current) => current.filter((member) => member.id !== id));
+    setMessage('Membro removido com sucesso.');
   }
 
   return (
@@ -1235,13 +1301,18 @@ export function AdminCommissionPage() {
                     </Chip>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleMemberStatus(member.id)}
-                        className="rounded-md border border-[#d1d9e6] px-3 py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#f8fafc]"
-                      >
-                        Alternar
+                    <div className="flex justify-end gap-2 text-[#64748b]">
+                      <button type="button" onClick={() => setMessage(`Membro: ${member.nome}`)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => deleteMember(member.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => toggleMemberStatus(member.id)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Alternar estado">
+                        <Check className="h-4 w-4" />
                       </button>
                     </div>
                   </td>

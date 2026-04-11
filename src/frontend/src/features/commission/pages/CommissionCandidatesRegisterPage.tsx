@@ -1,0 +1,1 @@
+export { CommissionCandidatesRegisterPage } from './CommissionCandidatesRegisterView';
