@@ -11,5 +11,5 @@ export const palette = {
   textTertiary: '#9CA3AF',
   border: '#E5E7EB',
   bgSubtle: '#F3F4F6',
-  bg: '#F9FAFB',
+  bg: '#F4F4F5',
 } as const;

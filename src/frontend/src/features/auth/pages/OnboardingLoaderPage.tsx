@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { getRoleHomeRouteFromSession } from '@/config/role-navigation';
 import { AuthBrand } from '@/features/auth/components/AuthBrand';
 import { sessionStorageService } from '@/lib/storage/session-storage';
 
@@ -9,8 +10,10 @@ export function OnboardingLoaderPage() {
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      const accessToken = sessionStorageService.getAccessToken();
-      navigate(accessToken ? '/dashboard' : '/login', { replace: true });
+      const session = sessionStorageService.getSession();
+      const homePath = getRoleHomeRouteFromSession(session);
+
+      navigate(homePath ?? '/login', { replace: true });
     }, 1600);
 
     return () => window.clearTimeout(timeout);

@@ -17,7 +17,7 @@
 
   --color-border: #e5e7eb;
   --color-bg-subtle: #f3f4f6;
-  --color-bg: #f9fafb;
+  --color-bg: #f4f4f5;
 }
 
 * {
@@ -29,7 +29,14 @@ body {
   min-height: 100vh;
   background: var(--color-bg);
   color: var(--text-primary);
-  font-family: "IBM Plex Sans", Manrope, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "IBM Plex Sans", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: "IBM Plex Sans", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 a {

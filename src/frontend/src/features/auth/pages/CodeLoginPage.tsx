@@ -16,7 +16,9 @@ export function CodeLoginPage() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!codigo.trim()) {
+    const normalizedCode = codigo.trim();
+
+    if (!normalizedCode) {
       toast.warning('Informe o código do utilizador.');
       return;
     }
@@ -24,11 +26,11 @@ export function CodeLoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await authApi.startLogin(codigo.trim());
+      const result = await authApi.startLogin(normalizedCode);
 
       if (result.nextStep === 'PASSWORD') {
         const search = new URLSearchParams({
-          code: codigo.trim(),
+          code: normalizedCode,
           flow: result.loginFlowToken,
         });
 
@@ -36,7 +38,7 @@ export function CodeLoginPage() {
         return;
       }
 
-      navigate(`/login/first-access?code=${encodeURIComponent(codigo.trim())}`);
+      navigate(`/login/first-access?code=${encodeURIComponent(normalizedCode)}`);
     } catch (cause) {
       if (cause instanceof ApiError) {
         toast.danger(cause.message);

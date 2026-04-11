@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { authApi } from '@/api/auth.api';
+import { getRoleHomeRoute } from '@/config/role-navigation';
 import { toast } from '@/components/ui';
 import { AuthBrand } from '@/features/auth/components/AuthBrand';
 import { ApiError } from '@/lib/http/api-error';
@@ -88,7 +89,7 @@ export function FirstAccessPage() {
       const session = await authApi.finishFirstAccess(codeToUse, tokenFromLink, novaSenha);
       sessionStorageService.saveSession(session);
       toast.success('Senha definida com sucesso.');
-      navigate('/dashboard', { replace: true });
+      navigate(getRoleHomeRoute(session.user.perfil), { replace: true });
     } catch (cause) {
       if (cause instanceof ApiError) {
         toast.danger(cause.message);

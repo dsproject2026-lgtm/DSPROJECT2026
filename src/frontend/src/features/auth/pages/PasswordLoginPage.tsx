@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { authApi } from '@/api/auth.api';
+import { getRoleHomeRoute } from '@/config/role-navigation';
 import { toast } from '@/components/ui';
 import { AuthBrand } from '@/features/auth/components/AuthBrand';
 import { ApiError } from '@/lib/http/api-error';
@@ -37,7 +38,8 @@ export function PasswordLoginPage() {
       const session = await authApi.finishLogin(code, senha, flow);
       sessionStorageService.saveSession(session);
       toast.success('Login realizado com sucesso.');
-      navigate('/dashboard', { replace: true });
+
+      navigate(getRoleHomeRoute(session.user.perfil), { replace: true });
     } catch (cause) {
       if (cause instanceof ApiError) {
         toast.danger(cause.message);
