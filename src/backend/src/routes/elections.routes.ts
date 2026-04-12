@@ -15,15 +15,13 @@ const electionsRouter = Router();
 // PUBLIC ROUTES (read-only for auditors)
 // ─────────────────────────────────────────────
 
-// GET /elections - List all elections (with optional filters)
+
 electionsRouter.get('/', listElections);
 
-// GET /elections/:id - Get election by ID
+
 electionsRouter.get('/:id', getElectionById);
 
-// ─────────────────────────────────────────────
-// PROTECTED ROUTES (requires authentication + specific profiles)
-// ─────────────────────────────────────────────
+
 electionsRouter.post('/', createElection,);
 // POST /elections - Create new election (ADMIN or GESTOR_ELEITORAL only)
 //electionsRouter.post('/',authenticateAccessToken,requirePerfis('ADMIN', 'GESTOR_ELEITORAL'),createElection,);
