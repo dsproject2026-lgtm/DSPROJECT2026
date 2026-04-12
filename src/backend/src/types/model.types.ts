@@ -10,6 +10,7 @@ export const ESTADOS_ELEICAO = [
   'VOTACAO_ABERTA',
   'VOTACAO_ENCERRADA',
   'CONCLUIDA',
+  'CANCELADA',
 ] as const;
 export type EstadoEleicao = (typeof ESTADOS_ELEICAO)[number];
 

@@ -53,6 +53,7 @@ enum EstadoEleicao {
   VOTACAO_ABERTA
   VOTACAO_ENCERRADA
   CONCLUIDA
+  CANCELADA
 
   @@map("estado_eleicao")
 }

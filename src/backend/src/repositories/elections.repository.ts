@@ -1,6 +1,12 @@
 import { prisma } from '../lib/prisma.js';
 import type { EntityId } from '../types/common.types.js';
-import type { CreateElectionApiInput, ListElectionsFilters } from '../types/eleicoes.types.js';
+import type {
+  CreateElectionApiInput,
+  ListElectionsFilters,
+  UpdateElectionApiInput,
+} from '../types/eleicoes.types.js';
+
+const ACTIVE_ELECTION_STATES = ['CANDIDATURAS_ABERTAS', 'VOTACAO_ABERTA'] as const;
 
 const electionWithRelationsSelect = {
   id: true,
@@ -96,7 +102,7 @@ class ElectionsRepository {
     });
   }
 
-  async update(id: EntityId, data: Partial<CreateElectionApiInput>) {
+  async update(id: EntityId, data: UpdateElectionApiInput) {
     const updateData: Record<string, unknown> = {};
 
     if (data.cargoId !== undefined) {
@@ -153,6 +159,24 @@ class ElectionsRepository {
         id: true,
         nome: true,
         descricao: true,
+      },
+    });
+  }
+
+  async findActiveElectionByCargo(cargoId: EntityId, excludeElectionId?: EntityId) {
+    return prisma.eleicao.findFirst({
+      where: {
+        cargoId,
+        estado: {
+          in: [...ACTIVE_ELECTION_STATES],
+        },
+        ...(excludeElectionId !== undefined ? { id: { not: excludeElectionId } } : {}),
+      },
+      select: {
+        id: true,
+        cargoId: true,
+        titulo: true,
+        estado: true,
       },
     });
   }

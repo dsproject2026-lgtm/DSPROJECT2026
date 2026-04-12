@@ -22,24 +22,13 @@ electionsRouter.get('/', listElections);
 electionsRouter.get('/:id', getElectionById);
 
 
-electionsRouter.post('/', createElection,);
-// POST /elections - Create new election (ADMIN or GESTOR_ELEITORAL only)
-//electionsRouter.post('/',authenticateAccessToken,requirePerfis('ADMIN', 'GESTOR_ELEITORAL'),createElection,);
+
+electionsRouter.post('/',authenticateAccessToken,requirePerfis('ADMIN', 'GESTOR_ELEITORAL'),createElection,);
 
 // PUT /elections/:id - Update election (ADMIN or GESTOR_ELEITORAL only)
-electionsRouter.put(
-  '/:id',
-  authenticateAccessToken,
-  requirePerfis('ADMIN', 'GESTOR_ELEITORAL'),
-  updateElection,
+electionsRouter.put('/:id',authenticateAccessToken,requirePerfis('ADMIN', 'GESTOR_ELEITORAL'),updateElection,
 );
-
 // DELETE /elections/:id - Delete election (ADMIN only)
-electionsRouter.delete(
-  '/:id',
-  authenticateAccessToken,
-  requirePerfis('ADMIN'),
-  deleteElection,
-);
+electionsRouter.delete('/:id',authenticateAccessToken,requirePerfis('ADMIN'),deleteElection,);
 
 export default electionsRouter;

@@ -8,6 +8,7 @@ const { electionsRepositoryMock } = vi.hoisted(() => ({
     update: vi.fn(),
     delete: vi.fn(),
     findCargoById: vi.fn(),
+    findActiveElectionByCargo: vi.fn(),
   },
 }));
 
@@ -35,6 +36,7 @@ describe('ElectionsService', () => {
         nome: 'Presidente',
         descricao: 'Cargo de presidente',
       });
+      electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue(null);
 
       electionsRepositoryMock.create.mockResolvedValue({
         id: 'eleicao-1',
@@ -54,6 +56,31 @@ describe('ElectionsService', () => {
       expect(result.data.titulo).toBe('Eleição para Presidente 2026');
       expect(electionsRepositoryMock.findCargoById).toHaveBeenCalledWith('cargo-1');
       expect(electionsRepositoryMock.create).toHaveBeenCalledWith(inputData);
+    });
+
+    it('throws conflict when creating active election for cargo with ongoing election', async () => {
+      const inputData = {
+        cargoId: 'cargo-1',
+        titulo: 'Eleição para Presidente 2026',
+        estado: 'VOTACAO_ABERTA' as const,
+      };
+
+      electionsRepositoryMock.findCargoById.mockResolvedValue({
+        id: 'cargo-1',
+        nome: 'Presidente',
+        descricao: 'Cargo de presidente',
+      });
+      electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue({
+        id: 'eleicao-ativa',
+        cargoId: 'cargo-1',
+        titulo: 'Eleição Ativa',
+        estado: 'CANDIDATURAS_ABERTAS',
+      });
+
+      await expect(electionsService.createElection(inputData)).rejects.toThrow(
+        'Já existe uma eleição em andamento para este cargo.',
+      );
+      expect(electionsRepositoryMock.create).not.toHaveBeenCalled();
     });
 
     it('throws error when cargo not found', async () => {
@@ -202,6 +229,7 @@ describe('ElectionsService', () => {
       };
 
       electionsRepositoryMock.findById.mockResolvedValue(existingElection);
+      electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue(null);
       electionsRepositoryMock.update.mockResolvedValue(updatedElection);
 
       const result = await electionsService.updateElection('eleicao-1', {
@@ -239,6 +267,32 @@ describe('ElectionsService', () => {
       await expect(
         electionsService.updateElection('eleicao-1', { cargoId: 'cargo-invalid' }),
       ).rejects.toThrow('Cargo com ID cargo-invalid não encontrado.');
+    });
+
+    it('throws conflict when updating to active state with same cargo conflict', async () => {
+      const existingElection = {
+        id: 'eleicao-1',
+        cargoId: 'cargo-1',
+        titulo: 'Eleição para Presidente 2026',
+        estado: 'RASCUNHO',
+        cargo: { id: 'cargo-1', nome: 'Presidente', descricao: null },
+        candidatos: [],
+        elegiveis: [],
+        comprovativos: [],
+      };
+
+      electionsRepositoryMock.findById.mockResolvedValue(existingElection);
+      electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue({
+        id: 'eleicao-2',
+        cargoId: 'cargo-1',
+        titulo: 'Eleição em Curso',
+        estado: 'VOTACAO_ABERTA',
+      });
+
+      await expect(
+        electionsService.updateElection('eleicao-1', { estado: 'CANDIDATURAS_ABERTAS' }),
+      ).rejects.toThrow('Já existe uma eleição em andamento para este cargo.');
+      expect(electionsRepositoryMock.update).not.toHaveBeenCalled();
     });
   });
 

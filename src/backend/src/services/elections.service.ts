@@ -6,6 +6,8 @@ import type {
 } from '../types/eleicoes.types.js';
 import { AppError } from '../utils/app-error.js';
 
+const ACTIVE_ELECTION_STATES = new Set(['CANDIDATURAS_ABERTAS', 'VOTACAO_ABERTA']);
+
 class ElectionsService {
   async createElection(data: CreateElectionApiInput) {
     const cargo = await electionsRepository.findCargoById(data.cargoId);
@@ -17,6 +19,25 @@ class ElectionsService {
         'ELECTION_CARGO_NOT_FOUND',
         { cargoId: data.cargoId },
       );
+    }
+
+    const requestedState = data.estado ?? 'RASCUNHO';
+
+    if (ACTIVE_ELECTION_STATES.has(requestedState)) {
+      const activeElection = await electionsRepository.findActiveElectionByCargo(data.cargoId);
+
+      if (activeElection) {
+        throw new AppError(
+          'Já existe uma eleição em andamento para este cargo.',
+          409,
+          'ELECTION_ACTIVE_CONFLICT',
+          {
+            cargoId: data.cargoId,
+            electionId: activeElection.id,
+            estado: activeElection.estado,
+          },
+        );
+      }
     }
 
     const election = await electionsRepository.create(data);
@@ -66,6 +87,26 @@ class ElectionsService {
           404,
           'ELECTION_CARGO_NOT_FOUND',
           { cargoId: partialData.cargoId },
+        );
+      }
+    }
+
+    const targetCargoId = partialData.cargoId ?? existingElection.cargoId;
+    const targetState = partialData.estado ?? existingElection.estado;
+
+    if (ACTIVE_ELECTION_STATES.has(targetState)) {
+      const conflictingElection = await electionsRepository.findActiveElectionByCargo(targetCargoId, id);
+
+      if (conflictingElection) {
+        throw new AppError(
+          'Já existe uma eleição em andamento para este cargo.',
+          409,
+          'ELECTION_ACTIVE_CONFLICT',
+          {
+            cargoId: targetCargoId,
+            electionId: conflictingElection.id,
+            estado: conflictingElection.estado,
+          },
         );
       }
     }
