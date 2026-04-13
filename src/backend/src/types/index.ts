@@ -1,4 +1,5 @@
 export * from './auth.types.js';
+export * from './candidates.types.js';
 export * from './common.types.js';
 export * from './error-response.types.js';
 export * from './health.types.js';

@@ -155,6 +155,8 @@ O cliente Prisma gerado fica em [`src/generated/prisma`](./src/generated/prisma)
 | `GET`  | `/api/v1/health`                   | Visão geral de saúde               |
 | `GET`  | `/api/v1/health/live`              | Verificação de liveness            |
 | `GET`  | `/api/v1/health/ready`             | Verificação de readiness           |
+| `GET`  | `/api/v1/elections/:electionId/eligible-voters` | Listar eleitores elegíveis |
+| `POST` | `/api/v1/elections/:electionId/eligible-voters/import-csv` | Importar eleitores elegíveis |
 
 ## Planned Domain Endpoints (English Naming)
 
@@ -175,8 +177,6 @@ O cliente Prisma gerado fica em [`src/generated/prisma`](./src/generated/prisma)
 | `PATCH`  | `/api/v1/elections/:electionId/candidates/:id/approve`     | Aprovar candidato                  |
 | `PATCH`  | `/api/v1/elections/:electionId/candidates/:id/reject`      | Rejeitar candidato                 |
 | `PATCH`  | `/api/v1/elections/:electionId/candidates/:id/suspend`     | Suspender candidato                |
-| `POST`   | `/api/v1/elections/:electionId/eligible-voters/import-csv` | Importar eleitores elegíveis       |
-| `GET`    | `/api/v1/elections/:electionId/eligible-voters`            | Listar eleitores elegíveis         |
 | `GET`    | `/api/v1/elections/:electionId/ballot`                     | Obter boletim de voto              |
 | `POST`   | `/api/v1/elections/:electionId/votes`                      | Registar voto                      |
 | `GET`    | `/api/v1/elections/:electionId/votes/me/status`            | Verificar se o utilizador já votou |
