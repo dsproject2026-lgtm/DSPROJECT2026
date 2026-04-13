@@ -108,6 +108,7 @@ enum Perfil {
   GESTOR_ELEITORAL
   AUDITOR
   ELEITOR
+  CANDIDATO
 
   @@map("perfil")
 }
@@ -141,6 +142,7 @@ enum EstadoCandidato {
   PENDENTE
   APROVADO
   REJEITADO
+  SUSPENSO
 
   @@map("estado_candidato")
 }

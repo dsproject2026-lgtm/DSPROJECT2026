@@ -7,6 +7,7 @@ import {
   listElections,
   updateElection,
 } from '../controllers/elections.controller.js';
+import candidatesRouter from './candidates.routes.js';
 import { authenticateAccessToken, requirePerfis } from '../middlewares/auth.middleware.js';
 
 const electionsRouter = Router();
@@ -18,17 +19,14 @@ const electionsRouter = Router();
 
 electionsRouter.get('/', listElections);
 
+electionsRouter.use('/:electionId/candidates', candidatesRouter);
+
 
 electionsRouter.get('/:id', getElectionById);
 
-
-
-electionsRouter.post('/',authenticateAccessToken,requirePerfis('ADMIN', 'GESTOR_ELEITORAL'),createElection,);
-
-// PUT /elections/:id - Update election (ADMIN or GESTOR_ELEITORAL only)
-electionsRouter.put('/:id',authenticateAccessToken,requirePerfis('ADMIN', 'GESTOR_ELEITORAL'),updateElection,
+electionsRouter.post('/', authenticateAccessToken, requirePerfis('GESTOR_ELEITORAL'), createElection,);
+electionsRouter.put('/:id', authenticateAccessToken, requirePerfis('GESTOR_ELEITORAL'), updateElection,
 );
-// DELETE /elections/:id - Delete election (ADMIN only)
-electionsRouter.delete('/:id',authenticateAccessToken,requirePerfis('ADMIN'),deleteElection,);
+electionsRouter.delete('/:id', authenticateAccessToken, requirePerfis('GESTOR_ELEITORAL'), deleteElection,);
 
 export default electionsRouter;

@@ -1,6 +1,6 @@
 import type { EntityId, Nullable, Timestamp } from './common.types.js';
 
-export const PERFIS = ['ADMIN', 'GESTOR_ELEITORAL', 'AUDITOR', 'ELEITOR'] as const;
+export const PERFIS = ['ADMIN', 'GESTOR_ELEITORAL', 'AUDITOR', 'ELEITOR', 'CANDIDATO'] as const;
 export type Perfil = (typeof PERFIS)[number];
 
 export const ESTADOS_ELEICAO = [
@@ -14,7 +14,7 @@ export const ESTADOS_ELEICAO = [
 ] as const;
 export type EstadoEleicao = (typeof ESTADOS_ELEICAO)[number];
 
-export const ESTADOS_CANDIDATO = ['PENDENTE', 'APROVADO', 'REJEITADO'] as const;
+export const ESTADOS_CANDIDATO = ['PENDENTE', 'APROVADO', 'REJEITADO', 'SUSPENSO'] as const;
 export type EstadoCandidato = (typeof ESTADOS_CANDIDATO)[number];
 
 export interface CargoEntity {
