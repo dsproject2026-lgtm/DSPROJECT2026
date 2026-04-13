@@ -1,5 +1,6 @@
 import { candidatesRepository } from '../repositories/candidates.repository.js';
 import type {
+    CandidateResponse,
     CreateCandidateApiInput,
     ListCandidatesFilters,
     UpdateCandidateApiInput,
@@ -58,9 +59,11 @@ class CandidatesService {
             });
         }
 
+        const publicCandidate = this.toPublicCandidate(candidate);
+
         return {
             message: 'Candidato encontrado com sucesso.',
-            data: candidate,
+            data: publicCandidate,
         };
     }
 
@@ -72,11 +75,12 @@ class CandidatesService {
         }
 
         const candidates = await candidatesRepository.findAllByElection(electionId, filters);
+        const publicCandidates = candidates.map((candidate) => this.toPublicCandidate(candidate));
 
         return {
             message: 'Candidatos listados com sucesso.',
-            data: candidates,
-            count: candidates.length,
+            data: publicCandidates,
+            count: publicCandidates.length,
         };
     }
 
@@ -178,6 +182,14 @@ class CandidatesService {
             message,
             data: updatedCandidate,
         };
+    }
+
+    private toPublicCandidate(candidate: {
+        registadoPor: string | null;
+        registador: unknown;
+    } & Record<string, unknown>): CandidateResponse {
+        const { registadoPor: _registadoPor, registador: _registador, ...publicCandidate } = candidate;
+        return publicCandidate as CandidateResponse;
     }
 }
 

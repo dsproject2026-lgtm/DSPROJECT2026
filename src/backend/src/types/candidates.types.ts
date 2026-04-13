@@ -24,4 +24,4 @@ export interface ListCandidatesFilters {
     utilizadorId?: string | undefined;
 }
 
-export type CandidateResponse = CandidatoComRelacoes;
+export type CandidateResponse = Omit<CandidatoComRelacoes, 'registadoPor' | 'registador'>;

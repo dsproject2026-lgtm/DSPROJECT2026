@@ -87,19 +87,23 @@ describe('CandidatesService', () => {
     });
 
     describe('getCandidateById', () => {
-        it('returns candidate when found', async () => {
+        it('returns candidate when found without registrar details', async () => {
             candidatesRepositoryMock.findByIdForElection.mockResolvedValue({
                 id: 'candidate-1',
                 eleicaoId: 'election-1',
                 utilizadorId: 'user-1',
+                registadoPor: 'gestor-1',
                 nome: 'Candidate One',
                 estado: 'PENDENTE',
+                registador: { id: 'gestor-1' },
             });
 
             const result = await candidatesService.getCandidateById('election-1', 'candidate-1');
 
             expect(result.message).toBe('Candidato encontrado com sucesso.');
             expect(result.data.id).toBe('candidate-1');
+            expect(result.data).not.toHaveProperty('registadoPor');
+            expect(result.data).not.toHaveProperty('registador');
         });
 
         it('throws when candidate not found', async () => {
@@ -112,7 +116,7 @@ describe('CandidatesService', () => {
     });
 
     describe('listCandidates', () => {
-        it('returns candidates for election', async () => {
+        it('returns candidates for election without registrar details', async () => {
             candidatesRepositoryMock.findElectionById.mockResolvedValue({
                 id: 'election-1',
                 estado: 'CANDIDATURAS_ABERTAS',
@@ -122,8 +126,10 @@ describe('CandidatesService', () => {
                     id: 'candidate-1',
                     eleicaoId: 'election-1',
                     utilizadorId: 'user-1',
+                    registadoPor: 'gestor-1',
                     nome: 'Candidate One',
                     estado: 'PENDENTE',
+                    registador: { id: 'gestor-1' },
                 },
             ]);
 
@@ -131,6 +137,8 @@ describe('CandidatesService', () => {
 
             expect(result.message).toBe('Candidatos listados com sucesso.');
             expect(result.count).toBe(1);
+            expect(result.data[0]).not.toHaveProperty('registadoPor');
+            expect(result.data[0]).not.toHaveProperty('registador');
             expect(candidatesRepositoryMock.findAllByElection).toHaveBeenCalledWith('election-1', {
                 estado: 'PENDENTE',
             });
