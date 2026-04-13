@@ -136,6 +136,8 @@ O cliente Prisma gerado fica em [`src/generated/prisma`](./src/generated/prisma)
 
 ## Current Endpoints (Implemented)
 
+### Authentication & Health
+
 | Method | Route                              | Description                        |
 | ------ | ---------------------------------- | ---------------------------------- |
 | `GET`  | `/`                                | Raiz do backend                    |
@@ -155,32 +157,62 @@ O cliente Prisma gerado fica em [`src/generated/prisma`](./src/generated/prisma)
 | `GET`  | `/api/v1/health`                   | Visão geral de saúde               |
 | `GET`  | `/api/v1/health/live`              | Verificação de liveness            |
 | `GET`  | `/api/v1/health/ready`             | Verificação de readiness           |
-| `GET`  | `/api/v1/elections/:electionId/eligible-voters` | Listar eleitores elegíveis |
-| `POST` | `/api/v1/elections/:electionId/eligible-voters/import-csv` | Importar eleitores elegíveis |
 
-## Planned Domain Endpoints (English Naming)
+### Eleitores Elegíveis
+
+| Method | Route                              | Description                        | Auth |
+| ------ | ---------------------------------- | ---------------------------------- | ---- |
+| `GET`  | `/api/v1/elections/:electionId/eligible-voters` | Listar eleitores elegíveis | ADMIN, GESTOR_ELEITORAL, AUDITOR |
+| `POST` | `/api/v1/elections/:electionId/eligible-voters/import-csv` | Importar eleitores elegíveis (CSV) | ADMIN, GESTOR_ELEITORAL |
+
+### Votação
+
+| Method | Route                              | Description                        | Auth |
+| ------ | ---------------------------------- | ---------------------------------- | ---- |
+| `GET`  | `/api/v1/elections/:electionId/ballot` | Obter boletim de voto (candidatos) | ELEITOR, CANDIDATO |
+| `POST` | `/api/v1/elections/:electionId/votes` | Registar voto | ELEITOR, CANDIDATO |
+| `GET`  | `/api/v1/elections/:electionId/votes/me/status` | Verificar estado de voto do utilizador | ELEITOR, CANDIDATO |
+| `GET`  | `/api/v1/elections/:electionId/results` | Obter resultados da eleição* | Autenticado |
+
+
+### Cargos (Positions)
+
+| Method | Route                              | Description                        | Auth |
+| ------ | ---------------------------------- | ---------------------------------- | ---- |
+| `GET`  | `/api/v1/positions`                | Listar cargos (todos)              | Público |
+| `GET`  | `/api/v1/positions/:id`            | Obter cargo por ID                 | Público |
+| `POST` | `/api/v1/positions`                | Criar cargo                        | ADMIN, GESTOR_ELEITORAL |
+| `PUT`  | `/api/v1/positions/:id`            | Atualizar cargo                    | ADMIN, GESTOR_ELEITORAL |
+| `DELETE` | `/api/v1/positions/:id`          | Remover cargo                      | ADMIN |
+
+### Eleições (Elections)
+
+| Method | Route                              | Description                        | Auth |
+| ------ | ---------------------------------- | ---------------------------------- | ---- |
+| `GET`  | `/api/v1/elections`                | Listar eleições (com filtros opcionais) | Público |
+| `GET`  | `/api/v1/elections/:id`            | Obter eleição por ID               | Público |
+| `POST` | `/api/v1/elections`                | Criar eleição                      | GESTOR_ELEITORAL |
+| `PATCH`| `/api/v1/elections/:id`            | Atualizar eleição                  | GESTOR_ELEITORAL |
+| `DELETE` | `/api/v1/elections/:id`          | Remover eleição                    | GESTOR_ELEITORAL |
+
+### Candidatos (Candidates)
+
+| Method   | Route                                                      | Description                        | Auth |
+| -------- | ---------------------------------------------------------- | ---------------------------------- | ---- |
+| `GET`    | `/api/v1/elections/:electionId/candidates`                 | Listar candidatos (com filtros)    | Público |
+| `GET`    | `/api/v1/elections/:electionId/candidates/:id`             | Obter candidato por ID             | Público |
+| `POST`   | `/api/v1/elections/:electionId/candidates`                 | Criar candidatura                  | GESTOR_ELEITORAL |
+| `PATCH`  | `/api/v1/elections/:electionId/candidates/:id`             | Atualizar candidato                | GESTOR_ELEITORAL |
+| `PATCH`  | `/api/v1/elections/:electionId/candidates/:id/approve`     | Aprovar candidato                  | GESTOR_ELEITORAL |
+| `PATCH`  | `/api/v1/elections/:electionId/candidates/:id/reject`      | Rejeitar candidato                 | GESTOR_ELEITORAL |
+| `PATCH`  | `/api/v1/elections/:electionId/candidates/:id/suspend`     | Suspender candidato                | GESTOR_ELEITORAL |
+| `DELETE` | `/api/v1/elections/:electionId/candidates/:id`             | Remover candidato                  | GESTOR_ELEITORAL |
+
+## Planned Domain Endpoints
 
 | Method   | Route                                                      | Description                        |
 | -------- | ---------------------------------------------------------- | ---------------------------------- |
-| `GET`    | `/api/v1/elections`                                        | Listar eleições                    |
-| `GET`    | `/api/v1/elections/:id`                                    | Obter detalhes da eleição          |
-| `POST`   | `/api/v1/elections`                                        | Criar eleição                      |
-| `PATCH`  | `/api/v1/elections/:id`                                    | Atualizar eleição                  |
 | `PATCH`  | `/api/v1/elections/:id/status`                             | Atualizar estado da eleição        |
-| `GET`    | `/api/v1/positions`                                        | Listar cargos                      |
-| `POST`   | `/api/v1/positions`                                        | Criar cargo                        |
-| `PATCH`  | `/api/v1/positions/:id`                                    | Atualizar cargo                    |
-| `DELETE` | `/api/v1/positions/:id`                                    | Remover cargo                      |
-| `GET`    | `/api/v1/elections/:electionId/candidates`                 | Listar candidatos                  |
-| `POST`   | `/api/v1/elections/:electionId/candidates`                 | Criar candidatura                  |
-| `PATCH`  | `/api/v1/elections/:electionId/candidates/:id`             | Atualizar dados do candidato       |
-| `PATCH`  | `/api/v1/elections/:electionId/candidates/:id/approve`     | Aprovar candidato                  |
-| `PATCH`  | `/api/v1/elections/:electionId/candidates/:id/reject`      | Rejeitar candidato                 |
-| `PATCH`  | `/api/v1/elections/:electionId/candidates/:id/suspend`     | Suspender candidato                |
-| `GET`    | `/api/v1/elections/:electionId/ballot`                     | Obter boletim de voto              |
-| `POST`   | `/api/v1/elections/:electionId/votes`                      | Registar voto                      |
-| `GET`    | `/api/v1/elections/:electionId/votes/me/status`            | Verificar se o utilizador já votou |
-| `GET`    | `/api/v1/elections/:electionId/results`                    | Obter resultados da eleição        |
 | `GET`    | `/api/v1/elections/:electionId/participation`              | Obter estatísticas de participação |
 | `GET`    | `/api/v1/elections/:electionId/results/export`             | Exportar resultados (pdf/xlsx)     |
 | `GET`    | `/api/v1/receipts/:verificationCode`                       | Verificar comprovativo de voto     |
@@ -373,6 +405,387 @@ Exemplo:
 Para terminar sessão:
 
 1. `POST /api/v1/auth/logout` com `refreshToken`
+
+## Fluxo de Votação
+
+O processo de votação é dividido em 4 passos:
+
+### 1. Importar Eleitores Elegíveis (ADMIN/GESTOR_ELEITORAL)
+
+```bash
+POST /api/v1/elections/:electionId/eligible-voters/import-csv
+Authorization: Bearer <accessToken>
+Content-Type: text/csv
+
+codigo,nome
+2026001,João Silva
+2026002,Maria Santos
+```
+
+Resposta:
+
+```json
+{
+  "success": true,
+  "message": "Eleitores elegíveis importados com sucesso.",
+  "data": {
+    "imported": 2,
+    "skipped": 0,
+    "skippedItems": []
+  },
+  "meta": {}
+}
+```
+
+### 2. Obter Boletim de Voto (ELEITOR/CANDIDATO)
+
+Quando a eleição está em `VOTACAO_ABERTA`, o eleitor pode obter a lista de candidatos aprovados:
+
+```bash
+GET /api/v1/elections/:electionId/ballot
+Authorization: Bearer <accessToken>
+```
+
+Resposta:
+
+```json
+{
+  "success": true,
+  "message": "Boletim de voto carregado com sucesso.",
+  "data": {
+    "election": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "titulo": "Eleição de Presidente",
+      "estado": "VOTACAO_ABERTA",
+      "dataInicioVotacao": "2026-04-13T10:00:00Z",
+      "dataFimVotacao": "2026-04-13T18:00:00Z"
+    },
+    "candidates": [
+      {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "nome": "Candidato A",
+        "estado": "APROVADO"
+      },
+      {
+        "id": "33333333-3333-4333-8333-333333333333",
+        "nome": "Candidato B",
+        "estado": "APROVADO"
+      }
+    ]
+  },
+  "meta": {}
+}
+```
+
+### 3. Registar Voto (ELEITOR/CANDIDATO)
+
+O eleitor escolhe um candidato e registra o voto:
+
+```bash
+POST /api/v1/elections/:electionId/votes
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{
+  "candidatoId": "22222222-2222-4222-8222-222222222222"
+}
+```
+
+Resposta:
+
+```json
+{
+  "success": true,
+  "message": "Voto registado com sucesso.",
+  "data": {
+    "receiptCode": "RCP-2026-01-ABC123",
+    "votedAt": "2026-04-13T15:30:45.123Z",
+    "electionId": "11111111-1111-4111-8111-111111111111",
+    "candidateId": "22222222-2222-4222-8222-222222222222"
+  },
+  "meta": {}
+}
+```
+
+### 4. Verificar Estado de Voto (ELEITOR/CANDIDATO)
+
+Para confirmar que o voto foi registado:
+
+```bash
+GET /api/v1/elections/:electionId/votes/me/status
+Authorization: Bearer <accessToken>
+```
+
+Resposta:
+
+```json
+{
+  "success": true,
+  "message": "Estado de voto carregado com sucesso.",
+  "data": {
+    "electionId": "11111111-1111-4111-8111-111111111111",
+    "hasVoted": true,
+    "votedAt": "2026-04-13T15:30:45.123Z",
+    "receiptCode": "RCP-2026-01-ABC123"
+  },
+  "meta": {}
+}
+```
+
+### 5. Obter Resultados da Eleição (Autenticado)
+
+Os resultados apenas estão disponíveis quando a eleição está em estado `VOTACAO_ENCERRADA` ou `CONCLUIDA`:
+
+```bash
+GET /api/v1/elections/:electionId/results
+Authorization: Bearer <accessToken>
+```
+
+Resposta de sucesso:
+
+```json
+{
+  "success": true,
+  "message": "Resultados da eleição carregados com sucesso.",
+  "data": {
+    "election": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "titulo": "Eleição de Presidente",
+      "estado": "VOTACAO_ENCERRADA"
+    },
+    "summary": {
+      "totalEligibleVoters": 150,
+      "totalVotes": 120,
+      "turnoutPercentage": 80.0
+    },
+    "candidates": [
+      {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "nome": "Candidato A",
+        "estado": "APROVADO",
+        "votes": 75,
+        "percentage": 62.5
+      },
+      {
+        "id": "33333333-3333-4333-8333-333333333333",
+        "nome": "Candidato B",
+        "estado": "APROVADO",
+        "votes": 45,
+        "percentage": 37.5
+      }
+    ],
+    "winner": {
+      "candidateId": "22222222-2222-4222-8222-222222222222",
+      "nome": "Candidato A",
+      "votes": 75
+    }
+  },
+  "meta": {}
+}
+```
+
+Resposta de erro (eleição ainda aberta):
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ELECTION_RESULTS_NOT_AVAILABLE",
+    "message": "Os resultados desta eleição ainda não estão disponíveis.",
+    "statusCode": 409,
+    "details": {
+      "electionId": "11111111-1111-4111-8111-111111111111",
+      "estado": "VOTACAO_ABERTA"
+    }
+  },
+  "meta": {}
+}
+```
+
+## - Eleitores Elegíveis
+
+Para testar a importação e listagem de eleitores elegíveis:
+
+1. **Importe a collection**: [docs/postman/eligible-voters.postman_collection.json](./docs/postman/eligible-voters.postman_collection.json)
+2. **Importe o environment**: [docs/postman/eligible-voters.postman_environment.json](./docs/postman/eligible-voters.postman_environment.json)
+
+Variáveis do environment:
+
+| Variável | Valor Padrão | Descrição |
+| ---- | ---- | ---- |
+| `baseUrl` | `http://localhost:4000` | URL base do backend |
+| `accessToken` | `<placeholder>` | Access token obtido após login bem-sucedido |
+| `electionId` | `11111111-1111-4111-8111-111111111111` | ID de uma eleição existente |
+
+Exemplo com `curl`:
+
+```bash
+# Listar eleitores elegíveis
+curl -X GET "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/eligible-voters" \
+  -H "Authorization: Bearer <accessToken>"
+
+# Importar eleitores do CSV
+curl -X POST "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/eligible-voters/import-csv" \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: text/csv" \
+  --data-binary @- <<EOF
+codigo,nome
+2026001,João Silva
+2026002,Maria Santos
+EOF
+```
+
+## - Votação
+
+Para testar o fluxo completo de votação:
+
+Exemplos com `curl`:
+
+```bash
+# 1. Obter boletim de voto
+curl -X GET "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/ballot" \
+  -H "Authorization: Bearer <accessToken>"
+
+# 2. Registar voto
+curl -X POST "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/votes" \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "candidatoId": "22222222-2222-4222-8222-222222222222"
+  }'
+
+# 3. Verificar estado de voto
+curl -X GET "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/votes/me/status" \
+  -H "Authorization: Bearer <accessToken>"
+
+# 4. Obter resultados (apenas quando eleição fechada)
+curl -X GET "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/results" \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+##  Cargos (Positions)
+
+Para testar os endpoints de cargos:
+
+```bash
+# Listar todos os cargos
+curl -X GET "http://localhost:4000/api/v1/positions"
+
+# Obter cargo por ID
+curl -X GET "http://localhost:4000/api/v1/positions/11111111-1111-4111-8111-111111111111"
+
+# Criar cargo (requer autenticação)
+curl -X POST "http://localhost:4000/api/v1/positions" \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nome": "Presidente",
+    "descricao": "Presidente da associação de estudantes"
+  }'
+
+# Atualizar cargo (requer autenticação)
+curl -X PUT "http://localhost:4000/api/v1/positions/11111111-1111-4111-8111-111111111111" \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nome": "Presidente",
+    "descricao": "Presidente da associação de estudantes - mandato 2026"
+  }'
+
+# Remover cargo (requer autenticação - ADMIN)
+curl -X DELETE "http://localhost:4000/api/v1/positions/11111111-1111-4111-8111-111111111111" \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+## - Eleições (Elections)
+
+Para testar os endpoints de eleições:
+
+```bash
+# Listar todas as eleições (com filtros opcionais)
+curl -X GET "http://localhost:4000/api/v1/elections"
+curl -X GET "http://localhost:4000/api/v1/elections?estado=VOTACAO_ABERTA"
+curl -X GET "http://localhost:4000/api/v1/elections?cargoId=11111111-1111-4111-8111-111111111111"
+
+# Obter eleição por ID
+curl -X GET "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111"
+
+# Criar eleição (requer GESTOR_ELEITORAL)
+curl -X POST "http://localhost:4000/api/v1/elections" \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cargoId": "11111111-1111-4111-8111-111111111111",
+    "titulo": "Eleição para Presidente 2026",
+    "descricao": "Eleição anual para presidente da associação",
+    "dataInicioCandidatura": "2026-04-15T08:00:00Z",
+    "dataFimCandidatura": "2026-04-20T18:00:00Z",
+    "dataInicioVotacao": "2026-04-25T08:00:00Z",
+    "dataFimVotacao": "2026-04-25T18:00:00Z"
+  }'
+
+# Atualizar eleição (requer GESTOR_ELEITORAL)
+curl -X PATCH "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111" \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "titulo": "Eleição para Presidente 2026 - Atualizado",
+    "estado": "CANDIDATURAS_ABERTAS"
+  }'
+
+# Remover eleição (requer GESTOR_ELEITORAL)
+curl -X DELETE "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111" \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+## Postman - Candidatos (Candidates)
+
+Para testar os endpoints de candidatos:
+
+```bash
+# Listar candidatos de uma eleição
+curl -X GET "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/candidates"
+curl -X GET "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/candidates?estado=APROVADO"
+
+# Obter candidato por ID
+curl -X GET "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/candidates/22222222-2222-4222-8222-222222222222"
+
+# Criar candidatura (requer GESTOR_ELEITORAL)
+curl -X POST "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/candidates" \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "utilizadorId": "33333333-3333-4333-8333-333333333333",
+    "nome": "João Silva",
+    "biografia": "Estudante do 3º ano, dedicado à representação estudantil",
+    "proposta": "Melhorar a qualidade das refeições no refeitório e ampliar o horário da biblioteca"
+  }'
+
+# Atualizar candidato (requer GESTOR_ELEITORAL)
+curl -X PATCH "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/candidates/22222222-2222-4222-8222-222222222222" \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "biografia": "Estudante do 3º ano de Engenharia Informática",
+    "proposta": "Melhorar a qualidade das refeições no refeitório"
+  }'
+
+# Aprovar candidato (requer GESTOR_ELEITORAL)
+curl -X PATCH "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/candidates/22222222-2222-4222-8222-222222222222/approve" \
+  -H "Authorization: Bearer <accessToken>"
+
+# Rejeitar candidato (requer GESTOR_ELEITORAL)
+curl -X PATCH "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/candidates/22222222-2222-4222-8222-222222222222/reject" \
+  -H "Authorization: Bearer <accessToken>"
+
+# Suspender candidato (requer GESTOR_ELEITORAL)
+curl -X PATCH "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/candidates/22222222-2222-4222-8222-222222222222/suspend" \
+  -H "Authorization: Bearer <accessToken>"
+
+# Remover candidato (requer GESTOR_ELEITORAL)
+curl -X DELETE "http://localhost:4000/api/v1/elections/11111111-1111-4111-8111-111111111111/candidates/22222222-2222-4222-8222-222222222222" \
+  -H "Authorization: Bearer <accessToken>"
+```
 
 ## Segurança
 
