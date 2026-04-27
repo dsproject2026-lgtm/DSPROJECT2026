@@ -1,472 +1,375 @@
-import { useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
-import { Eye, Pencil, Search, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Eye, Search, ShieldCheck, ShieldX, Slash, Trash2, X } from 'lucide-react';
 
-type CandidateStatus = 'PENDENTE' | 'APROVADO' | 'REJEITADO';
+import { commissionApi } from '@/api/commission.api';
+import { CommissionSegmentTabs } from '@/features/commission/components/CommissionSegmentTabs';
+import { Chip, UiPageSkeleton, UiSelect, UiTable, toast } from '@/components/ui';
+import { ApiError } from '@/lib/http/api-error';
+import { formatStateLabel, getStateChipColor } from '@/lib/ui/state-chip';
+import type { CandidateItem, CandidateState, CommissionElectionItem } from '@/types/commission';
 
-type CandidateRow = {
-  id: string;
-  eleicaoId: string;
-  utilizadorId: string;
-  registadoPor: string | null;
-  nome: string;
-  fotoUrl: string | null;
-  biografia: string | null;
-  proposta: string | null;
-  estado: CandidateStatus;
-};
+type CandidateStateFilter = 'TODOS' | CandidateState;
 
-type ModalProps = {
-  title: string;
-  isOpen: boolean;
-  onClose: () => void;
-  children: ReactNode;
-};
-
-const INITIAL_CANDIDATES: CandidateRow[] = [
-  {
-    id: 'cand-001',
-    eleicaoId: 'ele-2026-aeup',
-    utilizadorId: 'user-2026001',
-    registadoPor: 'com-0001',
-    nome: 'Artur Mandlate',
-    fotoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
-    biografia: 'Estudante finalista com experiência em liderança estudantil.',
-    proposta: 'Digitalizar processos académicos e reforçar transparência.',
-    estado: 'APROVADO',
-  },
-  {
-    id: 'cand-002',
-    eleicaoId: 'ele-2026-aeup',
-    utilizadorId: 'user-2026002',
-    registadoPor: null,
-    nome: 'Elena Sitoe',
-    fotoUrl: null,
-    biografia: 'Representante académica com atuação em projetos sociais.',
-    proposta: 'Aumentar apoio estudantil e melhorar comunicação institucional.',
-    estado: 'PENDENTE',
-  },
-  {
-    id: 'cand-003',
-    eleicaoId: 'ele-2026-conselho',
-    utilizadorId: 'user-2026003',
-    registadoPor: 'com-0002',
-    nome: 'Jaime Cuambe',
-    fotoUrl: null,
-    biografia: null,
-    proposta: null,
-    estado: 'REJEITADO',
-  },
+const STATUS_OPTIONS: Array<{ value: CandidateStateFilter; label: string }> = [
+  { value: 'TODOS', label: 'Todos os estados' },
+  { value: 'PENDENTE', label: 'Pendente' },
+  { value: 'APROVADO', label: 'Aprovado' },
+  { value: 'REJEITADO', label: 'Rejeitado' },
+  { value: 'SUSPENSO', label: 'Suspenso' },
 ];
 
-function BaseModal({ title, isOpen, onClose, children }: ModalProps) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-md bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h3 className="text-[18px] font-semibold text-slate-900">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50"
-            aria-label="Fechar"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="max-h-[calc(90vh-74px)] overflow-y-auto px-5 py-5">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function renderValue(value: string | null) {
-  return value && value.trim().length > 0 ? value : '-';
+function formatDate(value: string | null) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return new Intl.DateTimeFormat('pt-PT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
 }
 
 export function CommissionCandidatesViewPage() {
-  const [rows, setRows] = useState<CandidateRow[]>(INITIAL_CANDIDATES);
+  const [elections, setElections] = useState<CommissionElectionItem[]>([]);
+  const [selectedElectionId, setSelectedElectionId] = useState('');
+  const [allRows, setAllRows] = useState<CandidateItem[]>([]);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'todos' | CandidateStatus>('todos');
-  const [detailCandidate, setDetailCandidate] = useState<CandidateRow | null>(null);
-  const [editingCandidate, setEditingCandidate] = useState<CandidateRow | null>(null);
-  const [editError, setEditError] = useState('');
+  const [statusFilter, setStatusFilter] = useState<CandidateStateFilter>('TODOS');
+  const [detailCandidate, setDetailCandidate] = useState<CandidateItem | null>(null);
+  const [bootLoading, setBootLoading] = useState(true);
+  const [rowsLoading, setRowsLoading] = useState(false);
+  const [busyCandidateId, setBusyCandidateId] = useState<string | null>(null);
+
+  const selectedElection = useMemo(
+    () => elections.find((item) => item.id === selectedElectionId) ?? null,
+    [elections, selectedElectionId],
+  );
+
+  useEffect(() => {
+    let isActive = true;
+
+    const load = async () => {
+      setBootLoading(true);
+      try {
+        const response = await commissionApi.listElections();
+        if (!isActive) return;
+        setElections(response.items);
+        setSelectedElectionId((current) => current || response.items[0]?.id || '');
+      } catch (cause) {
+        if (!isActive) return;
+        const message =
+          cause instanceof ApiError ? cause.message : 'Não foi possível carregar as eleições.';
+        toast.danger(message);
+      } finally {
+        if (isActive) setBootLoading(false);
+      }
+    };
+
+    void load();
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedElectionId) {
+      setAllRows([]);
+      return;
+    }
+
+    let isActive = true;
+
+    const loadCandidates = async () => {
+      setRowsLoading(true);
+      try {
+        const response = await commissionApi.listCandidates(selectedElectionId);
+        if (!isActive) return;
+        setAllRows(response.items);
+      } catch (cause) {
+        if (!isActive) return;
+        const message =
+          cause instanceof ApiError ? cause.message : 'Falha ao carregar candidatos.';
+        toast.danger(message);
+      } finally {
+        if (isActive) setRowsLoading(false);
+      }
+    };
+
+    void loadCandidates();
+    return () => {
+      isActive = false;
+    };
+  }, [selectedElectionId]);
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return rows.filter((row) => {
+    return allRows.filter((row) => {
+      const matchesStatus = statusFilter === 'TODOS' || row.estado === statusFilter;
       const matchesQuery =
         query.length === 0 ||
-        [row.id, row.nome, row.eleicaoId, row.utilizadorId, row.registadoPor ?? '']
+        [row.nome, row.id, row.utilizadorId, row.utilizador.codigo, row.utilizador.email ?? '']
           .join(' ')
           .toLowerCase()
           .includes(query);
-      const matchesStatus = statusFilter === 'todos' || row.estado === statusFilter;
-      return matchesQuery && matchesStatus;
+      return matchesStatus && matchesQuery;
     });
-  }, [rows, search, statusFilter]);
+  }, [allRows, search, statusFilter]);
 
-  const handleDelete = (id: string) => {
-    setRows((current) => current.filter((row) => row.id !== id));
-    if (detailCandidate?.id === id) {
-      setDetailCandidate(null);
-    }
-    if (editingCandidate?.id === id) {
-      setEditingCandidate(null);
+  const runCandidateAction = async (
+    candidateId: string,
+    action: 'approve' | 'reject' | 'suspend' | 'delete',
+  ) => {
+    if (!selectedElectionId) return;
+
+    try {
+      setBusyCandidateId(candidateId);
+      if (action === 'approve') {
+        await commissionApi.approveCandidate(selectedElectionId, candidateId);
+        toast.success('Candidato aprovado.');
+      } else if (action === 'reject') {
+        await commissionApi.rejectCandidate(selectedElectionId, candidateId);
+        toast.success('Candidato rejeitado.');
+      } else if (action === 'suspend') {
+        await commissionApi.suspendCandidate(selectedElectionId, candidateId);
+        toast.success('Candidato suspenso.');
+      } else {
+        const confirmed = window.confirm('Pretende remover este candidato?');
+        if (!confirmed) return;
+        await commissionApi.deleteCandidate(selectedElectionId, candidateId);
+        toast.success('Candidato removido.');
+      }
+
+      const refreshed = await commissionApi.listCandidates(selectedElectionId);
+      setAllRows(refreshed.items);
+      if (detailCandidate?.id === candidateId) {
+        setDetailCandidate(refreshed.items.find((item) => item.id === candidateId) ?? null);
+      }
+    } catch (cause) {
+      const message =
+        cause instanceof ApiError
+          ? cause.message
+          : cause instanceof Error
+            ? cause.message
+            : 'Falha ao executar ação do candidato.';
+      toast.danger(message);
+    } finally {
+      setBusyCandidateId(null);
     }
   };
 
-  const handleSaveEdit = () => {
-    if (!editingCandidate) return;
-
-    if (!editingCandidate.nome.trim() || !editingCandidate.eleicaoId.trim() || !editingCandidate.utilizadorId.trim()) {
-      setEditError('Nome, eleicaoId e utilizadorId sao obrigatorios.');
-      return;
-    }
-
-    if (editingCandidate.fotoUrl && !/^https?:\/\//i.test(editingCandidate.fotoUrl)) {
-      setEditError('fotoUrl deve ser um URL valido (http/https).');
-      return;
-    }
-
-    setRows((current) =>
-      current.map((row) =>
-        row.id === editingCandidate.id
-          ? {
-              ...editingCandidate,
-              nome: editingCandidate.nome.trim(),
-              eleicaoId: editingCandidate.eleicaoId.trim(),
-              utilizadorId: editingCandidate.utilizadorId.trim(),
-              registadoPor: editingCandidate.registadoPor?.trim() || null,
-              fotoUrl: editingCandidate.fotoUrl?.trim() || null,
-              biografia: editingCandidate.biografia?.trim() || null,
-              proposta: editingCandidate.proposta?.trim() || null,
-            }
-          : row,
-      ),
-    );
-
-    setEditError('');
-    setEditingCandidate(null);
-  };
+  if (bootLoading) {
+    return <UiPageSkeleton />;
+  }
 
   return (
     <section className="space-y-6">
       <div>
-        <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-slate-900">Visualizacao de Candidatos</h1>
-        <p className="mt-1 text-[13px] text-slate-500">
-          Campos alinhados com a tabela <strong>candidatos</strong> da base de dados.
+        <h1 className="text-ui-2xl font-semibold leading-tight tracking-[-0.01em] text-[#0f172a]">
+          Candidatos por Eleição
+        </h1>
+        <p className="text-ui-sm text-[#475569]">
+          Consulte e faça a gestão dos candidatos vinculados por eleição.
         </p>
       </div>
 
-      <div className="rounded-md border border-slate-200 bg-white p-4">
-        <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
+      <CommissionSegmentTabs segment="candidatos" />
+
+      <div className="rounded-sm border border-[#e2e8f0] bg-white p-5 shadow-none">
+        <div className="grid gap-3 lg:grid-cols-[1fr_2fr_1fr]">
+          <UiSelect
+            value={selectedElectionId}
+            onChange={setSelectedElectionId}
+            placeholder="Selecione a eleição"
+            ariaLabel="Eleição"
+            options={elections.map((item) => ({
+              value: item.id,
+              label: item.titulo,
+            }))}
+          />
+
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94a3b8]" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Pesquisar por id, nome, eleicaoId, utilizadorId ou registadoPor"
-              className="h-10 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              placeholder="Pesquisar por nome, id, utilizadorId, código ou email"
+              className="h-11 w-full rounded-sm border border-[#d1d9e6] bg-white pl-10 pr-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
             />
           </div>
 
-          <select
+          <UiSelect
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as 'todos' | CandidateStatus)}
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          >
-            <option value="todos">Todos os estados</option>
-            <option value="PENDENTE">PENDENTE</option>
-            <option value="APROVADO">APROVADO</option>
-            <option value="REJEITADO">REJEITADO</option>
-          </select>
+            onChange={(value) => setStatusFilter(value as CandidateStateFilter)}
+            ariaLabel="Estado do candidato"
+            options={STATUS_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+          />
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-        <table className="w-full text-left text-[14px]">
-          <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.12em] text-slate-500">
-            <tr>
-              <th className="px-4 py-3">Nome</th>
-              <th className="px-4 py-3">eleicaoId</th>
-              <th className="px-4 py-3">utilizadorId</th>
-              <th className="px-4 py-3">registadoPor</th>
-              <th className="px-4 py-3">estado</th>
-              <th className="px-4 py-3 text-right">Acoes</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 text-[14px] text-slate-700">
-            {filteredRows.map((row) => (
-              <tr key={row.id} className="transition hover:bg-slate-50">
-                <td className="px-4 py-4">
-                  <p className="font-semibold text-slate-900">{row.nome}</p>
-                  <p className="text-[12px] text-slate-500">id: {row.id}</p>
-                </td>
-                <td className="px-4 py-4">{row.eleicaoId}</td>
-                <td className="px-4 py-4">{row.utilizadorId}</td>
-                <td className="px-4 py-4">{renderValue(row.registadoPor)}</td>
-                <td className="px-4 py-4">
-                  <span className="rounded bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">{row.estado}</span>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex justify-end gap-2 text-slate-500">
-                    <button
-                      type="button"
-                      onClick={() => setDetailCandidate(row)}
-                      className="rounded p-1 hover:bg-slate-100 hover:text-slate-700"
-                      aria-label="Visualizar"
+      <div className="overflow-hidden rounded-sm border border-[#e2e8f0] bg-white shadow-none">
+        <UiTable
+          ariaLabel="Candidatos por eleição"
+          columns={[
+            { id: 'candidato', label: 'Candidato', className: 'font-semibold' },
+            { id: 'codigo', label: 'Código', className: 'font-semibold' },
+            { id: 'estado', label: 'Estado', className: 'font-semibold' },
+            { id: 'acoes', label: 'Ações', className: 'font-semibold' },
+          ]}
+          rows={
+            !selectedElectionId || rowsLoading
+              ? []
+              : filteredRows.map((row) => ({
+                  id: row.id,
+                  cells: [
+                    <div key={`${row.id}:candidate`}>
+                      <p className="text-base font-semibold text-[#0f172a]">{row.nome}</p>
+                      <p className="text-sm text-[#64748b]">{row.utilizador.email ?? '-'}</p>
+                    </div>,
+                    <span key={`${row.id}:code`} className="text-base">{row.utilizador.codigo}</span>,
+                    <Chip
+                      key={`${row.id}:status`}
+                      size="sm"
+                      variant="soft"
+                      color={getStateChipColor(row.estado)}
+                      className="font-semibold"
                     >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingCandidate(row)}
-                      className="rounded p-1 hover:bg-slate-100 hover:text-slate-700"
-                      aria-label="Editar"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(row.id)}
-                      className="rounded p-1 hover:bg-red-50 hover:text-red-600"
-                      aria-label="Deletar"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {filteredRows.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-[14px] text-slate-500">
-                  Nenhum candidato encontrado para os filtros aplicados.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+                      {formatStateLabel(row.estado)}
+                    </Chip>,
+                    <div key={`${row.id}:actions`} className="flex flex-wrap gap-1 text-[#64748b]">
+                      <button
+                        type="button"
+                        onClick={() => setDetailCandidate(row)}
+                        className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]"
+                        aria-label="Visualizar"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyCandidateId === row.id}
+                        onClick={() => void runCandidateAction(row.id, 'approve')}
+                        className="rounded p-1 transition hover:bg-[#f0fdf4] hover:text-[#15803d] disabled:opacity-50"
+                        aria-label="Aprovar"
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyCandidateId === row.id}
+                        onClick={() => void runCandidateAction(row.id, 'reject')}
+                        className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626] disabled:opacity-50"
+                        aria-label="Rejeitar"
+                      >
+                        <ShieldX className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyCandidateId === row.id}
+                        onClick={() => void runCandidateAction(row.id, 'suspend')}
+                        className="rounded p-1 transition hover:bg-[#fffbeb] hover:text-[#b45309] disabled:opacity-50"
+                        aria-label="Suspender"
+                      >
+                        <Slash className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyCandidateId === row.id}
+                        onClick={() => void runCandidateAction(row.id, 'delete')}
+                        className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626] disabled:opacity-50"
+                        aria-label="Deletar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>,
+                  ],
+                }))
+          }
+          emptyMessage={
+            !selectedElectionId
+              ? 'Selecione uma eleição para visualizar os candidatos.'
+              : rowsLoading
+                ? 'A carregar candidatos...'
+                : 'Nenhum candidato encontrado.'
+          }
+        />
       </div>
 
-      <BaseModal title="Detalhes do Candidato" isOpen={Boolean(detailCandidate)} onClose={() => setDetailCandidate(null)}>
-        {detailCandidate ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">id</p>
-              <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.id}</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">nome</p>
-              <p className="mt-1 text-[15px] font-semibold text-slate-900">{detailCandidate.nome}</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">eleicaoId</p>
-              <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.eleicaoId}</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">utilizadorId</p>
-              <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.utilizadorId}</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">registadoPor</p>
-              <p className="mt-1 text-[14px] text-slate-700">{renderValue(detailCandidate.registadoPor)}</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">estado</p>
-              <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.estado}</p>
-            </div>
-            <div className="md:col-span-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">fotoUrl</p>
-              <p className="mt-1 break-all text-[14px] text-slate-700">{renderValue(detailCandidate.fotoUrl)}</p>
-            </div>
-            <div className="md:col-span-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">biografia</p>
-              <p className="mt-1 text-[14px] text-slate-700">{renderValue(detailCandidate.biografia)}</p>
-            </div>
-            <div className="md:col-span-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">proposta</p>
-              <p className="mt-1 text-[14px] text-slate-700">{renderValue(detailCandidate.proposta)}</p>
-            </div>
-          </div>
-        ) : null}
-      </BaseModal>
-
-      <BaseModal
-        title="Editar Candidato"
-        isOpen={Boolean(editingCandidate)}
-        onClose={() => {
-          setEditingCandidate(null);
-          setEditError('');
-        }}
-      >
-        {editingCandidate ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Nome</label>
-              <input
-                value={editingCandidate.nome}
-                onChange={(event) =>
-                  setEditingCandidate((current) =>
-                    current
-                      ? {
-                          ...current,
-                          nome: event.target.value,
-                        }
-                      : current,
-                  )
-                }
-                className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">eleicaoId</label>
-              <input
-                value={editingCandidate.eleicaoId}
-                onChange={(event) =>
-                  setEditingCandidate((current) =>
-                    current
-                      ? {
-                          ...current,
-                          eleicaoId: event.target.value,
-                        }
-                      : current,
-                  )
-                }
-                className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">utilizadorId</label>
-              <input
-                value={editingCandidate.utilizadorId}
-                onChange={(event) =>
-                  setEditingCandidate((current) =>
-                    current
-                      ? {
-                          ...current,
-                          utilizadorId: event.target.value,
-                        }
-                      : current,
-                  )
-                }
-                className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">registadoPor</label>
-              <input
-                value={editingCandidate.registadoPor ?? ''}
-                onChange={(event) =>
-                  setEditingCandidate((current) =>
-                    current
-                      ? {
-                          ...current,
-                          registadoPor: event.target.value,
-                        }
-                      : current,
-                  )
-                }
-                className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                placeholder="Opcional"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">estado</label>
-              <select
-                value={editingCandidate.estado}
-                onChange={(event) =>
-                  setEditingCandidate((current) =>
-                    current
-                      ? {
-                          ...current,
-                          estado: event.target.value as CandidateStatus,
-                        }
-                      : current,
-                  )
-                }
-                className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="PENDENTE">PENDENTE</option>
-                <option value="APROVADO">APROVADO</option>
-                <option value="REJEITADO">REJEITADO</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">fotoUrl</label>
-              <input
-                value={editingCandidate.fotoUrl ?? ''}
-                onChange={(event) =>
-                  setEditingCandidate((current) =>
-                    current
-                      ? {
-                          ...current,
-                          fotoUrl: event.target.value,
-                        }
-                      : current,
-                  )
-                }
-                className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                placeholder="https://..."
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">biografia</label>
-              <textarea
-                value={editingCandidate.biografia ?? ''}
-                onChange={(event) =>
-                  setEditingCandidate((current) =>
-                    current
-                      ? {
-                          ...current,
-                          biografia: event.target.value,
-                        }
-                      : current,
-                  )
-                }
-                className="min-h-[96px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">proposta</label>
-              <textarea
-                value={editingCandidate.proposta ?? ''}
-                onChange={(event) =>
-                  setEditingCandidate((current) =>
-                    current
-                      ? {
-                          ...current,
-                          proposta: event.target.value,
-                        }
-                      : current,
-                  )
-                }
-                className="min-h-[96px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-            <div className="md:col-span-2 flex justify-end gap-2 pt-2">
+      {detailCandidate ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/45 px-4 py-6">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-md border border-[#d1d9e6] bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
+              <h3 className="text-lg font-semibold text-[#0f172a]">Detalhes do Candidato</h3>
               <button
                 type="button"
-                onClick={() => setEditingCandidate(null)}
-                className="h-10 rounded-md border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
+                onClick={() => setDetailCandidate(null)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#d1d9e6] text-[#64748b] transition hover:bg-[#f8fafc]"
+                aria-label="Fechar"
               >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                className="h-10 rounded-md bg-blue-600 px-4 text-[13px] font-semibold text-white hover:bg-blue-700"
-              >
-                Guardar Alteracoes
+                <X className="h-4 w-4" />
               </button>
             </div>
-            {editError ? <p className="md:col-span-2 text-[12px] text-red-600">{editError}</p> : null}
+            <div className="max-h-[calc(90vh-74px)] overflow-y-auto px-5 py-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">
+                    Nome
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-[#0f172a]">{detailCandidate.nome}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    Estado
+                  </p>
+                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.estado}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    Utilizador
+                  </p>
+                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.utilizador.nome}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    Código
+                  </p>
+                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.utilizador.codigo}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    Email
+                  </p>
+                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.utilizador.email ?? '-'}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    Biografia
+                  </p>
+                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.biografia ?? '-'}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    Proposta
+                  </p>
+                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.proposta ?? '-'}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    Início da votação
+                  </p>
+                  <p className="mt-1 text-[14px] text-slate-700">
+                    {formatDate(selectedElection?.dataInicioVotacao ?? null)}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        ) : null}
-      </BaseModal>
+        </div>
+      ) : null}
     </section>
   );
 }

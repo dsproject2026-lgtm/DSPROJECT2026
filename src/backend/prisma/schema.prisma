@@ -1,106 +1,161 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-// Add your models below and run `npm run prisma:migrate:dev`.
-
-// ─────────────────────────────────────────────
-// CARGOS
-// Entidade independente. Ex: Presidente, Secretário-Geral
-// ─────────────────────────────────────────────
 model Cargo {
-  id        String    @id @default(uuid())
-  nome      String    @db.VarChar(100)
-  descricao String?   @db.Text
-
-  eleicoes  Eleicao[]
+  id        String   @id @default(uuid())
+  nome      String   @db.VarChar(100)
+  descricao String?
+  eleicoes  Eleicao?
 
   @@map("cargos")
 }
 
-// ─────────────────────────────────────────────
-// ELEICOES
-// Uma eleição é criada para um cargo específico
-// ─────────────────────────────────────────────
 model Eleicao {
-  id                     String    @id @default(uuid())
-  cargoId                String    @map("cargo_id")
-  titulo                 String    @db.VarChar(200)
-  descricao              String?   @db.Text
-  estado                 EstadoEleicao @default(RASCUNHO)
-  dataInicioCandidatura  DateTime? @map("data_inicio_candidatura") @db.Timestamptz
-  dataFimCandidatura     DateTime? @map("data_fim_candidatura")    @db.Timestamptz
-  dataInicioVotacao      DateTime? @map("data_inicio_votacao")     @db.Timestamptz
-  dataFimVotacao         DateTime? @map("data_fim_votacao")        @db.Timestamptz
-
-  cargo         Cargo          @relation(fields: [cargoId], references: [id])
-  candidatos    Candidato[]
-  elegiveis     Elegivel[]
-  comprovativos Comprovativo[]
+  id                    String         @id @default(uuid())
+  cargoId               String         @unique(map: "eleicoes_one_active_per_cargo_idx", where: raw("(estado = 'ABERTA'::estado_eleicao)")) @map("cargo_id")
+  titulo                String         @db.VarChar(200)
+  descricao             String?
+  dataInicioCandidatura DateTime?      @map("data_inicio_candidatura") @db.Timestamptz(6)
+  dataFimCandidatura    DateTime?      @map("data_fim_candidatura") @db.Timestamptz(6)
+  dataInicioVotacao     DateTime?      @map("data_inicio_votacao") @db.Timestamptz(6)
+  dataFimVotacao        DateTime?      @map("data_fim_votacao") @db.Timestamptz(6)
+  estado                EstadoEleicao  @default(PENDENTE)
+  candidatos            Candidato[]
+  comprovativos         Comprovativo[]
+  elegiveis             Elegivel[]
+  cargo                 Cargo          @relation(fields: [cargoId], references: [id])
 
   @@map("eleicoes")
 }
 
-enum EstadoEleicao {
-  RASCUNHO
-  CANDIDATURAS_ABERTAS
-  CANDIDATURAS_ENCERRADAS
-  VOTACAO_ABERTA
-  VOTACAO_ENCERRADA
-  CONCLUIDA
-  CANCELADA
-
-  @@map("estado_eleicao")
-}
-
-// ─────────────────────────────────────────────
-// UTILIZADORES
-// Autenticação e perfis do sistema
-// ─────────────────────────────────────────────
 model Utilizador {
-  id          String   @id @default(uuid())
-  codigo      String   @unique @db.VarChar(50)
-  nome        String   @db.VarChar(150)
-  email       String?  @unique @db.VarChar(255)
-  senhaHash   String?  @map("senha_hash") @db.Text
-  perfil      Perfil
-  activo      Boolean  @default(true)
-  mustSetPassword Boolean @default(false) @map("must_set_password")
-  passwordSetupTokenHash String? @map("password_setup_token_hash") @db.Text
-  passwordSetupTokenExpiresAt DateTime? @map("password_setup_token_expires_at") @db.Timestamptz
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-
-  elegiveis           Elegivel[]
-  comprovativos       Comprovativo[]
-  logsAuditoria       LogAuditoria[]
-  candidaturas        Candidato[] @relation("CandidaturaDoUtilizador")
-  candidatosRegistados Candidato[] @relation("RegistadoPor")
-  refreshTokens       RefreshToken[]
+  id                          String         @id @default(uuid())
+  codigo                      String         @unique @db.VarChar(50)
+  nome                        String         @db.VarChar(150)
+  senhaHash                   String?        @map("senha_hash")
+  perfil                      Perfil
+  activo                      Boolean        @default(true)
+  createdAt                   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  email                       String?        @unique @db.VarChar(255)
+  mustSetPassword             Boolean        @default(false) @map("must_set_password")
+  passwordSetupTokenHash      String?        @map("password_setup_token_hash")
+  passwordSetupTokenExpiresAt DateTime?      @map("password_setup_token_expires_at") @db.Timestamptz(6)
+  candidatosRegistados        Candidato[]    @relation("RegistadoPor")
+  candidaturas                Candidato[]    @relation("CandidaturaDoUtilizador")
+  comprovativos               Comprovativo[]
+  elegiveis                   Elegivel[]
+  logsAuditoria               LogAuditoria[]
+  refreshTokens               RefreshToken[]
 
   @@map("utilizadores")
 }
 
 model RefreshToken {
-  id                 String    @id @default(uuid())
-  utilizadorId       String    @map("utilizador_id")
-  tokenHash          String    @unique @map("token_hash") @db.Text
-  expiresAt          DateTime  @map("expires_at") @db.Timestamptz
-  revokedAt          DateTime? @map("revoked_at") @db.Timestamptz
-  replacedByTokenHash String?  @map("replaced_by_token_hash") @db.Text
-  ip                 String?   @db.VarChar(45)
-  userAgent          String?   @map("user_agent") @db.VarChar(255)
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
-
-  utilizador Utilizador @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
+  id                  String     @id @default(uuid())
+  utilizadorId        String     @map("utilizador_id")
+  tokenHash           String     @unique @map("token_hash")
+  expiresAt           DateTime   @map("expires_at") @db.Timestamptz(6)
+  revokedAt           DateTime?  @map("revoked_at") @db.Timestamptz(6)
+  replacedByTokenHash String?    @map("replaced_by_token_hash")
+  ip                  String?    @db.VarChar(45)
+  userAgent           String?    @map("user_agent") @db.VarChar(255)
+  createdAt           DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  utilizador          Utilizador @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
 
   @@index([utilizadorId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model Candidato {
+  id           String          @id @default(uuid())
+  eleicaoId    String          @map("eleicao_id")
+  registadoPor String?         @map("registado_por")
+  nome         String          @db.VarChar(150)
+  fotoUrl      String?         @map("foto_url")
+  biografia    String?
+  proposta     String?
+  estado       EstadoCandidato @default(PENDENTE)
+  utilizadorId String          @map("utilizador_id")
+  eleicao      Eleicao         @relation(fields: [eleicaoId], references: [id])
+  registador   Utilizador?     @relation("RegistadoPor", fields: [registadoPor], references: [id])
+  utilizador   Utilizador      @relation("CandidaturaDoUtilizador", fields: [utilizadorId], references: [id])
+  votos        Voto[]
+
+  @@unique([eleicaoId, utilizadorId])
+  @@map("candidatos")
+}
+
+model Elegivel {
+  id           String     @id @default(uuid())
+  eleicaoId    String     @map("eleicao_id")
+  utilizadorId String     @map("utilizador_id")
+  jaVotou      Boolean    @default(false) @map("ja_votou")
+  importadoEm  DateTime   @default(now()) @map("importado_em") @db.Timestamptz(6)
+  eleicao      Eleicao    @relation(fields: [eleicaoId], references: [id])
+  utilizador   Utilizador @relation(fields: [utilizadorId], references: [id])
+
+  @@unique([eleicaoId, utilizadorId])
+  @@map("elegiveis")
+}
+
+model Voto {
+  id           String    @id @default(uuid())
+  candidatoId  String    @map("candidato_id")
+  tokenAnonimo String    @unique @map("token_anonimo")
+  dataHora     DateTime  @default(now()) @map("data_hora") @db.Timestamptz(6)
+  candidato    Candidato @relation(fields: [candidatoId], references: [id])
+
+  @@map("votos")
+}
+
+model Comprovativo {
+  id                String     @id @default(uuid())
+  utilizadorId      String     @map("utilizador_id")
+  eleicaoId         String     @map("eleicao_id")
+  codigoVerificacao String     @unique @map("codigo_verificacao")
+  emitidoEm         DateTime   @default(now()) @map("emitido_em") @db.Timestamptz(6)
+  eleicao           Eleicao    @relation(fields: [eleicaoId], references: [id])
+  utilizador        Utilizador @relation(fields: [utilizadorId], references: [id])
+
+  @@map("comprovativos")
+}
+
+model LogAuditoria {
+  id           String      @id @default(uuid())
+  utilizadorId String?     @map("utilizador_id")
+  accao        String      @db.VarChar(100)
+  entidade     String?     @db.VarChar(100)
+  entidadeId   String?     @map("entidade_id") @db.Uuid
+  ip           String?     @db.VarChar(45)
+  timestamp    DateTime    @default(now()) @db.Timestamptz(6)
+  utilizador   Utilizador? @relation(fields: [utilizadorId], references: [id])
+
+  @@map("logs_auditoria")
+}
+
+model AppSetting {
+  key       String   @id @db.VarChar(100)
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("app_settings")
+}
+
+enum EstadoEleicao {
+  PENDENTE
+  ABERTA
+  CONCLUIDA
+  CANCELADA
+
+  @@map("estado_eleicao")
 }
 
 enum Perfil {
@@ -113,31 +168,6 @@ enum Perfil {
   @@map("perfil")
 }
 
-// ─────────────────────────────────────────────
-// CANDIDATOS
-// O candidato autentica-se como Utilizador usando `codigo` e `senha`.
-// A candidatura pertence a um utilizador e pode ser registada por um membro da comissão.
-// ─────────────────────────────────────────────
-model Candidato {
-  id           String          @id @default(uuid())
-  eleicaoId    String          @map("eleicao_id")
-  utilizadorId String          @map("utilizador_id")
-  registadoPor String?         @map("registado_por")
-  nome         String          @db.VarChar(150)
-  fotoUrl      String?         @map("foto_url") @db.Text
-  biografia    String?         @db.Text
-  proposta     String?         @db.Text
-  estado       EstadoCandidato @default(PENDENTE)
-
-  eleicao    Eleicao    @relation(fields: [eleicaoId], references: [id])
-  utilizador Utilizador @relation("CandidaturaDoUtilizador", fields: [utilizadorId], references: [id])
-  registador Utilizador? @relation("RegistadoPor", fields: [registadoPor], references: [id])
-  votos      Voto[]
-
-  @@unique([eleicaoId, utilizadorId])
-  @@map("candidatos")
-}
-
 enum EstadoCandidato {
   PENDENTE
   APROVADO
@@ -145,58 +175,4 @@ enum EstadoCandidato {
   SUSPENSO
 
   @@map("estado_candidato")
-}
-
-model Elegivel {
-  id           String   @id @default(uuid())
-  eleicaoId    String   @map("eleicao_id")
-  utilizadorId String   @map("utilizador_id")
-  jaVotou      Boolean  @default(false) @map("ja_votou")
-  importadoEm  DateTime @default(now()) @map("importado_em") @db.Timestamptz
-
-  eleicao    Eleicao    @relation(fields: [eleicaoId], references: [id])
-  utilizador Utilizador @relation(fields: [utilizadorId], references: [id])
-
-  @@unique([eleicaoId, utilizadorId])
-  @@map("elegiveis")
-}
-
-
-model Voto {
-  id           String   @id @default(uuid())
-  candidatoId  String   @map("candidato_id")
-  tokenAnonimo String   @unique @map("token_anonimo") @db.Text
-  dataHora     DateTime @default(now()) @map("data_hora") @db.Timestamptz
-
-  candidato Candidato @relation(fields: [candidatoId], references: [id])
-
-  @@map("votos")
-}
-
-
-model Comprovativo {
-  id                String   @id @default(uuid())
-  utilizadorId      String   @map("utilizador_id")
-  eleicaoId         String   @map("eleicao_id")
-  codigoVerificacao String   @unique @map("codigo_verificacao") @db.Text
-  emitidoEm         DateTime @default(now()) @map("emitido_em") @db.Timestamptz
-
-  utilizador Utilizador @relation(fields: [utilizadorId], references: [id])
-  eleicao    Eleicao    @relation(fields: [eleicaoId], references: [id])
-
-  @@map("comprovativos")
-}
-
-model LogAuditoria {
-  id           String   @id @default(uuid())
-  utilizadorId String?  @map("utilizador_id")
-  accao        String   @db.VarChar(100)
-  entidade     String?  @db.VarChar(100)
-  entidadeId   String?  @map("entidade_id") @db.Uuid
-  ip           String?  @db.VarChar(45)
-  timestamp    DateTime @default(now()) @db.Timestamptz
-
-  utilizador Utilizador? @relation(fields: [utilizadorId], references: [id])
-
-  @@map("logs_auditoria")
 }

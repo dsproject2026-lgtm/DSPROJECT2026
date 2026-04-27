@@ -1,7 +1,7 @@
 import type { LoginResult, SessionUser } from '@/types/auth';
 
 export type UserRole = SessionUser['perfil'];
-export type BackofficeRole = Exclude<UserRole, 'ELEITOR'>;
+export type BackofficeRole = Exclude<UserRole, 'ELEITOR' | 'CANDIDATO'>;
 
 export interface BackofficeNavItem {
   segment: string;
@@ -38,10 +38,16 @@ export const BACKOFFICE_CONFIGS: Record<BackofficeRole, BackofficeRoleConfig> = 
         description: 'Base pronta para cadastro, validação e ciclo de vida dos candidatos.',
       },
       {
+        segment: 'cargos',
+        label: 'Cargos',
+        title: 'Gestão de Cargos',
+        description: 'Base pronta para registo e visualização de cargos eleitorais.',
+      },
+      {
         segment: 'estudantes',
-        label: 'Estudantes',
-        title: 'Gestão de Estudantes',
-        description: 'Base pronta para listagem, elegibilidade e importação de estudantes.',
+        label: 'Eleitores',
+        title: 'Gestão de Eleitores',
+        description: 'Base pronta para listagem, elegibilidade e importação de eleitores.',
       },
       {
         segment: 'comissao',
@@ -95,7 +101,7 @@ export const BACKOFFICE_CONFIGS: Record<BackofficeRole, BackofficeRoleConfig> = 
       },
       {
         segment: 'estudantes',
-        label: 'Estudantes',
+        label: 'Eleitores',
         title: 'Eleitores Elegíveis',
         description: 'Base pronta para gerir eleitores elegíveis e importação CSV.',
       },
@@ -149,6 +155,7 @@ const roleHomeRoute: Record<UserRole, string> = {
   GESTOR_ELEITORAL: `/${BACKOFFICE_CONFIGS.GESTOR_ELEITORAL.basePath}/${BACKOFFICE_CONFIGS.GESTOR_ELEITORAL.navItems[0].segment}`,
   AUDITOR: `/${BACKOFFICE_CONFIGS.AUDITOR.basePath}/${BACKOFFICE_CONFIGS.AUDITOR.navItems[0].segment}`,
   ELEITOR: ELECTOR_HOME_PATH,
+  CANDIDATO: ELECTOR_HOME_PATH,
 };
 
 export function getRoleHomeRoute(role: UserRole): string {
@@ -162,4 +169,3 @@ export function getRoleHomeRouteFromSession(session: LoginResult | null): string
 
   return getRoleHomeRoute(session.user.perfil);
 }
-

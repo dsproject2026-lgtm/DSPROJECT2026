@@ -10,23 +10,40 @@ import { AppError } from '../utils/app-error.js';
 
 class CandidatesService {
     async createCandidate(electionId: string, data: CreateCandidateApiInput, registadoPor?: string) {
+        const utilizadorId = data.utilizadorId;
+
         const election = await candidatesRepository.findElectionById(electionId);
 
         if (!election) {
             throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
         }
 
-        const user = await candidatesRepository.findUserById(data.utilizadorId);
+        const user = await candidatesRepository.findUserById(utilizadorId);
 
         if (!user) {
             throw new AppError('Utilizador não encontrado.', 404, 'USER_NOT_FOUND', {
-                utilizadorId: data.utilizadorId,
+                utilizadorId,
             });
+        }
+
+        if (!user.activo) {
+            throw new AppError('A conta do utilizador está inativa.', 403, 'USER_ACCOUNT_INACTIVE', {
+                utilizadorId,
+            });
+        }
+
+        if (user.perfil !== 'ELEITOR' && user.perfil !== 'CANDIDATO') {
+            throw new AppError(
+                'Apenas eleitores podem ser promovidos a candidatos.',
+                400,
+                'CANDIDATE_PROFILE_INVALID',
+                { utilizadorId },
+            );
         }
 
         const existingCandidate = await candidatesRepository.findByElectionAndUser(
             electionId,
-            data.utilizadorId,
+            utilizadorId,
         );
 
         if (existingCandidate) {
@@ -36,12 +53,24 @@ class CandidatesService {
                 'CANDIDATE_ALREADY_REGISTERED',
                 {
                     electionId,
-                    utilizadorId: data.utilizadorId,
+                    utilizadorId,
                 },
             );
         }
 
-        const candidate = await candidatesRepository.create(electionId, data, registadoPor);
+        if (user.perfil === 'ELEITOR') {
+            await candidatesRepository.promoteUserToCandidate(utilizadorId);
+        }
+
+        const candidate = await candidatesRepository.create(
+            electionId,
+            {
+                ...data,
+                utilizadorId,
+                estado: 'APROVADO',
+            },
+            registadoPor,
+        );
 
         return {
             message: 'Candidato registado com sucesso.',
@@ -103,6 +132,21 @@ class CandidatesService {
                 });
             }
 
+            if (!user.activo) {
+                throw new AppError('A conta do utilizador está inativa.', 403, 'USER_ACCOUNT_INACTIVE', {
+                    utilizadorId: partialData.utilizadorId,
+                });
+            }
+
+            if (user.perfil !== 'ELEITOR' && user.perfil !== 'CANDIDATO') {
+                throw new AppError(
+                    'Apenas eleitores podem ser promovidos a candidatos.',
+                    400,
+                    'CANDIDATE_PROFILE_INVALID',
+                    { utilizadorId: partialData.utilizadorId },
+                );
+            }
+
             if (partialData.utilizadorId !== existingCandidate.utilizadorId) {
                 const existingForUser = await candidatesRepository.findByElectionAndUser(
                     electionId,
@@ -120,6 +164,10 @@ class CandidatesService {
                         },
                     );
                 }
+            }
+
+            if (user.perfil === 'ELEITOR') {
+                await candidatesRepository.promoteUserToCandidate(partialData.utilizadorId);
             }
         }
 

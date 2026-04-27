@@ -23,8 +23,8 @@ const startServer = async () => {
     console.warn('DATABASE_URL not configured. Prisma will stay idle until configured.');
   }
 
-  httpServer.listen(env.PORT, () => {
-    console.info(`Backend listening on port ${env.PORT}.`);
+  httpServer.listen(env.PORT, env.HOST, () => {
+    console.info(`Backend listening on ${env.HOST}:${env.PORT}.`);
   });
 };
 

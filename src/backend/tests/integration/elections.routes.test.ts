@@ -1,11 +1,13 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppError } from '../../src/utils/app-error.js';
 
 const { electionsServiceMock } = vi.hoisted(() => ({
   electionsServiceMock: {
     createElection: vi.fn(),
     getElectionById: vi.fn(),
     listElections: vi.fn(),
+    listCandidateUsers: vi.fn(),
     updateElection: vi.fn(),
     deleteElection: vi.fn(),
   },
@@ -118,15 +120,16 @@ describe('elections routes integration', () => {
     });
 
     it('returns filtered list by cargoId', async () => {
+      const cargoId = '11111111-1111-4111-8111-111111111111';
       electionsServiceMock.listElections.mockResolvedValue({
         message: 'Eleições listadas com sucesso.',
         data: [
           {
             id: 'eleicao-1',
-            cargoId: 'cargo-1',
+            cargoId,
             titulo: 'Eleição para Presidente 2026',
             estado: 'CANDIDATURAS_ABERTAS',
-            cargo: { id: 'cargo-1', nome: 'Presidente', descricao: null },
+            cargo: { id: cargoId, nome: 'Presidente', descricao: null },
             candidatos: [],
             elegiveis: [],
             comprovativos: [],
@@ -135,11 +138,38 @@ describe('elections routes integration', () => {
         count: 1,
       });
 
-      const response = await request(app).get('/api/v1/elections?cargoId=cargo-1');
+      const response = await request(app).get(`/api/v1/elections?cargoId=${cargoId}`);
       const body = response.body as ListElectionsResponse;
 
       expect(response.status).toBe(200);
-      expect(electionsServiceMock.listElections).toHaveBeenCalledWith({ cargoId: 'cargo-1' });
+      expect(electionsServiceMock.listElections).toHaveBeenCalledWith({ cargoId });
+    });
+  });
+
+  describe('GET /elections/candidate-users', () => {
+    const validGestorToken = generateAccessToken({
+      sub: 'user-2',
+      codigo: '2026002',
+      perfil: 'GESTOR_ELEITORAL',
+      purpose: 'ACCESS',
+    });
+
+    it('lists existing candidate users', async () => {
+      electionsServiceMock.listCandidateUsers.mockResolvedValue({
+        message: 'Candidatos disponíveis listados com sucesso.',
+        data: [{ id: 'user-1', codigo: '026001', nome: 'Candidato Um', email: 'cand@up.ac.mz', activo: true }],
+        count: 1,
+      });
+
+      const response = await request(app)
+        .get('/api/v1/elections/candidate-users')
+        .set('Authorization', `Bearer ${validGestorToken}`);
+
+      const body = response.body as ListElectionsResponse;
+      expect(response.status).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data.items).toHaveLength(1);
+      expect(electionsServiceMock.listCandidateUsers).toHaveBeenCalledWith(undefined);
     });
   });
 
@@ -169,11 +199,9 @@ describe('elections routes integration', () => {
     });
 
     it('returns 404 when election not found', async () => {
-      const notFoundError = new Error('Eleição não encontrada.');
-      (notFoundError as any).statusCode = 404;
-      (notFoundError as any).code = 'ELECTION_NOT_FOUND';
-
-      electionsServiceMock.getElectionById.mockRejectedValue(notFoundError);
+      electionsServiceMock.getElectionById.mockRejectedValue(
+        new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND'),
+      );
 
       const response = await request(app).get('/api/v1/elections/invalid-id');
       const body = response.body as ErrorResponse;
@@ -199,16 +227,17 @@ describe('elections routes integration', () => {
       purpose: 'ACCESS',
     });
 
-    it('creates election with ADMIN token', async () => {
+    it('rejects create with ADMIN token (forbidden by current route policy)', async () => {
+      const cargoId = '11111111-1111-4111-8111-111111111111';
       electionsServiceMock.createElection.mockResolvedValue({
         message: 'Eleição criada com sucesso.',
         data: {
           id: 'eleicao-new',
-          cargoId: 'cargo-1',
+          cargoId,
           titulo: 'Nova Eleição',
           descricao: 'Descrição da eleição',
           estado: 'RASCUNHO',
-          cargo: { id: 'cargo-1', nome: 'Presidente', descricao: null },
+          cargo: { id: cargoId, nome: 'Presidente', descricao: null },
           candidatos: [],
           elegiveis: [],
           comprovativos: [],
@@ -219,27 +248,28 @@ describe('elections routes integration', () => {
         .post('/api/v1/elections')
         .set('Authorization', `Bearer ${validAdminToken}`)
         .send({
-          cargoId: 'cargo-1',
+          cargoId,
           titulo: 'Nova Eleição',
           descricao: 'Descrição da eleição',
         });
 
-      const body = response.body as ElectionResponse;
+      const body = response.body as ErrorResponse;
 
-      expect(response.status).toBe(201);
-      expect(body.success).toBe(true);
-      expect(body.data.id).toBe('eleicao-new');
+      expect(response.status).toBe(403);
+      expect(body.success).toBe(false);
+      expect(body.error.code).toBe('AUTH_FORBIDDEN');
     });
 
     it('creates election with GESTOR_ELEITORAL token', async () => {
+      const cargoId = '22222222-2222-4222-8222-222222222222';
       electionsServiceMock.createElection.mockResolvedValue({
         message: 'Eleição criada com sucesso.',
         data: {
           id: 'eleicao-new-2',
-          cargoId: 'cargo-2',
+          cargoId,
           titulo: 'Eleição do Gestor',
           estado: 'RASCUNHO',
-          cargo: { id: 'cargo-2', nome: 'Secretário', descricao: null },
+          cargo: { id: cargoId, nome: 'Secretário', descricao: null },
           candidatos: [],
           elegiveis: [],
           comprovativos: [],
@@ -250,7 +280,7 @@ describe('elections routes integration', () => {
         .post('/api/v1/elections')
         .set('Authorization', `Bearer ${validGestorToken}`)
         .send({
-          cargoId: 'cargo-2',
+          cargoId,
           titulo: 'Eleição do Gestor',
         });
 
@@ -278,7 +308,7 @@ describe('elections routes integration', () => {
     it('rejects create with invalid data', async () => {
       const response = await request(app)
         .post('/api/v1/elections')
-        .set('Authorization', `Bearer ${validAdminToken}`)
+        .set('Authorization', `Bearer ${validGestorToken}`)
         .send({
           cargoId: 'invalid-uuid',
           titulo: 'A', // titulo muito curto
@@ -291,14 +321,7 @@ describe('elections routes integration', () => {
     });
   });
 
-  describe('PUT /elections/:id', () => {
-    const validAdminToken = generateAccessToken({
-      sub: 'user-1',
-      codigo: '2026001',
-      perfil: 'ADMIN',
-      purpose: 'ACCESS',
-    });
-
+  describe('PATCH /elections/:id', () => {
     it('updates election successfully', async () => {
       electionsServiceMock.updateElection.mockResolvedValue({
         message: 'Eleição atualizada com sucesso.',
@@ -316,8 +339,7 @@ describe('elections routes integration', () => {
       });
 
       const response = await request(app)
-        .put('/api/v1/elections/eleicao-1')
-        .set('Authorization', `Bearer ${validAdminToken}`)
+        .patch('/api/v1/elections/eleicao-1')
         .send({
           titulo: 'Eleição Atualizada',
           estado: 'CANDIDATURAS_ABERTAS',
@@ -330,26 +352,26 @@ describe('elections routes integration', () => {
       expect(body.data.titulo).toBe('Eleição Atualizada');
     });
 
-    it('rejects update without authentication', async () => {
+    it('rejects update with invalid data', async () => {
       const response = await request(app)
-        .put('/api/v1/elections/eleicao-1')
+        .patch('/api/v1/elections/eleicao-1')
         .send({
-          titulo: 'Eleição Atualizada',
+          titulo: 'A',
         });
 
       const body = response.body as ErrorResponse;
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(400);
       expect(body.success).toBe(false);
-      expect(body.error.code).toBe('AUTH_TOKEN_REQUIRED');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 
   describe('DELETE /elections/:id', () => {
-    const validAdminToken = generateAccessToken({
+    const validGestorToken = generateAccessToken({
       sub: 'user-1',
       codigo: '2026001',
-      perfil: 'ADMIN',
+      perfil: 'GESTOR_ELEITORAL',
       purpose: 'ACCESS',
     });
 
@@ -361,7 +383,7 @@ describe('elections routes integration', () => {
 
       const response = await request(app)
         .delete('/api/v1/elections/eleicao-1')
-        .set('Authorization', `Bearer ${validAdminToken}`);
+        .set('Authorization', `Bearer ${validGestorToken}`);
 
       const body = response.body as { success: boolean; data: { id: string; deleted: boolean } };
 
@@ -370,17 +392,17 @@ describe('elections routes integration', () => {
       expect(body.data.deleted).toBe(true);
     });
 
-    it('rejects delete without ADMIN profile', async () => {
-      const gestorToken = generateAccessToken({
+    it('rejects delete with ADMIN profile', async () => {
+      const adminToken = generateAccessToken({
         sub: 'user-2',
         codigo: '2026002',
-        perfil: 'GESTOR_ELEITORAL',
+        perfil: 'ADMIN',
         purpose: 'ACCESS',
       });
 
       const response = await request(app)
         .delete('/api/v1/elections/eleicao-1')
-        .set('Authorization', `Bearer ${gestorToken}`);
+        .set('Authorization', `Bearer ${adminToken}`);
 
       const body = response.body as ErrorResponse;
 

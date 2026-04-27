@@ -20,6 +20,18 @@ const createElectionSchema = z.object({
   dataFimCandidatura: z.string().datetime().optional().nullable(),
   dataInicioVotacao: z.string().datetime().optional().nullable(),
   dataFimVotacao: z.string().datetime().optional().nullable(),
+  candidatos: z
+    .array(
+      z.object({
+        utilizadorId: z.string().uuid('O utilizadorId deve ser um UUID válido.'),
+        nome: z.string().trim().min(3, 'O nome deve ter pelo menos 3 caracteres.').max(150),
+        fotoUrl: z.string().trim().url().max(2_000).optional().nullable(),
+        biografia: z.string().trim().max(3_000).optional().nullable(),
+        proposta: z.string().trim().max(5_000).optional().nullable(),
+        estado: z.enum(['PENDENTE', 'APROVADO', 'REJEITADO', 'SUSPENSO']).optional(),
+      }),
+    )
+    .optional(),
 });
 const updateElectionSchema = z.object({
   cargoId: z.string().uuid().optional(),
@@ -35,12 +47,15 @@ const listElectionsQuerySchema = z.object({
   estado: z.enum(ESTADOS_ELEICAO).optional(),
   cargoId: z.string().uuid().optional(),
 });
+const listCandidateUsersQuerySchema = z.object({
+  search: z.string().trim().optional(),
+});
 // ─────────────────────────────────────────────
 // HANDLERS (CONTROLLER METHODS)
 // ─────────────────────────────────────────────
 export const createElection: RequestHandler = async (request, response) => {
   const body = createElectionSchema.parse(request.body);
-  const result = await electionsService.createElection(body);
+  const result = await electionsService.createElection(body, request.auth?.sub);
   response.status(201).json(
     buildSuccessResponse({
       message: result.message,
@@ -72,6 +87,22 @@ export const listElections: RequestHandler = async (request, response) => {
   const filters = Object.keys(query).length > 0 ? query : undefined;
 
   const result = await electionsService.listElections(filters);
+
+  response.status(200).json(
+    buildSuccessResponse({
+      message: result.message,
+      data: {
+        items: result.data,
+        count: result.count,
+      },
+      request,
+    }),
+  );
+};
+
+export const listCandidateUsers: RequestHandler = async (request, response) => {
+  const query = listCandidateUsersQuerySchema.parse(request.query);
+  const result = await electionsService.listCandidateUsers(query.search);
 
   response.status(200).json(
     buildSuccessResponse({

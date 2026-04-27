@@ -6,6 +6,7 @@ import type {
   FirstAccessFinishInput,
   FirstAccessStartInput,
   FirstAccessStartResult,
+  ChangePasswordInput,
   LoginFinishInput,
   LoginResult,
   LoginStartInput,
@@ -63,6 +64,11 @@ const passwordRecoveryFinishSchema = z.object({
 
 const refreshTokenSchema = z.object({
   refreshToken: z.string().trim().min(20).max(255),
+});
+
+const changePasswordSchema = z.object({
+  senhaAtual: z.string().min(8).max(255),
+  novaSenha: z.string().min(8).max(255),
 });
 
 export const registerUser: RequestHandler = async (request, response) => {
@@ -265,6 +271,25 @@ export const getCurrentUser: RequestHandler = async (request, response) => {
     buildSuccessResponse({
       message: 'Utilizador autenticado carregado com sucesso.',
       data: user,
+      request,
+      statusCode: 200,
+    }),
+  );
+};
+
+export const changePassword: RequestHandler = async (request, response) => {
+  if (!request.auth) {
+    throw new AppError('O token de autenticação é obrigatório.', 401, 'AUTH_TOKEN_REQUIRED');
+  }
+
+  const body = changePasswordSchema.parse(request.body);
+  const input: ChangePasswordInput = body;
+  const result = await authService.changePassword(request.auth.sub, input);
+
+  response.status(200).json(
+    buildSuccessResponse({
+      message: 'Senha alterada com sucesso.',
+      data: result,
       request,
       statusCode: 200,
     }),

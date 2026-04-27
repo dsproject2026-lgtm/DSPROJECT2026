@@ -14,6 +14,7 @@ import {
   Vote,
   X,
 } from 'lucide-react';
+import { UiPagination, UiSelect, toast } from '@/components/ui';
 
 type AuditSeverity = 'success' | 'info' | 'warning' | 'danger';
 
@@ -306,7 +307,38 @@ function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
 }
 
 function SelectInput(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={`h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[13px] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${props.className ?? ''}`} />;
+  const { children, value, onChange, className } = props;
+
+  const options = React.Children.toArray(children)
+    .filter(React.isValidElement)
+    .map((child) => {
+      const element = child as React.ReactElement<{
+        value?: string;
+        children?: React.ReactNode;
+        disabled?: boolean;
+      }>;
+
+      return {
+        value: String(element.props.value ?? ''),
+        label:
+          typeof element.props.children === 'string'
+            ? element.props.children
+            : String(element.props.value ?? ''),
+        disabled: Boolean(element.props.disabled),
+      };
+    });
+
+  return (
+    <UiSelect
+      value={String(value ?? '')}
+      onChange={(nextValue) =>
+        onChange?.({ target: { value: nextValue } } as React.ChangeEvent<HTMLSelectElement>)
+      }
+      options={options}
+      ariaLabel="Filtro"
+      className={className ?? 'w-full'}
+    />
+  );
 }
 
 function PageSection({ title, description, children, right }: { title: string; description?: string; children: React.ReactNode; right?: React.ReactNode }) {
@@ -427,8 +459,12 @@ function AuditCenter({ title }: { title: string }) {
   const [draftAction, setDraftAction] = useState('Todas as ações');
   const [draftElection, setDraftElection] = useState('Todas as eleições');
   const [filters, setFilters] = useState({ date: '', user: 'Todos os utilizadores', action: 'Todas as ações', election: 'Todas as eleições' });
-  const [pageSize, setPageSize] = useState(25);
+  const pageSize = 5;
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    if (message) toast.info(message);
+  }, [message]);
 
   const users = ['Todos os utilizadores', ...Array.from(new Set(logs.map((log) => log.user)))];
   const actions = ['Todas as ações', ...Array.from(new Set(logs.map((log) => log.action)))];
@@ -444,11 +480,8 @@ function AuditCenter({ title }: { title: string }) {
     });
   }, [logs, filters]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
   const pagedLogs = filteredLogs.slice((page - 1) * pageSize, page * pageSize);
   const criticalCount = logs.filter((log) => log.severity === 'danger').length;
-  const startIndex = filteredLogs.length === 0 ? 0 : (page - 1) * pageSize + 1;
-  const endIndex = Math.min(page * pageSize, filteredLogs.length);
 
   function applyFilters() {
     setFilters({ date: draftDate, user: draftUser, action: draftAction, election: draftElection });
@@ -541,33 +574,8 @@ function AuditCenter({ title }: { title: string }) {
           </table>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[12px] text-slate-500">
-          <div className="flex items-center gap-2">
-            <span>Mostrar</span>
-            <SelectInput value={String(pageSize)} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} className="h-8 w-[84px]">
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-            </SelectInput>
-            <span>por página</span>
-          </div>
-
-          <div>Mostrando {startIndex} a {endIndex} de {formatNumber(filteredLogs.length)} registos</div>
-
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setPage((prev) => Math.max(1, prev - 1))} disabled={page === 1} className="rounded border border-slate-300 px-3 py-1 disabled:opacity-50">&lt;</button>
-            {Array.from({ length: Math.min(totalPages, 3) }).map((_, index) => {
-              const pageNumber = index + 1;
-              return (
-                <button key={pageNumber} type="button" onClick={() => setPage(pageNumber)} className={`rounded px-3 py-1 ${page === pageNumber ? 'bg-slate-900 text-white' : 'border border-slate-300 text-slate-600'}`}>
-                  {pageNumber}
-                </button>
-              );
-            })}
-            {totalPages > 3 ? <span className="px-1">…</span> : null}
-            {totalPages > 3 ? <button type="button" onClick={() => setPage(totalPages)} className={`rounded px-3 py-1 ${page === totalPages ? 'bg-slate-900 text-white' : 'border border-slate-300 text-slate-600'}`}>{totalPages}</button> : null}
-            <button type="button" onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))} disabled={page === totalPages} className="rounded border border-slate-300 px-3 py-1 disabled:opacity-50">&gt;</button>
-          </div>
+        <div className="mt-4 text-[12px] text-slate-500">
+          <UiPagination page={page} setPage={setPage} totalItems={filteredLogs.length} itemsPerPage={pageSize} />
         </div>
       </PageSection>
 
@@ -606,6 +614,10 @@ export function FiscalResultsPage() {
   const [message, setMessage] = useState('');
   const selectedElection = INITIAL_RESULTS.find((item) => item.id === selectedElectionId) ?? INITIAL_RESULTS[0];
   const maxVotes = Math.max(0, ...selectedElection.candidates.map((candidate) => candidate.votes));
+
+  useEffect(() => {
+    if (message) toast.info(message);
+  }, [message]);
 
   function exportResultReport() {
     downloadCsv(
@@ -682,6 +694,10 @@ export function FiscalReportsPage() {
   const [reportType, setReportType] = useState('Todos');
   const [electionFilter, setElectionFilter] = useState('Todas');
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (message) toast.info(message);
+  }, [message]);
 
   const filteredReports = useMemo(() => {
     return reports.filter((report) => {
@@ -779,6 +795,14 @@ export function FiscalSettingsPage() {
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (message) toast.success(message);
+  }, [message]);
+
+  useEffect(() => {
+    if (error) toast.danger(error);
+  }, [error]);
 
   useEffect(() => {
     setDraftName(profile.name);

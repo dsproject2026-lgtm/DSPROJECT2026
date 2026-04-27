@@ -14,9 +14,9 @@ import {
   Users,
   Vote,
 } from 'lucide-react';
-import { Button, Card, CardContent, Chip } from '@/components/ui';
+import { Button, Card, CardContent, Chip, UiPagination, UiSelect, UiTable, toast } from '@/components/ui';
 
-type ElectionStatus = 'ACTIVA' | 'PROGRAMADA' | 'ENCERRADA';
+type ElectionStatus = 'PENDENTE' | 'ABERTA' | 'CONCLUIDA' | 'CANCELADA';
 type StudentEligibility = 'ELEGÍVEL' | 'INATIVO';
 type MemberStatus = 'ATIVO' | 'INATIVO';
 type AdminRole = 'Comissão' | 'Fiscal' | 'Auditor' | 'Patrulha';
@@ -97,7 +97,7 @@ const dashboardInitialRows: DashboardElectionRow[] = [
     id: '1',
     nome: 'Eleições AEUP 2026',
     subtitulo: 'Direção Executiva Central',
-    estado: 'ACTIVA',
+    estado: 'ABERTA',
     inicio: '12/05/2026',
     fim: '18/05/2026',
     votos: 14502,
@@ -106,7 +106,7 @@ const dashboardInitialRows: DashboardElectionRow[] = [
     id: '2',
     nome: 'Eleições AEUP 2026/2027',
     subtitulo: 'Direção Executiva Central',
-    estado: 'PROGRAMADA',
+    estado: 'PENDENTE',
     inicio: '12/06/2026',
     fim: '18/06/2026',
     votos: 0,
@@ -115,7 +115,7 @@ const dashboardInitialRows: DashboardElectionRow[] = [
     id: '3',
     nome: 'Conselho Universitário',
     subtitulo: 'Representantes Estudantis',
-    estado: 'ENCERRADA',
+    estado: 'CONCLUIDA',
     inicio: '20/05/2026',
     fim: '22/05/2026',
     votos: 14502,
@@ -124,7 +124,7 @@ const dashboardInitialRows: DashboardElectionRow[] = [
     id: '4',
     nome: 'Assembleia da Faculdade',
     subtitulo: 'Representantes Académicos',
-    estado: 'PROGRAMADA',
+    estado: 'PENDENTE',
     inicio: '24/06/2026',
     fim: '26/06/2026',
     votos: 0,
@@ -311,8 +311,9 @@ function formatNumber(value: number) {
 }
 
 function electionBadgeColor(estado: ElectionStatus): 'warning' | 'primary' | 'default' {
-  if (estado === 'ACTIVA') return 'warning';
-  if (estado === 'ENCERRADA') return 'default';
+  if (estado === 'ABERTA') return 'warning';
+  if (estado === 'CONCLUIDA') return 'default';
+  if (estado === 'CANCELADA') return 'default';
   return 'primary';
 }
 
@@ -458,14 +459,18 @@ export function AdminDashboardPage() {
   const [rows, setRows] = useState<DashboardElectionRow[]>(dashboardInitialRows);
   const [message, setMessage] = useState<string>('');
   const [selectedElection, setSelectedElection] = useState<DashboardElectionRow | null>(null);
-  const activeCount = rows.filter((row) => row.estado === 'ACTIVA').length;
+  const activeCount = rows.filter((row) => row.estado === 'ABERTA').length;
   const totalVotes = rows.reduce((acc, row) => acc + row.votos, 0);
   const eligibleStudents = 28400;
   const participation = ((14502 / eligibleStudents) * 100).toFixed(1);
 
+  useEffect(() => {
+    if (message) toast.info(message);
+  }, [message]);
+
   function blockElection(id: string) {
     setRows((current) =>
-      current.map((row) => (row.id === id ? { ...row, estado: 'ENCERRADA' } : row)),
+      current.map((row) => (row.id === id ? { ...row, estado: 'CONCLUIDA' } : row)),
     );
     setMessage('Eleição bloqueada com sucesso.');
   }
@@ -479,7 +484,7 @@ export function AdminDashboardPage() {
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard title="Eleições Ativas" value={String(activeCount)} icon={<Vote className="h-4 w-4" />} />
+        <SummaryCard title="Eleições Abertas" value={String(activeCount)} icon={<Vote className="h-4 w-4" />} />
         <SummaryCard title="Total de Votos" value={formatNumber(totalVotes)} icon={<Check className="h-4 w-4" />} />
         <SummaryCard title="Estudantes Elegíveis" value={formatNumber(eligibleStudents)} icon={<Users className="h-4 w-4" />} />
         <SummaryCard
@@ -494,54 +499,50 @@ export function AdminDashboardPage() {
         <SectionHeader title="Eleições em Curso e Programadas" />
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left">
-            <thead className="bg-[#f8fafc] text-[11px] uppercase tracking-[0.16em] text-[#64748b]">
-              <tr>
-                <th className="px-5 py-3 font-semibold">Nome da eleição</th>
-                <th className="px-5 py-3 font-semibold">Estado</th>
-                <th className="px-5 py-3 font-semibold">Início</th>
-                <th className="px-5 py-3 font-semibold">Fim</th>
-                <th className="px-5 py-3 font-semibold">Votos registados</th>
-                <th className="px-5 py-3 font-semibold text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e2e8f0]">
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td className="px-5 py-4">
-                    <p className="text-base font-semibold text-[#0b73c9]">{row.nome}</p>
-                    <p className="text-sm text-[#64748b]">{row.subtitulo}</p>
-                  </td>
-                  <td className="px-5 py-4">
-                    <Chip
-                      size="sm"
-                      variant={row.estado === 'ENCERRADA' ? 'solid' : 'soft'}
-                      color={electionBadgeColor(row.estado)}
-                      className="rounded-sm px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]"
-                    >
-                      {row.estado}
-                    </Chip>
-                  </td>
-                  <td className="px-5 py-4 text-sm text-[#1e293b]">{row.inicio}</td>
-                  <td className="px-5 py-4 text-sm text-[#1e293b]">{row.fim}</td>
-                  <td className="px-5 py-4 text-base font-semibold text-[#0b73c9]">{formatNumber(row.votos)}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex justify-end gap-2 text-[#64748b]">
-                      <button type="button" onClick={() => setSelectedElection(row)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => blockElection(row.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <UiTable
+            ariaLabel="Eleições em curso e programadas"
+            minWidthClassName="min-w-[860px]"
+            columns={[
+              { id: 'nome', label: 'Nome da eleição', className: 'font-semibold' },
+              { id: 'estado', label: 'Estado', className: 'font-semibold' },
+              { id: 'inicio', label: 'Início', className: 'font-semibold' },
+              { id: 'fim', label: 'Fim', className: 'font-semibold' },
+              { id: 'votos', label: 'Votos registados', className: 'font-semibold' },
+              { id: 'acoes', label: 'Ações', className: 'text-right font-semibold' },
+            ]}
+            rows={rows.map((row) => ({
+              id: row.id,
+              cells: [
+                <div key={`${row.id}:nome`}>
+                  <p className="text-base font-semibold text-[#0b73c9]">{row.nome}</p>
+                  <p className="text-sm text-[#64748b]">{row.subtitulo}</p>
+                </div>,
+                <Chip
+                  key={`${row.id}:estado`}
+                  size="sm"
+                  variant={row.estado === 'CONCLUIDA' ? 'solid' : 'soft'}
+                  color={electionBadgeColor(row.estado)}
+                  className="rounded-sm px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]"
+                >
+                  {row.estado}
+                </Chip>,
+                <span key={`${row.id}:inicio`} className="text-sm text-[#1e293b]">{row.inicio}</span>,
+                <span key={`${row.id}:fim`} className="text-sm text-[#1e293b]">{row.fim}</span>,
+                <span key={`${row.id}:votos`} className="text-base font-semibold text-[#0b73c9]">{formatNumber(row.votos)}</span>,
+                <div key={`${row.id}:acoes`} className="flex justify-end gap-2 text-[#64748b]">
+                  <button type="button" onClick={() => setSelectedElection(row)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => blockElection(row.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>,
+              ],
+            }))}
+          />
         </div>
       </Card>
 
@@ -588,7 +589,11 @@ export function AdminStudentsPage() {
   const [academicYear, setAcademicYear] = useState('2024');
   const [page, setPage] = useState(1);
   const [message, setMessage] = useState<string>('');
-  const pageSize = 4;
+  const pageSize = 5;
+
+  useEffect(() => {
+    if (message) toast.info(message);
+  }, [message]);
 
   const faculties = ['Todas as Faculdades', ...Array.from(new Set(studentsInitialRows.map((row) => row.faculdade)))];
   const academicYears = ['2024', '2023'];
@@ -607,7 +612,6 @@ export function AdminStudentsPage() {
     });
   }, [rows, search, faculty, academicYear]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const pageRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
 
   function handleImportMock() {
@@ -667,29 +671,19 @@ export function AdminStudentsPage() {
             />
           </div>
 
-          <select
+          <UiSelect
             value={faculty}
-            onChange={(e) => setFaculty(e.target.value)}
-            className="h-11 rounded-sm border border-[#d1d9e6] bg-white px-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
-          >
-            {faculties.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+            onChange={setFaculty}
+            ariaLabel="Faculdade"
+            options={faculties.map((item) => ({ value: item, label: item }))}
+          />
 
-          <select
+          <UiSelect
             value={academicYear}
-            onChange={(e) => setAcademicYear(e.target.value)}
-            className="h-11 rounded-sm border border-[#d1d9e6] bg-white px-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
-          >
-            {academicYears.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+            onChange={setAcademicYear}
+            ariaLabel="Ano Académico"
+            options={academicYears.map((item) => ({ value: item, label: item }))}
+          />
 
           <Button type="button" variant="secondary" className="h-11 rounded-sm border-[#d1d9e6] px-4 text-sm" onClick={applyFilters}>
             <Filter className="mr-2 h-4 w-4" />
@@ -709,101 +703,58 @@ export function AdminStudentsPage() {
         />
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left">
-            <thead className="bg-[#f8fafc] text-[11px] uppercase tracking-[0.16em] text-[#64748b]">
-              <tr>
-                <th className="px-5 py-3 font-semibold">Estudante</th>
-                <th className="px-5 py-3 font-semibold">Nº Estudante</th>
-                <th className="px-5 py-3 font-semibold">Curso</th>
-                <th className="px-5 py-3 font-semibold">Elegibilidade</th>
-                <th className="px-5 py-3 font-semibold text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e2e8f0]">
-              {pageRows.map((row) => (
-                <tr key={row.id}>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#dbeafe] text-xs font-semibold text-[#1d4ed8]">
-                        {row.nome
-                          .split(' ')
-                          .slice(0, 2)
-                          .map((part) => part[0])
-                          .join('')}
-                      </div>
-                      <div>
-                        <p className="text-base font-semibold text-[#0f172a]">{row.nome}</p>
-                        <p className="text-sm text-[#64748b]">{row.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-base text-[#334155]">{row.numero}</td>
-                  <td className="px-5 py-4 text-base text-[#334155]">{row.curso}</td>
-                  <td className="px-5 py-4">
-                    <Chip
-                      size="sm"
-                      variant="soft"
-                      color={studentBadgeColor(row.elegibilidade)}
-                      className="rounded-full px-3 py-1 text-xs font-semibold tracking-[0.08em]"
-                    >
-                      {row.elegibilidade}
-                    </Chip>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex justify-end gap-2 text-[#64748b]">
-                      <button type="button" onClick={() => setSelectedStudent(row)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => deleteStudent(row.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <UiTable
+            ariaLabel="Lista de estudantes"
+            minWidthClassName="min-w-[900px]"
+            paginate={false}
+            columns={[
+              { id: 'estudante', label: 'Estudante', className: 'font-semibold' },
+              { id: 'numero', label: 'Nº Estudante', className: 'font-semibold' },
+              { id: 'curso', label: 'Curso', className: 'font-semibold' },
+              { id: 'elegibilidade', label: 'Elegibilidade', className: 'font-semibold' },
+              { id: 'acoes', label: 'Ações', className: 'text-right font-semibold' },
+            ]}
+            rows={pageRows.map((row) => ({
+              id: row.id,
+              cells: [
+                <div key={`${row.id}:student`} className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#dbeafe] text-xs font-semibold text-[#1d4ed8]">
+                    {row.nome.split(' ').slice(0, 2).map((part) => part[0]).join('')}
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold text-[#0f172a]">{row.nome}</p>
+                    <p className="text-sm text-[#64748b]">{row.email}</p>
+                  </div>
+                </div>,
+                <span key={`${row.id}:numero`} className="text-base text-[#334155]">{row.numero}</span>,
+                <span key={`${row.id}:curso`} className="text-base text-[#334155]">{row.curso}</span>,
+                <Chip
+                  key={`${row.id}:elig`}
+                  size="sm"
+                  variant="soft"
+                  color={studentBadgeColor(row.elegibilidade)}
+                  className="rounded-full px-3 py-1 text-xs font-semibold tracking-[0.08em]"
+                >
+                  {row.elegibilidade}
+                </Chip>,
+                <div key={`${row.id}:acoes`} className="flex justify-end gap-2 text-[#64748b]">
+                  <button type="button" onClick={() => setSelectedStudent(row)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => deleteStudent(row.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>,
+              ],
+            }))}
+          />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e2e8f0] px-5 py-4 text-sm text-[#64748b]">
-          <span>
-            Mostrando {pageRows.length} de {filteredRows.length} resultados
-          </span>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={page === 1}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              className="rounded border border-[#d1d9e6] px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {'<'}
-            </button>
-            {Array.from({ length: totalPages }).map((_, index) => {
-              const currentPage = index + 1;
-              return (
-                <button
-                  key={currentPage}
-                  type="button"
-                  onClick={() => setPage(currentPage)}
-                  className={`rounded px-3 py-1 ${page === currentPage ? 'bg-[#0b73c9] text-white' : 'border border-[#d1d9e6] text-[#475569]'}`}
-                >
-                  {currentPage}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              disabled={page === totalPages}
-              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-              className="rounded border border-[#d1d9e6] px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {'>'}
-            </button>
-          </div>
+        <div className="border-t border-[#e2e8f0] px-5 py-4 text-sm text-[#64748b]">
+          <UiPagination page={page} setPage={setPage} totalItems={filteredRows.length} itemsPerPage={pageSize} />
         </div>
       </Card>
 
@@ -861,6 +812,14 @@ export function AdminCandidatesPage() {
     'Representante Suplente',
   ]);
   const electionOptions = Array.from(new Set(dashboardInitialRows.map((row) => row.nome)));
+
+  useEffect(() => {
+    if (message) toast.info(message);
+  }, [message]);
+
+  useEffect(() => {
+    if (error) toast.danger(error);
+  }, [error]);
 
   useEffect(() => {
     setShowAddCard(isRegisterRoute);
@@ -1024,18 +983,16 @@ export function AdminCandidatesPage() {
 
             <div className="md:col-span-2">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">Eleição</label>
-              <select
+              <UiSelect
                 value={form.eleicao}
-                onChange={(e) => setForm((current) => ({ ...current, eleicao: e.target.value }))}
-                className="h-11 w-full rounded-sm border border-[#d1d9e6] bg-white px-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
-              >
-                <option value="">Seleccionar eleição</option>
-                {electionOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+                onChange={(eleicao) => setForm((current) => ({ ...current, eleicao }))}
+                placeholder="Seleccionar eleição"
+                ariaLabel="Eleição"
+                options={electionOptions.map((option) => ({
+                  value: option,
+                  label: option,
+                }))}
+              />
             </div>
             <div className="md:col-span-2">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">Biografia</label>
@@ -1084,40 +1041,37 @@ export function AdminCandidatesPage() {
       <Card className="overflow-hidden rounded-sm border-[#e2e8f0] shadow-none">
         <SectionHeader title="Lista de Candidatos" />
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1040px] text-left">
-            <thead className="bg-[#f8fafc] text-[11px] uppercase tracking-[0.16em] text-[#64748b]">
-              <tr>
-                <th className="px-5 py-3 font-semibold">Nome</th>
-                <th className="px-5 py-3 font-semibold">Email</th>
-                <th className="px-5 py-3 font-semibold">Cargo</th>
-                <th className="px-5 py-3 font-semibold">Eleição</th>
-                <th className="px-5 py-3 font-semibold text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e2e8f0]">
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td className="px-5 py-4 font-semibold text-[#0f172a]">{row.nome}</td>
-                  <td className="px-5 py-4 text-[#334155]">{row.email}</td>
-                  <td className="px-5 py-4 text-[#334155]">{row.cargo}</td>
-                  <td className="px-5 py-4 text-[#334155]">{row.eleicao}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex justify-end gap-2 text-[#64748b]">
-                      <button type="button" onClick={() => setSelectedCandidate(row)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => deleteCandidate(row.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <UiTable
+            ariaLabel="Lista de candidatos"
+            minWidthClassName="min-w-[1040px]"
+            columns={[
+              { id: 'nome', label: 'Nome', className: 'font-semibold' },
+              { id: 'email', label: 'Email', className: 'font-semibold' },
+              { id: 'cargo', label: 'Cargo', className: 'font-semibold' },
+              { id: 'eleicao', label: 'Eleição', className: 'font-semibold' },
+              { id: 'acoes', label: 'Ações', className: 'text-right font-semibold' },
+            ]}
+            rows={rows.map((row) => ({
+              id: row.id,
+              cells: [
+                <span key={`${row.id}:nome`} className="font-semibold text-[#0f172a]">{row.nome}</span>,
+                <span key={`${row.id}:email`} className="text-[#334155]">{row.email}</span>,
+                <span key={`${row.id}:cargo`} className="text-[#334155]">{row.cargo}</span>,
+                <span key={`${row.id}:eleicao`} className="text-[#334155]">{row.eleicao}</span>,
+                <div key={`${row.id}:acoes`} className="flex justify-end gap-2 text-[#64748b]">
+                  <button type="button" onClick={() => setSelectedCandidate(row)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => deleteCandidate(row.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>,
+              ],
+            }))}
+          />
         </div>
       </Card>
 
@@ -1175,6 +1129,14 @@ export function AdminCommissionPage() {
   const [form, setForm] = useState({ nome: '', email: '', funcao: 'Comissão' as AdminRole });
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (message) toast.info(message);
+  }, [message]);
+
+  useEffect(() => {
+    if (error) toast.danger(error);
+  }, [error]);
 
   function addMember() {
     if (!form.nome.trim() || !form.email.trim()) {
@@ -1256,16 +1218,17 @@ export function AdminCommissionPage() {
             </div>
             <div className="md:col-span-2">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">Função</label>
-              <select
+              <UiSelect
                 value={form.funcao}
-                onChange={(e) => setForm((current) => ({ ...current, funcao: e.target.value as AdminRole }))}
-                className="h-11 w-full rounded-sm border border-[#d1d9e6] bg-white px-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
-              >
-                <option value="Comissão">Comissão</option>
-                <option value="Fiscal">Fiscal</option>
-                <option value="Auditor">Auditor</option>
-                <option value="Patrulha">Patrulha</option>
-              </select>
+                onChange={(funcao) => setForm((current) => ({ ...current, funcao: funcao as AdminRole }))}
+                ariaLabel="Função"
+                options={[
+                  { value: 'Comissão', label: 'Comissão' },
+                  { value: 'Fiscal', label: 'Fiscal' },
+                  { value: 'Auditor', label: 'Auditor' },
+                  { value: 'Patrulha', label: 'Patrulha' },
+                ]}
+              />
             </div>
             <div className="md:col-span-2 flex justify-end">
               <Button type="button" className="rounded-md" onClick={addMember}>
@@ -1279,47 +1242,42 @@ export function AdminCommissionPage() {
       <Card className="overflow-hidden rounded-sm border-[#e2e8f0] shadow-none">
         <SectionHeader title="Membros Registados" />
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-left">
-            <thead className="bg-[#f8fafc] text-[11px] uppercase tracking-[0.16em] text-[#64748b]">
-              <tr>
-                <th className="px-5 py-3 font-semibold">Nome</th>
-                <th className="px-5 py-3 font-semibold">Email</th>
-                <th className="px-5 py-3 font-semibold">Função</th>
-                <th className="px-5 py-3 font-semibold">Estado</th>
-                <th className="px-5 py-3 font-semibold text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e2e8f0]">
-              {members.map((member) => (
-                <tr key={member.id}>
-                  <td className="px-5 py-4 font-semibold text-[#0f172a]">{member.nome}</td>
-                  <td className="px-5 py-4 text-[#334155]">{member.email}</td>
-                  <td className="px-5 py-4 text-[#334155]">{member.funcao}</td>
-                  <td className="px-5 py-4">
-                    <Chip size="sm" variant="soft" color={memberBadgeColor(member.estado)} className="rounded-full px-3 py-1 text-xs font-semibold tracking-[0.08em]">
-                      {member.estado}
-                    </Chip>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex justify-end gap-2 text-[#64748b]">
-                      <button type="button" onClick={() => setMessage(`Membro: ${member.nome}`)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => deleteMember(member.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => toggleMemberStatus(member.id)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Alternar estado">
-                        <Check className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <UiTable
+            ariaLabel="Membros registados"
+            minWidthClassName="min-w-[820px]"
+            columns={[
+              { id: 'nome', label: 'Nome', className: 'font-semibold' },
+              { id: 'email', label: 'Email', className: 'font-semibold' },
+              { id: 'funcao', label: 'Função', className: 'font-semibold' },
+              { id: 'estado', label: 'Estado', className: 'font-semibold' },
+              { id: 'acoes', label: 'Ações', className: 'text-right font-semibold' },
+            ]}
+            rows={members.map((member) => ({
+              id: member.id,
+              cells: [
+                <span key={`${member.id}:nome`} className="font-semibold text-[#0f172a]">{member.nome}</span>,
+                <span key={`${member.id}:email`} className="text-[#334155]">{member.email}</span>,
+                <span key={`${member.id}:funcao`} className="text-[#334155]">{member.funcao}</span>,
+                <Chip key={`${member.id}:estado`} size="sm" variant="soft" color={memberBadgeColor(member.estado)} className="rounded-full px-3 py-1 text-xs font-semibold tracking-[0.08em]">
+                  {member.estado}
+                </Chip>,
+                <div key={`${member.id}:acoes`} className="flex justify-end gap-2 text-[#64748b]">
+                  <button type="button" onClick={() => setMessage(`Membro: ${member.nome}`)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Visualizar">
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => navigate('/admin/configuracoes')} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Editar">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => deleteMember(member.id)} className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626]" aria-label="Deletar">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => toggleMemberStatus(member.id)} className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]" aria-label="Alternar estado">
+                    <Check className="h-4 w-4" />
+                  </button>
+                </div>,
+              ],
+            }))}
+          />
         </div>
       </Card>
     </section>
@@ -1366,32 +1324,29 @@ export function AdminAuditPage() {
           }
         />
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] text-left">
-            <thead className="bg-[#f8fafc] text-[11px] uppercase tracking-[0.16em] text-[#64748b]">
-              <tr>
-                <th className="px-5 py-3 font-semibold">Origem</th>
-                <th className="px-5 py-3 font-semibold">Ação</th>
-                <th className="px-5 py-3 font-semibold">Módulo</th>
-                <th className="px-5 py-3 font-semibold">Severidade</th>
-                <th className="px-5 py-3 font-semibold">Data/Hora</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e2e8f0]">
-              {filteredRows.map((row) => (
-                <tr key={row.id}>
-                  <td className="px-5 py-4 font-semibold text-[#0f172a]">{row.origem}</td>
-                  <td className="px-5 py-4 text-[#334155]">{row.acao}</td>
-                  <td className="px-5 py-4 text-[#334155]">{row.modulo}</td>
-                  <td className="px-5 py-4">
-                    <Chip size="sm" variant="soft" color={auditBadgeColor(row.severidade)} className="rounded-full px-3 py-1 text-xs font-semibold tracking-[0.08em]">
-                      {row.severidade}
-                    </Chip>
-                  </td>
-                  <td className="px-5 py-4 text-[#334155]">{row.dataHora}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <UiTable
+            ariaLabel="Logs do sistema"
+            minWidthClassName="min-w-[920px]"
+            columns={[
+              { id: 'origem', label: 'Origem', className: 'font-semibold' },
+              { id: 'acao', label: 'Ação', className: 'font-semibold' },
+              { id: 'modulo', label: 'Módulo', className: 'font-semibold' },
+              { id: 'severidade', label: 'Severidade', className: 'font-semibold' },
+              { id: 'data', label: 'Data/Hora', className: 'font-semibold' },
+            ]}
+            rows={filteredRows.map((row) => ({
+              id: row.id,
+              cells: [
+                <span key={`${row.id}:origem`} className="font-semibold text-[#0f172a]">{row.origem}</span>,
+                <span key={`${row.id}:acao`} className="text-[#334155]">{row.acao}</span>,
+                <span key={`${row.id}:modulo`} className="text-[#334155]">{row.modulo}</span>,
+                <Chip key={`${row.id}:sev`} size="sm" variant="soft" color={auditBadgeColor(row.severidade)} className="rounded-full px-3 py-1 text-xs font-semibold tracking-[0.08em]">
+                  {row.severidade}
+                </Chip>,
+                <span key={`${row.id}:data`} className="text-[#334155]">{row.dataHora}</span>,
+              ],
+            }))}
+          />
         </div>
       </Card>
     </section>
@@ -1409,6 +1364,7 @@ export function AdminSettingsPage() {
 
   function saveSettings() {
     setSaved(true);
+    toast.success('Configurações guardadas com sucesso.');
   }
 
   const items: Array<{ key: keyof AdminSettingsState; title: string; description: string }> = [

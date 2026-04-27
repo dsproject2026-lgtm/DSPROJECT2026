@@ -4,6 +4,7 @@ import {
   createElection,
   deleteElection,
   getElectionById,
+  listCandidateUsers,
   listElections,
   updateElection,
 } from '../controllers/elections.controller.js';
@@ -20,6 +21,12 @@ const electionsRouter = Router();
 
 
 electionsRouter.get('/', listElections);
+electionsRouter.get(
+  '/candidate-users',
+  authenticateAccessToken,
+  requirePerfis('GESTOR_ELEITORAL'),
+  listCandidateUsers,
+);
 
 electionsRouter.use('/:electionId/candidates', candidatesRouter);
 electionsRouter.use('/:electionId/eligible-voters', eligibleVotersRouter);

@@ -21,8 +21,9 @@ import {
   Vote,
   X,
 } from 'lucide-react';
+import { UiDateTimePicker, UiSelect, toast } from '@/components/ui';
 
-type ElectionStatus = 'rascunho' | 'programada' | 'activa' | 'encerrada';
+type ElectionStatus = 'rascunho' | 'pendente' | 'aberta' | 'concluida';
 
 type Election = {
   id: string;
@@ -132,7 +133,7 @@ const INITIAL_ELECTIONS: Election[] = [
     id: '1',
     name: 'Eleições AEUP 2026',
     subtitle: 'Direcção Executiva Central',
-    status: 'activa',
+    status: 'aberta',
     startDate: '12/05/2026',
     endDate: '18/05/2026',
     registeredVotes: 14502,
@@ -150,7 +151,7 @@ const INITIAL_ELECTIONS: Election[] = [
     id: '2',
     name: 'Eleições AEUP 2026/2027',
     subtitle: 'Direcção Executiva Central',
-    status: 'programada',
+    status: 'pendente',
     startDate: '12/06/2026',
     endDate: '18/06/2026',
     registeredVotes: 0,
@@ -159,7 +160,7 @@ const INITIAL_ELECTIONS: Election[] = [
     candidatureEnd: '2026-06-05T18:00',
     votingStart: '2026-06-12T08:00',
     votingEnd: '2026-06-18T18:00',
-    description: 'Nova edição já programada pela comissão.',
+    description: 'Nova edição já pendente pela comissão.',
     roles: ['Vice-Presidente'],
     autoStart: true,
     createdAt: '2026-05-02T14:00:00',
@@ -168,7 +169,7 @@ const INITIAL_ELECTIONS: Election[] = [
     id: '3',
     name: 'Conselho Universitário',
     subtitle: 'Representantes Estudantis',
-    status: 'encerrada',
+    status: 'concluida',
     startDate: '20/05/2026',
     endDate: '22/05/2026',
     registeredVotes: 18340,
@@ -221,7 +222,7 @@ const INITIAL_CANDIDATES: CandidateItem[] = [
     role: 'Vice-Presidente',
     listName: 'Lista B',
     biography: 'Estudante com forte participação em projectos sociais, representação académica e dinamização estudantil.',
-    proposal: 'Aumentar o apoio estudantil, criar mecanismos de escuta activa e melhorar o acompanhamento administrativo.',
+    proposal: 'Aumentar o apoio estudantil, criar mecanismos de escuta aberta e melhorar o acompanhamento administrativo.',
     image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80',
     status: 'Em análise',
   },
@@ -256,7 +257,7 @@ const INITIAL_MEMBERS: CommitteeMember[] = [
 const INITIAL_LOGS: AuditLog[] = [
   { id: 'l1', user: 'João Machava', action: 'Criou uma nova eleição', at: '15/05/2026 14:30', module: 'Eleições' },
   { id: 'l2', user: 'Paula Cossa', action: 'Aprovou candidatura Lista A', at: '15/05/2026 13:20', module: 'Candidaturas' },
-  { id: 'l3', user: 'Sistema', action: 'Mudou estado para ENCERRADA automaticamente', at: '15/05/2026 12:00', module: 'Automação' },
+  { id: 'l3', user: 'Sistema', action: 'Mudou estado para CONCLUIDA automaticamente', at: '15/05/2026 12:00', module: 'Automação' },
 ];
 
 const INITIAL_FORM: FormState = {
@@ -308,15 +309,15 @@ function formatNumber(value: number) {
 
 function getStatusMeta(status: ElectionStatus) {
   switch (status) {
-    case 'activa':
-      return { label: 'ACTIVA', className: 'bg-amber-400 text-white' };
-    case 'programada':
-      return { label: 'PROGRAMADA', className: 'bg-slate-200 text-slate-600' };
-    case 'encerrada':
-      return { label: 'ENCERRADA', className: 'bg-slate-700 text-white' };
+    case 'aberta':
+      return { label: 'ABERTA', className: 'bg-amber-400 text-white' };
+    case 'pendente':
+      return { label: 'PENDENTE', className: 'bg-slate-200 text-slate-600' };
+    case 'concluida':
+      return { label: 'CONCLUIDA', className: 'bg-slate-700 text-white' };
     case 'rascunho':
     default:
-      return { label: 'RASCUNHO', className: 'bg-zinc-200 text-zinc-700' };
+      return { label: 'PENDENTE', className: 'bg-zinc-200 text-zinc-700' };
   }
 }
 
@@ -436,7 +437,7 @@ function ElectionActions({ election, onView, onEdit, onDelete }: { election: Ele
   return (
     <div className="flex justify-end gap-2 text-slate-500">
       <button type="button" onClick={onView} className="rounded p-1 hover:bg-slate-100"><Eye className="h-4 w-4" /></button>
-      {election.status === 'programada' && (
+      {election.status === 'pendente' && (
         <>
           <button type="button" onClick={onEdit} className="rounded p-1 hover:bg-slate-100"><Pencil className="h-4 w-4" /></button>
           <button type="button" onClick={onDelete} className="rounded p-1 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
@@ -517,7 +518,7 @@ function AddElectionPanel({ onCreate, initialElection, onCancel }: { onCreate: (
       id: initialElection?.id ?? crypto.randomUUID(),
       name: form.title,
       subtitle: form.roles[0] ?? '',
-      status: 'programada',
+      status: 'pendente',
       startDate: new Date(form.votingStart).toLocaleDateString('pt-PT'),
       endDate: new Date(form.votingEnd).toLocaleDateString('pt-PT'),
       registeredVotes: initialElection?.registeredVotes ?? 0,
@@ -557,14 +558,14 @@ function AddElectionPanel({ onCreate, initialElection, onCancel }: { onCreate: (
         <div className="grid gap-4 md:grid-cols-2">
           <FormField label="Período de Candidaturas" error={errors.candidatureStart || errors.candidatureEnd}>
             <div className="space-y-2">
-              <TextInput type="datetime-local" value={toInputDateTime(form.candidatureStart)} onChange={(e) => updateField('candidatureStart', e.target.value)} />
-              <TextInput type="datetime-local" value={toInputDateTime(form.candidatureEnd)} onChange={(e) => updateField('candidatureEnd', e.target.value)} />
+              <UiDateTimePicker value={toInputDateTime(form.candidatureStart)} onChange={(value) => updateField('candidatureStart', value)} ariaLabel="Início candidaturas" />
+              <UiDateTimePicker value={toInputDateTime(form.candidatureEnd)} onChange={(value) => updateField('candidatureEnd', value)} ariaLabel="Fim candidaturas" />
             </div>
           </FormField>
           <FormField label="Período de Votação" error={errors.votingStart || errors.votingEnd}>
             <div className="space-y-2">
-              <TextInput type="datetime-local" value={toInputDateTime(form.votingStart)} onChange={(e) => updateField('votingStart', e.target.value)} />
-              <TextInput type="datetime-local" value={toInputDateTime(form.votingEnd)} onChange={(e) => updateField('votingEnd', e.target.value)} />
+              <UiDateTimePicker value={toInputDateTime(form.votingStart)} onChange={(value) => updateField('votingStart', value)} ariaLabel="Início votação" />
+              <UiDateTimePicker value={toInputDateTime(form.votingEnd)} onChange={(value) => updateField('votingEnd', value)} ariaLabel="Fim votação" />
             </div>
           </FormField>
         </div>
@@ -597,7 +598,7 @@ function AddElectionPanel({ onCreate, initialElection, onCancel }: { onCreate: (
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[12px] font-semibold text-blue-700">Abertura Automática</p>
-              <p className="text-[11px] text-slate-500">A activação e o encerramento seguem automaticamente as datas e horas definidas.</p>
+              <p className="text-[11px] text-slate-500">A abertação e o encerramento seguem automaticamente as datas e horas definidas.</p>
             </div>
             <button type="button" onClick={() => updateField('autoStart', !form.autoStart)} className={`relative h-7 w-12 rounded-full transition ${form.autoStart ? 'bg-amber-400' : 'bg-slate-300'}`}>
               <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition ${form.autoStart ? 'left-6' : 'left-1'}`} />
@@ -620,7 +621,7 @@ function AddElectionPanel({ onCreate, initialElection, onCancel }: { onCreate: (
 function ElectionTable({ elections, message, onView, onEdit, onDelete, showStats = true }: { elections: Election[]; message?: string; onView: (election: Election) => void; onEdit: (election: Election) => void; onDelete: (election: Election) => void; showStats?: boolean }) {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | ElectionStatus>('todos');
-  const activeCount = elections.filter((item) => item.status === 'activa').length;
+  const activeCount = elections.filter((item) => item.status === 'aberta').length;
   const totalVotes = elections.reduce((sum, item) => sum + item.registeredVotes, 0);
   const eligibleStudents = elections.reduce((sum, item) => sum + item.eligibleStudents, 0);
   const participation = calculateParticipation(totalVotes, eligibleStudents);
@@ -662,19 +663,22 @@ function ElectionTable({ elections, message, onView, onEdit, onDelete, showStats
                 className="pl-10"
               />
             </div>
-            <label className="relative inline-flex items-center">
+            <label className="relative inline-flex min-w-[170px] items-center">
               <ListFilter className="pointer-events-none absolute left-3 h-4 w-4 text-slate-400" />
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as 'todos' | ElectionStatus)}
-                className="h-10 min-w-[170px] appearance-none rounded-md border border-slate-300 bg-white pl-9 pr-8 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="todos">Todos os estados</option>
-                <option value="activa">Activa</option>
-                <option value="programada">Programada</option>
-                <option value="encerrada">Encerrada</option>
-                <option value="rascunho">Rascunho</option>
-              </select>
+              <div className="w-full pl-6">
+                <UiSelect
+                  value={statusFilter}
+                  onChange={(value) => setStatusFilter(value as 'todos' | ElectionStatus)}
+                  ariaLabel="Estado da eleição"
+                  options={[
+                    { value: 'todos', label: 'Todos os estados' },
+                    { value: 'aberta', label: 'Activa' },
+                    { value: 'pendente', label: 'Programada' },
+                    { value: 'concluida', label: 'Encerrada' },
+                    { value: 'rascunho', label: 'Rascunho' },
+                  ]}
+                />
+              </div>
             </label>
           </div>
         </div>
@@ -802,6 +806,10 @@ export function CommissionDashboardPage() {
   const [message, setMessage] = useState('');
   const [selectedElection, setSelectedElection] = useState<Election | null>(null);
 
+  useEffect(() => {
+    if (message) toast.info(message);
+  }, [message]);
+
   function removeElection(election: Election) {
     setElections((prev) => prev.filter((item) => item.id !== election.id));
     setMessage(`A eleição “${election.name}” foi removida.`);
@@ -838,6 +846,10 @@ export function CommissionElectionsPage() {
   const [message, setMessage] = useState('');
   const [editingElection, setEditingElection] = useState<Election | null>(null);
 
+  useEffect(() => {
+    if (message) toast.success(message);
+  }, [message]);
+
   function saveElection(election: Election) {
     setElections((prev) => {
       const exists = prev.some((item) => item.id === election.id);
@@ -852,7 +864,7 @@ export function CommissionElectionsPage() {
       {message && <div className="mb-4 rounded-sm border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">{message}</div>}
       <AddElectionPanel onCreate={saveElection} initialElection={editingElection} onCancel={() => setEditingElection(null)} />
       <div className="mt-6 rounded-sm border border-blue-100 bg-blue-50 px-4 py-3 text-[12px] text-blue-700">
-        A activação e o encerramento ocorrem automaticamente de acordo com as datas e horas definidas na programação da eleição.
+        A abertação e o encerramento ocorrem automaticamente de acordo com as datas e horas definidas na programação da eleição.
       </div>
     </AppShell>
   );
@@ -860,7 +872,7 @@ export function CommissionElectionsPage() {
 
 export function CommissionResultsPage() {
   const [elections] = useStoredState<Election[]>(STORAGE_KEYS.elections, INITIAL_ELECTIONS);
-  const resultElections = elections.filter((item) => item.status === 'activa' || item.status === 'encerrada');
+  const resultElections = elections.filter((item) => item.status === 'aberta' || item.status === 'concluida');
   const [selectedElectionId, setSelectedElectionId] = useState<string>(resultElections[0]?.id ?? '');
   const selectedElection = resultElections.find((item) => item.id === selectedElectionId) ?? resultElections[0];
   const electionResults = INITIAL_RESULTS.filter((item) => item.electionId === selectedElection?.id);
@@ -895,7 +907,7 @@ export function CommissionResultsPage() {
                 <div><p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Taxa de Participação</p><p className="mt-2 text-[24px] font-semibold text-blue-700">{participation}%</p><div className="mt-2 h-1.5 w-full rounded-full bg-slate-200"><div className="h-full rounded-full bg-blue-700" style={{ width: `${Math.min(participation, 100)}%` }} /></div></div>
               </div>
             </PageSection>
-            {selectedElection.status === 'activa' ? <CountdownCard /> : <div className="flex min-h-[118px] flex-col justify-center rounded-sm bg-slate-800 px-6 py-4 text-white"><div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-slate-300">Estado Final</div><div className="text-[26px] font-semibold">Eleição Encerrada</div><p className="mt-1 text-[11px] text-slate-300">Os resultados abaixo representam a apuração final.</p></div>}
+            {selectedElection.status === 'aberta' ? <CountdownCard /> : <div className="flex min-h-[118px] flex-col justify-center rounded-sm bg-slate-800 px-6 py-4 text-white"><div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-slate-300">Estado Final</div><div className="text-[26px] font-semibold">Eleição Encerrada</div><p className="mt-1 text-[11px] text-slate-300">Os resultados abaixo representam a apuração final.</p></div>}
           </div>
 
           <div className="mt-8 rounded-sm bg-white p-4 shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
@@ -905,7 +917,7 @@ export function CommissionResultsPage() {
             </div>
           </div>
         </>
-      ) : <div className="rounded-md border border-slate-200 bg-white px-4 py-5 text-[13px] text-slate-500 shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">Não existem eleições activas ou encerradas disponíveis para mostrar resultados.</div>}
+      ) : <div className="rounded-md border border-slate-200 bg-white px-4 py-5 text-[13px] text-slate-500 shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">Não existem eleições abertas ou concluidas disponíveis para mostrar resultados.</div>}
     </AppShell>
   );
 }
@@ -966,39 +978,35 @@ export function CommissionCandidatesPage() {
         }
       >
         <div className="mb-4 grid gap-2 md:grid-cols-3">
-          <select
+          <UiSelect
             value={selectedElectionId}
-            onChange={(event) => setSelectedElectionId(event.target.value)}
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          >
-            <option value="todos">Todas as eleições</option>
-            {elections.map((election) => (
-              <option key={election.id} value={election.id}>
-                {election.name}
-              </option>
-            ))}
-          </select>
-          <select
+            onChange={setSelectedElectionId}
+            ariaLabel="Eleição"
+            options={[
+              { value: 'todos', label: 'Todas as eleições' },
+              ...elections.map((election) => ({ value: election.id, label: election.name })),
+            ]}
+          />
+          <UiSelect
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as 'todos' | CandidateItem['status'])}
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          >
-            <option value="todos">Todos os estados</option>
-            <option value="Aprovado">Aprovado</option>
-            <option value="Em análise">Em análise</option>
-            <option value="Rejeitado">Rejeitado</option>
-          </select>
-          <select
+            onChange={(value) => setStatusFilter(value as 'todos' | CandidateItem['status'])}
+            ariaLabel="Estado do candidato"
+            options={[
+              { value: 'todos', label: 'Todos os estados' },
+              { value: 'Aprovado', label: 'Aprovado' },
+              { value: 'Em análise', label: 'Em análise' },
+              { value: 'Rejeitado', label: 'Rejeitado' },
+            ]}
+          />
+          <UiSelect
             value={roleFilter}
-            onChange={(event) => setRoleFilter(event.target.value)}
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          >
-            {roleOptions.map((role) => (
-              <option key={role} value={role}>
-                {role === 'todos' ? 'Todos os cargos' : role}
-              </option>
-            ))}
-          </select>
+            onChange={setRoleFilter}
+            ariaLabel="Cargo"
+            options={roleOptions.map((role) => ({
+              value: role,
+              label: role === 'todos' ? 'Todos os cargos' : role,
+            }))}
+          />
         </div>
 
         <div className="overflow-hidden rounded-md border border-slate-200">
@@ -1116,26 +1124,25 @@ export function CommissionStudentsPage() {
 
       <PageSection title="Gestão de Elegibilidade" right={<div className="relative w-full max-w-[320px]"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><TextInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Pesquisar estudante" className="pl-10" /></div>}>
         <div className="mb-4 grid gap-2 md:grid-cols-2">
-          <select
+          <UiSelect
             value={eligibilityFilter}
-            onChange={(event) => setEligibilityFilter(event.target.value as 'todos' | 'elegiveis' | 'inativos')}
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          >
-            <option value="todos">Todas as elegibilidades</option>
-            <option value="elegiveis">Somente elegíveis</option>
-            <option value="inativos">Somente inativos</option>
-          </select>
-          <select
+            onChange={(value) => setEligibilityFilter(value as 'todos' | 'elegiveis' | 'inativos')}
+            ariaLabel="Elegibilidade"
+            options={[
+              { value: 'todos', label: 'Todas as elegibilidades' },
+              { value: 'elegiveis', label: 'Somente elegíveis' },
+              { value: 'inativos', label: 'Somente inativos' },
+            ]}
+          />
+          <UiSelect
             value={facultyFilter}
-            onChange={(event) => setFacultyFilter(event.target.value)}
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-[14px] text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          >
-            {facultyOptions.map((faculty) => (
-              <option key={faculty} value={faculty}>
-                {faculty === 'todas' ? 'Todas as faculdades' : faculty}
-              </option>
-            ))}
-          </select>
+            onChange={setFacultyFilter}
+            ariaLabel="Faculdade"
+            options={facultyOptions.map((faculty) => ({
+              value: faculty,
+              label: faculty === 'todas' ? 'Todas as faculdades' : faculty,
+            }))}
+          />
         </div>
         <div className="overflow-hidden rounded-md border border-slate-200">
           <table className="w-full text-left text-[14px]">
@@ -1231,6 +1238,14 @@ export function CommissionSettingsPage() {
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (message) toast.success(message);
+  }, [message]);
+
+  useEffect(() => {
+    if (error) toast.danger(error);
+  }, [error]);
 
   useEffect(() => {
     setDraftName(profile.name);

@@ -1,6 +1,7 @@
 import { authRepository } from '../repositories/auth.repository.js';
 import type {
   CreateAuthUserInput,
+  ChangePasswordInput,
   FirstAccessFinishInput,
   FirstAccessStartInput,
   FirstAccessStartResult,
@@ -67,7 +68,13 @@ class AuthService {
       mustSetPassword: resolvedMustSetPassword,
     };
 
-    return authRepository.createUser(data);
+    const createdUser = await authRepository.createUser(data);
+
+    if (createdUser.perfil === 'ELEITOR' && createdUser.activo) {
+      await authRepository.assignElectorAsEligibleInAllElections(createdUser.id);
+    }
+
+    return createdUser;
   }
 
   async startLogin({ codigo }: LoginStartInput): Promise<LoginStartResult> {
@@ -292,6 +299,51 @@ class AuthService {
     return {
       ...session,
       user: this.buildAuthenticatedUser(authenticatedUser),
+    };
+  }
+
+  async changePassword(userId: string, { senhaAtual, novaSenha }: ChangePasswordInput) {
+    const user = await authRepository.findUserById(userId);
+
+    if (!user) {
+      throw new AppError('Utilizador autenticado não encontrado.', 404, 'AUTH_USER_NOT_FOUND');
+    }
+
+    if (!user.activo) {
+      throw new AppError('A conta do utilizador está inativa.', 403, 'AUTH_ACCOUNT_INACTIVE', {
+        userId,
+      });
+    }
+
+    if (!user.senhaHash) {
+      throw new AppError(
+        'É necessário configurar a senha antes de alterar a senha.',
+        403,
+        'AUTH_PASSWORD_SETUP_REQUIRED',
+        { userId },
+      );
+    }
+
+    const currentPasswordMatches = await comparePasswordHash(senhaAtual, user.senhaHash);
+
+    if (!currentPasswordMatches) {
+      throw new AppError('A senha atual está incorreta.', 401, 'AUTH_CURRENT_PASSWORD_INVALID');
+    }
+
+    const nextPasswordMatchesCurrent = await comparePasswordHash(novaSenha, user.senhaHash);
+
+    if (nextPasswordMatchesCurrent) {
+      throw new AppError(
+        'A nova senha deve ser diferente da senha atual.',
+        400,
+        'AUTH_NEW_PASSWORD_EQUALS_CURRENT',
+      );
+    }
+
+    await authRepository.updatePasswordById(userId, await generatePasswordHash(novaSenha));
+
+    return {
+      changed: true,
     };
   }
 

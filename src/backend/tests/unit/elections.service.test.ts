@@ -9,6 +9,10 @@ const { electionsRepositoryMock } = vi.hoisted(() => ({
     delete: vi.fn(),
     findCargoById: vi.fn(),
     findActiveElectionByCargo: vi.fn(),
+    findUsersByIds: vi.fn(),
+    promoteUsersToCandidate: vi.fn(),
+    concludeExpiredOpenElections: vi.fn(),
+    assignAllActiveElectorsAsEligible: vi.fn(),
   },
 }));
 
@@ -21,6 +25,7 @@ import { electionsService } from '../../src/services/elections.service.js';
 describe('ElectionsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    electionsRepositoryMock.concludeExpiredOpenElections.mockResolvedValue(0);
   });
 
   describe('createElection', () => {
@@ -37,6 +42,9 @@ describe('ElectionsService', () => {
         descricao: 'Cargo de presidente',
       });
       electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue(null);
+      electionsRepositoryMock.findUsersByIds.mockResolvedValue([]);
+      electionsRepositoryMock.promoteUsersToCandidate.mockResolvedValue(0);
+      electionsRepositoryMock.assignAllActiveElectorsAsEligible.mockResolvedValue(0);
 
       electionsRepositoryMock.create.mockResolvedValue({
         id: 'eleicao-1',
@@ -55,14 +63,17 @@ describe('ElectionsService', () => {
       expect(result.message).toBe('Eleição criada com sucesso.');
       expect(result.data.titulo).toBe('Eleição para Presidente 2026');
       expect(electionsRepositoryMock.findCargoById).toHaveBeenCalledWith('cargo-1');
-      expect(electionsRepositoryMock.create).toHaveBeenCalledWith(inputData);
+      expect(electionsRepositoryMock.create).toHaveBeenCalledWith(inputData, undefined);
+      expect(electionsRepositoryMock.assignAllActiveElectorsAsEligible).toHaveBeenCalledWith(
+        'eleicao-1',
+      );
     });
 
     it('throws conflict when creating active election for cargo with ongoing election', async () => {
       const inputData = {
         cargoId: 'cargo-1',
         titulo: 'Eleição para Presidente 2026',
-        estado: 'VOTACAO_ABERTA' as const,
+        estado: 'ABERTA' as const,
       };
 
       electionsRepositoryMock.findCargoById.mockResolvedValue({
@@ -74,7 +85,7 @@ describe('ElectionsService', () => {
         id: 'eleicao-ativa',
         cargoId: 'cargo-1',
         titulo: 'Eleição Ativa',
-        estado: 'CANDIDATURAS_ABERTAS',
+        estado: 'ABERTA',
       });
 
       await expect(electionsService.createElection(inputData)).rejects.toThrow(
@@ -94,6 +105,130 @@ describe('ElectionsService', () => {
       await expect(electionsService.createElection(inputData)).rejects.toThrow(
         'Cargo com ID cargo-invalid não encontrado.',
       );
+    });
+
+    it('creates election with linked candidates', async () => {
+      const inputData = {
+        cargoId: 'cargo-1',
+        titulo: 'Eleição com Candidatos',
+        candidatos: [
+          {
+            utilizadorId: 'user-1',
+            nome: 'Candidato 1',
+            estado: 'PENDENTE' as const,
+          },
+        ],
+      };
+
+      electionsRepositoryMock.findCargoById.mockResolvedValue({
+        id: 'cargo-1',
+        nome: 'Presidente',
+        descricao: 'Cargo de presidente',
+      });
+      electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue(null);
+      electionsRepositoryMock.findUsersByIds.mockResolvedValue([
+        { id: 'user-1', perfil: 'CANDIDATO', activo: true },
+      ]);
+      electionsRepositoryMock.promoteUsersToCandidate.mockResolvedValue(0);
+      electionsRepositoryMock.create.mockResolvedValue({
+        id: 'eleicao-1',
+        cargoId: 'cargo-1',
+        titulo: 'Eleição com Candidatos',
+        estado: 'RASCUNHO',
+        cargo: { id: 'cargo-1', nome: 'Presidente', descricao: 'Cargo de presidente' },
+        candidatos: [{ id: 'cand-1', nome: 'Candidato 1', estado: 'PENDENTE' }],
+        elegiveis: [],
+        comprovativos: [],
+      });
+      electionsRepositoryMock.assignAllActiveElectorsAsEligible.mockResolvedValue(0);
+
+      await electionsService.createElection(inputData, 'gestor-1');
+
+      expect(electionsRepositoryMock.findUsersByIds).toHaveBeenCalledWith(['user-1']);
+      expect(electionsRepositoryMock.promoteUsersToCandidate).toHaveBeenCalledWith([]);
+      expect(electionsRepositoryMock.create).toHaveBeenCalledWith(inputData, 'gestor-1');
+    });
+
+    it('promotes linked electors before creating election candidates', async () => {
+      const inputData = {
+        cargoId: 'cargo-1',
+        titulo: 'Eleição com Eleitor Promovido',
+        candidatos: [{ utilizadorId: 'user-1', nome: 'Candidato 1' }],
+      };
+
+      electionsRepositoryMock.findCargoById.mockResolvedValue({
+        id: 'cargo-1',
+        nome: 'Presidente',
+        descricao: 'Cargo de presidente',
+      });
+      electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue(null);
+      electionsRepositoryMock.findUsersByIds.mockResolvedValue([
+        { id: 'user-1', perfil: 'ELEITOR', activo: true },
+      ]);
+      electionsRepositoryMock.promoteUsersToCandidate.mockResolvedValue(1);
+      electionsRepositoryMock.create.mockResolvedValue({
+        id: 'eleicao-1',
+        cargoId: 'cargo-1',
+        titulo: 'Eleição com Eleitor Promovido',
+        estado: 'PENDENTE',
+        cargo: { id: 'cargo-1', nome: 'Presidente', descricao: 'Cargo de presidente' },
+        candidatos: [{ id: 'cand-1', nome: 'Candidato 1', estado: 'PENDENTE' }],
+        elegiveis: [],
+        comprovativos: [],
+      });
+      electionsRepositoryMock.assignAllActiveElectorsAsEligible.mockResolvedValue(0);
+
+      await electionsService.createElection(inputData, 'gestor-1');
+
+      expect(electionsRepositoryMock.promoteUsersToCandidate).toHaveBeenCalledWith(['user-1']);
+      expect(electionsRepositoryMock.create).toHaveBeenCalledWith(inputData, 'gestor-1');
+    });
+
+    it('throws error when linked candidates contain duplicated utilizadorId', async () => {
+      const inputData = {
+        cargoId: 'cargo-1',
+        titulo: 'Eleição com Candidatos Duplicados',
+        candidatos: [
+          { utilizadorId: 'user-1', nome: 'Candidato 1' },
+          { utilizadorId: 'user-1', nome: 'Candidato 1B' },
+        ],
+      };
+
+      electionsRepositoryMock.findCargoById.mockResolvedValue({
+        id: 'cargo-1',
+        nome: 'Presidente',
+        descricao: 'Cargo de presidente',
+      });
+      electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue(null);
+
+      await expect(electionsService.createElection(inputData)).rejects.toThrow(
+        'Não é permitido vincular o mesmo utilizador mais de uma vez na mesma eleição.',
+      );
+      expect(electionsRepositoryMock.findUsersByIds).not.toHaveBeenCalled();
+      expect(electionsRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it('throws error when linked user cannot be promoted to candidate', async () => {
+      const inputData = {
+        cargoId: 'cargo-1',
+        titulo: 'Eleição com Perfil Inválido',
+        candidatos: [{ utilizadorId: 'user-1', nome: 'Utilizador Inválido' }],
+      };
+
+      electionsRepositoryMock.findCargoById.mockResolvedValue({
+        id: 'cargo-1',
+        nome: 'Presidente',
+        descricao: 'Cargo de presidente',
+      });
+      electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue(null);
+      electionsRepositoryMock.findUsersByIds.mockResolvedValue([
+        { id: 'user-1', perfil: 'ADMIN', activo: true },
+      ]);
+
+      await expect(electionsService.createElection(inputData)).rejects.toThrow(
+        'Apenas eleitores podem ser promovidos a candidatos.',
+      );
+      expect(electionsRepositoryMock.create).not.toHaveBeenCalled();
     });
   });
 
@@ -286,11 +421,11 @@ describe('ElectionsService', () => {
         id: 'eleicao-2',
         cargoId: 'cargo-1',
         titulo: 'Eleição em Curso',
-        estado: 'VOTACAO_ABERTA',
+        estado: 'ABERTA',
       });
 
       await expect(
-        electionsService.updateElection('eleicao-1', { estado: 'CANDIDATURAS_ABERTAS' }),
+        electionsService.updateElection('eleicao-1', { estado: 'ABERTA' }),
       ).rejects.toThrow('Já existe uma eleição em andamento para este cargo.');
       expect(electionsRepositoryMock.update).not.toHaveBeenCalled();
     });

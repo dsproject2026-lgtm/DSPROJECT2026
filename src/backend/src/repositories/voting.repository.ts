@@ -30,6 +30,40 @@ class VotingRepository {
     });
   }
 
+  async findUserById(userId: string) {
+    return prisma.utilizador.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        perfil: true,
+        activo: true,
+      },
+    });
+  }
+
+  async ensureEligibleVoter(electionId: string, userId: string) {
+    return prisma.elegivel.upsert({
+      where: {
+        eleicaoId_utilizadorId: {
+          eleicaoId: electionId,
+          utilizadorId: userId,
+        },
+      },
+      update: {},
+      create: {
+        eleicaoId: electionId,
+        utilizadorId: userId,
+        jaVotou: false,
+      },
+      select: {
+        id: true,
+        eleicaoId: true,
+        utilizadorId: true,
+        jaVotou: true,
+      },
+    });
+  }
+
   async findApprovedCandidatesByElection(electionId: string) {
     return prisma.candidato.findMany({
       where: {

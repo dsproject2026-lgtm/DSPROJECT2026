@@ -105,13 +105,13 @@ export function PasswordRecoveryPage() {
     <AuthLayout>
       <AuthBrand />
 
-      <section className="mx-auto w-full rounded-[22px] border border-[#D6DBE5] bg-[#F7F8FB] px-8 py-10 shadow-[0_8px_18px_rgba(17,24,39,0.05)] sm:px-11 sm:py-11">
+      <section className="mx-auto w-full rounded-[18px] border border-[#D6DBE5] bg-[#F7F8FB] px-5 py-7 shadow-[0_8px_18px_rgba(17,24,39,0.05)] sm:rounded-[22px] sm:px-11 sm:py-11">
         <div className="mb-8 sm:mb-9">
-          <div className="flex items-center gap-5">
-            <span className="h-11 w-[4px] rounded-full bg-[#2D8AE8]" />
+          <div className="flex items-start gap-3 sm:items-center sm:gap-5">
+            <span className="h-10 w-[4px] shrink-0 rounded-full bg-[#2D8AE8]" />
             <div>
-              <h2 className="text-[1.8rem] font-bold leading-none text-[#1F57D6] sm:text-[1.95rem]">Recuperar Senha</h2>
-              <p className="mt-2 text-[1rem] text-[#5F6776] sm:text-[1.06rem]">
+              <h2 className="text-[1.45rem] font-bold leading-tight text-[#1F57D6] sm:text-[1.95rem]">Recuperar Senha</h2>
+              <p className="mt-2 text-[0.94rem] text-[#5F6776] sm:text-[1.06rem]">
                 {isResetStep ? 'Defina uma nova senha para continuar.' : 'Receba o link de recuperação no seu email.'}
               </p>
             </div>
@@ -121,7 +121,7 @@ export function PasswordRecoveryPage() {
         {!isResetStep ? (
           <form className="flex flex-col gap-4" onSubmit={handleSendLink}>
             <label className="flex flex-col gap-2">
-              <span className="text-[0.88rem] font-semibold uppercase tracking-[0.09em] text-[#6C7381] sm:text-[0.92rem]">
+              <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">
                 Número de estudante ou username
               </span>
               <input
@@ -146,7 +146,7 @@ export function PasswordRecoveryPage() {
         ) : (
           <form className="flex flex-col gap-4" onSubmit={handleFinish}>
             <label className="flex flex-col gap-2">
-              <span className="text-[0.88rem] font-semibold uppercase tracking-[0.09em] text-[#6C7381] sm:text-[0.92rem]">
+              <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">
                 Número de estudante ou username
               </span>
               <input
@@ -158,7 +158,7 @@ export function PasswordRecoveryPage() {
             </label>
 
             <label className="flex flex-col gap-2">
-              <span className="text-[0.88rem] font-semibold uppercase tracking-[0.09em] text-[#6C7381] sm:text-[0.92rem]">Nova senha</span>
+              <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">Nova senha</span>
               <input
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
                 placeholder="Mínimo 8 caracteres"
@@ -169,7 +169,7 @@ export function PasswordRecoveryPage() {
             </label>
 
             <label className="flex flex-col gap-2">
-              <span className="text-[0.88rem] font-semibold uppercase tracking-[0.09em] text-[#6C7381] sm:text-[0.92rem]">
+              <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">
                 Confirmar senha
               </span>
               <input
@@ -182,7 +182,7 @@ export function PasswordRecoveryPage() {
             </label>
 
             <button
-              className="h-13 w-full rounded-lg bg-[#1A56DB] px-5 text-[0.94rem] font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-[#1647C0] disabled:cursor-not-allowed disabled:opacity-70 sm:h-[54px]"
+              className="h-13 w-full rounded-lg bg-[#1A56DB] px-4 text-[0.86rem] font-semibold uppercase tracking-[0.08em] sm:px-5 sm:text-[0.94rem] sm:tracking-[0.15em] text-white transition hover:bg-[#1647C0] disabled:cursor-not-allowed disabled:opacity-70 sm:h-[54px]"
               disabled={isFinishing}
               type="submit"
             >

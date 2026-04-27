@@ -84,6 +84,12 @@ npm run prisma:migrate:dev
 npm run dev
 ```
 
+## Documentação da API
+
+Guia de consumo da API (endpoints, autenticação e exemplos de `curl`):
+
+- [`API_USAGE.md`](./API_USAGE.md)
+
 ## Scripts
 
 ```bash

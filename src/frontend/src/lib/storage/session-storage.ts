@@ -1,6 +1,18 @@
 import type { LoginResult } from '@/types/auth';
 
 const SESSION_KEY = 'dsproject2026.session';
+const LEGACY_STORAGE: Storage | null =
+  typeof window !== 'undefined' ? window.localStorage : null;
+const CURRENT_STORAGE: Storage | null =
+  typeof window !== 'undefined' ? window.sessionStorage : null;
+
+function readFromStorage(storage: Storage | null) {
+  if (!storage) {
+    return null;
+  }
+
+  return storage.getItem(SESSION_KEY);
+}
 
 export const sessionStorageService = {
   getAccessToken(): string | null {
@@ -9,24 +21,37 @@ export const sessionStorageService = {
   },
 
   saveSession(session: LoginResult) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    CURRENT_STORAGE?.setItem(SESSION_KEY, JSON.stringify(session));
+    LEGACY_STORAGE?.removeItem(SESSION_KEY);
   },
 
   getSession(): LoginResult | null {
-    const raw = localStorage.getItem(SESSION_KEY);
+    const currentRaw = readFromStorage(CURRENT_STORAGE);
+    const legacyRaw = readFromStorage(LEGACY_STORAGE);
+    const raw = currentRaw ?? legacyRaw;
+
     if (!raw) {
       return null;
     }
 
     try {
-      return JSON.parse(raw) as LoginResult;
+      const parsed = JSON.parse(raw) as LoginResult;
+
+      if (!currentRaw && legacyRaw) {
+        CURRENT_STORAGE?.setItem(SESSION_KEY, legacyRaw);
+        LEGACY_STORAGE?.removeItem(SESSION_KEY);
+      }
+
+      return parsed;
     } catch {
-      localStorage.removeItem(SESSION_KEY);
+      CURRENT_STORAGE?.removeItem(SESSION_KEY);
+      LEGACY_STORAGE?.removeItem(SESSION_KEY);
       return null;
     }
   },
 
   clearSession() {
-    localStorage.removeItem(SESSION_KEY);
+    CURRENT_STORAGE?.removeItem(SESSION_KEY);
+    LEGACY_STORAGE?.removeItem(SESSION_KEY);
   },
 };

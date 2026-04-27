@@ -3,6 +3,8 @@ export interface ElectorVoteReceipt {
   candidateId: string;
   confirmedAt: string;
   confirmationCode: string;
+  electionTitle?: string;
+  candidateName?: string;
 }
 
 const RECEIPT_STORAGE_KEY = 'elector.vote.receipt';

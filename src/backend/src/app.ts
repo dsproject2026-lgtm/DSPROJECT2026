@@ -7,7 +7,6 @@ import morgan from 'morgan';
 import { env } from './config/env.js';
 import { errorHandler } from './middlewares/error-handler.middleware.js';
 import { notFoundHandler } from './middlewares/not-found.middleware.js';
-import { apiRateLimitMiddleware } from './middlewares/rate-limit.middleware.js';
 import apiRoutes from './routes/index.js';
 import { buildSuccessResponse } from './utils/success-response.js';
 
@@ -20,7 +19,7 @@ export const createApp = () => {
   app.use(helmet());
   app.use(
     cors({
-      origin: env.CLIENT_URL ?? true,
+      origin: true,
       credentials: true,
     }),
   );
@@ -66,7 +65,7 @@ export const createApp = () => {
     );
   });
 
-  app.use(env.API_PREFIX, apiRateLimitMiddleware, apiRoutes);
+  app.use(env.API_PREFIX, apiRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

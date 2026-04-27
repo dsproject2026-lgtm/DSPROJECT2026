@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppError } from '../../src/utils/app-error.js';
 
 const { positionsServiceMock } = vi.hoisted(() => ({
   positionsServiceMock: {
@@ -107,11 +108,9 @@ describe('positions routes integration', () => {
     });
 
     it('returns 404 when position not found', async () => {
-      positionsServiceMock.getPositionById.mockRejectedValue({
-        statusCode: 404,
-        code: 'POSITION_NOT_FOUND',
-        message: 'Cargo não encontrado.',
-      });
+      positionsServiceMock.getPositionById.mockRejectedValue(
+        new AppError('Cargo não encontrado.', 404, 'POSITION_NOT_FOUND'),
+      );
 
       const response = await request(app).get('/api/v1/positions/invalid-id');
       const body = response.body as ErrorResponse;
@@ -307,7 +306,7 @@ describe('positions routes integration', () => {
 
       expect(response.status).toBe(403);
       expect(body.success).toBe(false);
-      expect(body.error.code).toBe('INSUFFICIENT_PROFILE');
+      expect(body.error.code).toBe('AUTH_FORBIDDEN');
     });
 
     it('rejects delete without authentication', async () => {

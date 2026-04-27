@@ -8,6 +8,8 @@ import { AdminAuditPage } from '@/features/admin/pages/AdminAuditPage';
 import { AdminCandidatesPage } from '@/features/admin/pages/AdminCandidatesPage';
 import { AdminCommissionPage } from '@/features/admin/pages/AdminCommissionPage';
 import { AdminDashboardPage } from '@/features/admin/pages/AdminDashboardPage';
+import { AdminPositionsRegisterPage } from '@/features/admin/pages/AdminPositionsRegisterPage';
+import { AdminPositionsViewPage } from '@/features/admin/pages/AdminPositionsViewPage';
 import { AdminSettingsPage } from '@/features/admin/pages/AdminSettingsPage';
 import { AdminStudentsPage } from '@/features/admin/pages/AdminStudentsPage';
 import { CodeLoginPage } from '@/features/auth/pages/CodeLoginPage';
@@ -18,6 +20,7 @@ import { PasswordRecoveryPage } from '@/features/auth/pages/PasswordRecoveryPage
 import { CommissionCandidatesPage } from '@/features/commission/pages/CommissionCandidatesPage';
 import { CommissionCandidatesRegisterPage } from '@/features/commission/pages/CommissionCandidatesRegisterPage';
 import { CommissionDashboardPage } from '@/features/commission/pages/CommissionDashboardPage';
+import { CommissionElectionDetailsPage } from '@/features/commission/pages/CommissionElectionDetailsPage';
 import { CommissionElectionsPage } from '@/features/commission/pages/CommissionElectionsPage';
 import { CommissionResultsPage } from '@/features/commission/pages/CommissionResultsPage';
 import { CommissionSettingsPage } from '@/features/commission/pages/CommissionSettingsPage';
@@ -32,6 +35,7 @@ import { FiscalAuditPage } from '@/features/fiscal/pages/FiscalAuditPage';
 import { FiscalDashboardPage } from '@/features/fiscal/pages/FiscalDashboardPage';
 import { FiscalReportsPage } from '@/features/fiscal/pages/FiscalReportsPage';
 import { FiscalResultsPage } from '@/features/fiscal/pages/FiscalResultsPage';
+import { ProfilePage } from '@/features/profile/ProfilePage';
 import { sessionStorageService } from '@/lib/storage/session-storage';
 
 function RoleHomeRedirect() {
@@ -111,19 +115,20 @@ export function AppRouter() {
         <Route path="elections/:electionId" element={<ElectorElectionsPage />} />
         <Route path="confirmacao" element={<ElectorConfirmationPage />} />
         <Route path="resultados" element={<ElectorResultsPage />} />
+        <Route path="perfil" element={<ProfilePage />} />
       </Route>
 
       <Route
         path="/admin"
         element={
-          // <ProtectedRoute allowedPerfis={['ADMIN']}>
+          <ProtectedRoute allowedPerfis={['ADMIN']}>
             <BackofficeLayout
               basePath={adminConfig.basePath}
               identityLabel={adminConfig.identityLabel}
               identityCampus={adminConfig.identityCampus}
               navItems={adminConfig.navItems}
             />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         }
       >
         <Route index element={<Navigate to="dashboard" replace />} />
@@ -131,31 +136,36 @@ export function AppRouter() {
         <Route path="candidatos" element={<Navigate to="visualizar" replace />} />
         <Route path="candidatos/visualizar" element={<AdminCandidatesPage />} />
         <Route path="candidatos/registrar" element={<AdminCandidatesPage />} />
+        <Route path="cargos" element={<Navigate to="visualizar" replace />} />
+        <Route path="cargos/visualizar" element={<AdminPositionsViewPage />} />
+        <Route path="cargos/registrar" element={<AdminPositionsRegisterPage />} />
         <Route path="estudantes" element={<Navigate to="visualizar" replace />} />
         <Route path="estudantes/visualizar" element={<AdminStudentsPage />} />
         <Route path="estudantes/registrar" element={<AdminStudentsPage />} />
         <Route path="comissao" element={<AdminCommissionPage />} />
         <Route path="auditoria" element={<AdminAuditPage />} />
         <Route path="configuracoes" element={<AdminSettingsPage />} />
+        <Route path="perfil" element={<ProfilePage />} />
       </Route>
 
       <Route
         path="/comissao"
         element={
-          // <ProtectedRoute allowedPerfis={['GESTOR_ELEITORAL']}>
+          <ProtectedRoute allowedPerfis={['GESTOR_ELEITORAL']}>
             <BackofficeLayout
               basePath={commissionConfig.basePath}
               identityLabel={commissionConfig.identityLabel}
               identityCampus={commissionConfig.identityCampus}
               navItems={commissionConfig.navItems}
             />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         }
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<CommissionDashboardPage />} />
         <Route path="eleicoes" element={<Navigate to="visualizar" replace />} />
         <Route path="eleicoes/visualizar" element={<CommissionDashboardPage />} />
+        <Route path="eleicoes/detalhes/:electionId" element={<CommissionElectionDetailsPage />} />
         <Route path="eleicoes/registrar" element={<CommissionElectionsPage />} />
         <Route path="resultados" element={<CommissionResultsPage />} />
         <Route path="candidatos" element={<Navigate to="visualizar" replace />} />
@@ -165,19 +175,20 @@ export function AppRouter() {
         <Route path="estudantes/visualizar" element={<CommissionStudentsPage />} />
         <Route path="estudantes/registrar" element={<CommissionStudentsRegisterPage />} />
         <Route path="configuracoes" element={<CommissionSettingsPage />} />
+        <Route path="perfil" element={<ProfilePage />} />
       </Route>
 
       <Route
         path="/fiscal"
         element={
-          // <ProtectedRoute allowedPerfis={['AUDITOR']}>
+          <ProtectedRoute allowedPerfis={['AUDITOR']}>
             <BackofficeLayout
               basePath={fiscalConfig.basePath}
               identityLabel={fiscalConfig.identityLabel}
               identityCampus={fiscalConfig.identityCampus}
               navItems={fiscalConfig.navItems}
             />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         }
       >
         <Route index element={<Navigate to="dashboard" replace />} />
@@ -185,6 +196,7 @@ export function AppRouter() {
         <Route path="auditoria" element={<FiscalAuditPage />} />
         <Route path="resultados" element={<FiscalResultsPage />} />
         <Route path="relatorios" element={<FiscalReportsPage />} />
+        <Route path="perfil" element={<ProfilePage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

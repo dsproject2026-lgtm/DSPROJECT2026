@@ -21,11 +21,11 @@ positionsRouter.get('/:id', getPositionById);
 positionsRouter.post(
   '/',
   authenticateAccessToken,
-  requirePerfis('ADMIN', 'GESTOR_ELEITORAL'),
+  requirePerfis('ADMIN'),
   createPosition,
 );
 
-positionsRouter.put('/:id',authenticateAccessToken,requirePerfis('ADMIN', 'GESTOR_ELEITORAL'),updatePosition,);
+positionsRouter.put('/:id',authenticateAccessToken,requirePerfis('ADMIN'),updatePosition,);
 
 positionsRouter.delete('/:id',authenticateAccessToken,requirePerfis('ADMIN'),deletePosition,);
 

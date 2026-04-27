@@ -1,4 +1,7 @@
 import { votingRepository } from '../repositories/voting.repository.js';
+import { electionsService } from './elections.service.js';
+import { settingsService } from './settings.service.js';
+import { sseService } from '../sse/sse.service.js';
 import type {
   CastVoteInput,
   CastVoteResponse,
@@ -9,6 +12,27 @@ import type {
 import { AppError } from '../utils/app-error.js';
 
 class VotingService {
+  private async resolveOrCreateEligibleVoter(electionId: string, userId: string) {
+    const existingEligibleVoter = await votingRepository.findEligibleVoter(electionId, userId);
+
+    if (existingEligibleVoter) {
+      return existingEligibleVoter;
+    }
+
+    const user = await votingRepository.findUserById(userId);
+
+    if (!user || !user.activo || user.perfil !== 'ELEITOR') {
+      throw new AppError(
+        'Utilizador não elegível para votar nesta eleição.',
+        403,
+        'VOTER_NOT_ELIGIBLE',
+        { electionId, userId },
+      );
+    }
+
+    return votingRepository.ensureEligibleVoter(electionId, userId);
+  }
+
   async getBallot(electionId: string, userId: string) {
     const election = await votingRepository.findElectionById(electionId);
 
@@ -16,7 +40,7 @@ class VotingService {
       throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
     }
 
-    if (election.estado !== 'VOTACAO_ABERTA') {
+    if (election.estado !== 'ABERTA') {
       throw new AppError(
         'A votação desta eleição não está aberta.',
         409,
@@ -25,16 +49,7 @@ class VotingService {
       );
     }
 
-    const eligibleVoter = await votingRepository.findEligibleVoter(electionId, userId);
-
-    if (!eligibleVoter) {
-      throw new AppError(
-        'Utilizador não elegível para votar nesta eleição.',
-        403,
-        'VOTER_NOT_ELIGIBLE',
-        { electionId, userId },
-      );
-    }
+    await this.resolveOrCreateEligibleVoter(electionId, userId);
 
     const candidates = await votingRepository.findApprovedCandidatesByElection(electionId);
 
@@ -62,7 +77,7 @@ class VotingService {
       throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
     }
 
-    if (election.estado !== 'VOTACAO_ABERTA') {
+    if (election.estado !== 'ABERTA') {
       throw new AppError(
         'A votação desta eleição não está aberta.',
         409,
@@ -71,16 +86,7 @@ class VotingService {
       );
     }
 
-    const eligibleVoter = await votingRepository.findEligibleVoter(electionId, userId);
-
-    if (!eligibleVoter) {
-      throw new AppError(
-        'Utilizador não elegível para votar nesta eleição.',
-        403,
-        'VOTER_NOT_ELIGIBLE',
-        { electionId, userId },
-      );
-    }
+    const eligibleVoter = await this.resolveOrCreateEligibleVoter(electionId, userId);
 
     if (eligibleVoter.jaVotou) {
       throw new AppError(
@@ -125,6 +131,13 @@ class VotingService {
       candidateId: result.vote.candidatoId,
     };
 
+    sseService.broadcast('vote_cast', {
+      electionId,
+      candidateId: result.vote.candidatoId,
+      votedAt: result.vote.dataHora,
+      receiptCode: result.receipt.codigoVerificacao,
+    });
+
     return {
       message: 'Voto registado com sucesso.',
       data,
@@ -138,16 +151,7 @@ class VotingService {
       throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
     }
 
-    const eligibleVoter = await votingRepository.findEligibleVoter(electionId, userId);
-
-    if (!eligibleVoter) {
-      throw new AppError(
-        'Utilizador não elegível para votar nesta eleição.',
-        403,
-        'VOTER_NOT_ELIGIBLE',
-        { electionId, userId },
-      );
-    }
+    const eligibleVoter = await this.resolveOrCreateEligibleVoter(electionId, userId);
 
     const receipt = await votingRepository.findReceiptByElectionAndUser(electionId, userId);
 
@@ -165,20 +169,24 @@ class VotingService {
   }
 
   async getElectionResults(electionId: string) {
+    await electionsService.concludeExpiredOpenElections();
+
     const election = await votingRepository.findElectionById(electionId);
 
     if (!election) {
       throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
     }
 
-    // if (!['VOTACAO_ENCERRADA', 'CONCLUIDA'].includes(election.estado)) {
-    //   throw new AppError(
-    //     'Os resultados desta eleição ainda não estão disponíveis.',
-    //     409,
-    //     'ELECTION_RESULTS_NOT_AVAILABLE',
-    //     { electionId, estado: election.estado },
-    //   );
-    // }
+    const { settings } = await settingsService.getSystemSettings();
+
+    if (!settings.allowImmediateResults && election.estado !== 'CONCLUIDA') {
+      throw new AppError(
+        'Os resultados desta eleição ainda não estão disponíveis.',
+        409,
+        'ELECTION_RESULTS_NOT_AVAILABLE',
+        { electionId, estado: election.estado },
+      );
+    }
 
     const [candidates, votes, totalEligibleVoters] = await Promise.all([
       votingRepository.findAllCandidatesByElection(electionId),

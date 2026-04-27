@@ -36,6 +36,11 @@ export interface PasswordRecoveryFinishInput {
   novaSenha: string;
 }
 
+export interface ChangePasswordInput {
+  senhaAtual: string;
+  novaSenha: string;
+}
+
 export interface RegisterInput {
   codigo: string;
   nome: string;

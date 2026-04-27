@@ -1,274 +1,196 @@
-import { useState } from 'react';
-import type { ReactNode } from 'react';
-import { CheckCircle2, Plus, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Upload } from 'lucide-react';
 
-type Perfil = 'ADMIN' | 'GESTOR_ELEITORAL' | 'AUDITOR' | 'ELEITOR';
+import { commissionApi } from '@/api/commission.api';
+import { CommissionSegmentTabs } from '@/features/commission/components/CommissionSegmentTabs';
+import { Spinner, UiSelect, UiTable, toast } from '@/components/ui';
+import { ApiError } from '@/lib/http/api-error';
+import type { CommissionElectionItem } from '@/types/commission';
 
-type ElectorFormData = {
-  codigo: string;
-  nome: string;
-  email: string;
-  perfil: Perfil;
-  activo: boolean;
-  mustSetPassword: boolean;
-  eleicaoId: string;
-  jaVotou: boolean;
-};
-
-type ElectorFormErrors = Partial<Record<keyof ElectorFormData, string>>;
-
-type ModalProps = {
-  title: string;
-  isOpen: boolean;
-  onClose: () => void;
-  children: ReactNode;
-};
-
-const INITIAL_FORM: ElectorFormData = {
-  codigo: '',
-  nome: '',
-  email: '',
-  perfil: 'ELEITOR',
-  activo: true,
-  mustSetPassword: true,
-  eleicaoId: '',
-  jaVotou: false,
-};
-
-function BaseModal({ title, isOpen, onClose, children }: ModalProps) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-md bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h3 className="text-[18px] font-semibold text-slate-900">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50"
-            aria-label="Fechar"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="max-h-[calc(90vh-74px)] overflow-y-auto px-5 py-5">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function boolLabel(value: boolean) {
-  return value ? 'TRUE' : 'FALSE';
-}
-
-function renderValue(value: string) {
-  return value.trim().length > 0 ? value : '-';
+function parseCodes(input: string) {
+  return input
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 export function CommissionElectorsRegisterPage() {
-  const [form, setForm] = useState<ElectorFormData>(INITIAL_FORM);
-  const [errors, setErrors] = useState<ElectorFormErrors>({});
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  const [message, setMessage] = useState('');
+  const [elections, setElections] = useState<CommissionElectionItem[]>([]);
+  const [electionId, setElectionId] = useState('');
+  const [codesInput, setCodesInput] = useState('codigo\n');
+  const [isBootLoading, setIsBootLoading] = useState(true);
+  const [isImporting, setIsImporting] = useState(false);
+  const [result, setResult] = useState<{
+    importedCount: number;
+    totalCount: number;
+    skipped: Array<{ codigo: string; reason: string }>;
+  } | null>(null);
 
-  const validateForm = () => {
-    const nextErrors: ElectorFormErrors = {};
+  useEffect(() => {
+    let isActive = true;
+    const load = async () => {
+      setIsBootLoading(true);
+      try {
+        const response = await commissionApi.listElections();
+        if (!isActive) return;
+        setElections(response.items);
+        setElectionId(response.items[0]?.id || '');
+      } catch (cause) {
+        if (!isActive) return;
+        const message =
+          cause instanceof ApiError ? cause.message : 'Não foi possível carregar eleições.';
+        toast.danger(message);
+      } finally {
+        if (isActive) setIsBootLoading(false);
+      }
+    };
+    void load();
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
-    if (!form.codigo.trim()) nextErrors.codigo = 'codigo e obrigatorio.';
-    if (!form.nome.trim()) nextErrors.nome = 'nome e obrigatorio.';
-    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      nextErrors.email = 'email invalido.';
-    }
-    if (!form.eleicaoId.trim()) nextErrors.eleicaoId = 'eleicaoId e obrigatorio.';
+  const previewCodes = useMemo(() => parseCodes(codesInput).filter((code) => code !== 'codigo'), [codesInput]);
 
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  };
-
-  const updateField = <K extends keyof ElectorFormData>(key: K, value: ElectorFormData[K]) => {
-    setForm((current) => ({ ...current, [key]: value }));
-    if (errors[key]) {
-      setErrors((current) => ({ ...current, [key]: undefined }));
-    }
-  };
-
-  const openConfirmation = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!validateForm()) return;
-    setIsConfirmOpen(true);
+    if (!electionId) {
+      toast.danger('Selecione uma eleição.');
+      return;
+    }
+
+    if (previewCodes.length === 0) {
+      toast.danger('Informe pelo menos um código de eleitor.');
+      return;
+    }
+
+    try {
+      setIsImporting(true);
+      const importResult = await commissionApi.importEligibleVotersCsv(electionId, codesInput);
+      setResult({
+        importedCount: importResult.count,
+        totalCount: importResult.totalCount,
+        skipped: importResult.skipped,
+      });
+      toast.success('Importação de elegíveis concluída.');
+    } catch (cause) {
+      const message =
+        cause instanceof ApiError
+          ? cause.message
+          : cause instanceof Error
+            ? cause.message
+            : 'Falha ao importar elegíveis.';
+      toast.danger(message);
+    } finally {
+      setIsImporting(false);
+    }
   };
 
-  const confirmRegister = () => {
-    setIsConfirmOpen(false);
-    setIsSuccessOpen(true);
-    setMessage('Eleitor preparado com campos alinhados aos modelos da DB.');
-    setForm(INITIAL_FORM);
-    setErrors({});
-  };
+  if (isBootLoading) {
+    return (
+      <div className="flex min-h-[240px] items-center justify-center">
+        <div className="flex items-center gap-3 text-[#334155]">
+          <Spinner color="accent" />
+          <span className="text-sm font-semibold">A carregar dados...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section className="space-y-6">
       <div>
-        <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-slate-900">Registrar Eleitor</h1>
-        <p className="mt-1 text-[13px] text-slate-500">
-          Formulario alinhado com os atributos de <strong>utilizadores</strong> + <strong>elegiveis</strong>.
+        <h1 className="text-ui-2xl font-semibold leading-tight tracking-[-0.01em] text-[#0f172a]">
+          Importar Eleitores Elegíveis
+        </h1>
+        <p className="text-ui-sm text-[#475569]">
+          Carregue uma lista CSV para vincular estudantes elegíveis a uma eleição.
         </p>
       </div>
 
-      {message ? (
-        <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] text-blue-700">{message}</div>
-      ) : null}
+      <CommissionSegmentTabs segment="estudantes" />
 
-      <form onSubmit={openConfirmation} className="rounded-md border border-slate-200 bg-white p-5">
-        <div className="grid gap-4 md:grid-cols-2">
+      <form onSubmit={submit} className="rounded-sm border border-[#e2e8f0] bg-white p-5 shadow-none">
+        <div className="grid gap-4">
           <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">codigo</label>
-            <input
-              value={form.codigo}
-              onChange={(event) => updateField('codigo', event.target.value)}
-              className={`h-10 w-full rounded-md border px-3 text-[14px] outline-none focus:ring-2 ${errors.codigo ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'}`}
-              placeholder="Ex: 2026001"
-            />
-            {errors.codigo ? <p className="mt-1 text-[12px] text-red-600">{errors.codigo}</p> : null}
-          </div>
-
-          <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">nome</label>
-            <input
-              value={form.nome}
-              onChange={(event) => updateField('nome', event.target.value)}
-              className={`h-10 w-full rounded-md border px-3 text-[14px] outline-none focus:ring-2 ${errors.nome ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'}`}
-              placeholder="Nome completo"
-            />
-            {errors.nome ? <p className="mt-1 text-[12px] text-red-600">{errors.nome}</p> : null}
-          </div>
-
-          <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">email (opcional)</label>
-            <input
-              value={form.email}
-              onChange={(event) => updateField('email', event.target.value)}
-              className={`h-10 w-full rounded-md border px-3 text-[14px] outline-none focus:ring-2 ${errors.email ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'}`}
-              placeholder="email@up.ac.mz"
-            />
-            {errors.email ? <p className="mt-1 text-[12px] text-red-600">{errors.email}</p> : null}
-          </div>
-
-          <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">perfil</label>
-            <select
-              value={form.perfil}
-              onChange={(event) => updateField('perfil', event.target.value as Perfil)}
-              className="h-10 w-full rounded-md border border-slate-300 px-3 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            >
-              <option value="ADMIN">ADMIN</option>
-              <option value="GESTOR_ELEITORAL">GESTOR_ELEITORAL</option>
-              <option value="AUDITOR">AUDITOR</option>
-              <option value="ELEITOR">ELEITOR</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">eleicaoId</label>
-            <input
-              value={form.eleicaoId}
-              onChange={(event) => updateField('eleicaoId', event.target.value)}
-              className={`h-10 w-full rounded-md border px-3 text-[14px] outline-none focus:ring-2 ${errors.eleicaoId ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'}`}
-              placeholder="Ex: ele-2026-aeup"
-            />
-            {errors.eleicaoId ? <p className="mt-1 text-[12px] text-red-600">{errors.eleicaoId}</p> : null}
-          </div>
-
-          <div className="grid grid-cols-1 gap-2 rounded-md border border-slate-200 p-3">
-            <label className="flex items-center gap-2 text-[13px] text-slate-700">
-              <input
-                type="checkbox"
-                checked={form.activo}
-                onChange={(event) => updateField('activo', event.target.checked)}
-              />
-              activo
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+              Eleição
             </label>
-            <label className="flex items-center gap-2 text-[13px] text-slate-700">
-              <input
-                type="checkbox"
-                checked={form.mustSetPassword}
-                onChange={(event) => updateField('mustSetPassword', event.target.checked)}
-              />
-              mustSetPassword
+            <UiSelect
+              value={electionId}
+              onChange={setElectionId}
+              placeholder="Selecione"
+              ariaLabel="Eleição"
+              options={elections.map((item) => ({
+                value: item.id,
+                label: item.titulo,
+              }))}
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+              Conteúdo CSV
             </label>
-            <label className="flex items-center gap-2 text-[13px] text-slate-700">
-              <input
-                type="checkbox"
-                checked={form.jaVotou}
-                onChange={(event) => updateField('jaVotou', event.target.checked)}
-              />
-              jaVotou
-            </label>
+            <textarea
+              value={codesInput}
+              onChange={(event) => setCodesInput(event.target.value)}
+              className="min-h-[220px] w-full rounded-sm border border-[#d1d9e6] bg-white px-3 py-2 font-mono text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
+              placeholder={'codigo\n2026001\n2026002'}
+            />
+            <p className="mt-1 text-sm text-[#64748b]">
+              Formato aceito: uma coluna <code>codigo</code> com um código por linha.
+            </p>
           </div>
         </div>
 
-        <div className="mt-5 flex justify-end">
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <p className="text-sm text-[#64748b]">
+            {previewCodes.length} código(s) prontos para importar.
+          </p>
           <button
             type="submit"
-            className="inline-flex h-10 items-center rounded-md bg-blue-600 px-4 text-[13px] font-semibold text-white transition hover:bg-blue-700"
+            disabled={isImporting}
+            className="inline-flex h-10 items-center rounded-md bg-[#1A56DB] px-4 text-sm font-medium text-white transition hover:bg-[#1647C0] disabled:opacity-60"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Guardar Eleitor
+            {isImporting ? <Spinner size="sm" className="mr-2 text-white" /> : <Upload className="mr-2 h-4 w-4" />}
+            Importar CSV
           </button>
         </div>
       </form>
 
-      <div className="rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] text-blue-700">
-        Esta tela e apenas para registo. A listagem fica em <strong>Comissao &gt; Estudantes &gt; Visualizar</strong>.
-      </div>
+      {result ? (
+        <section className="rounded-sm border border-[#e2e8f0] bg-white p-5 shadow-none">
+          <h2 className="text-[20px] font-semibold text-[#0f2c12]">Resultado da importação</h2>
+          <p className="mt-2 text-base text-[#334155]">
+            Importados: <strong>{result.importedCount}</strong> de <strong>{result.totalCount}</strong>.
+          </p>
 
-      <BaseModal title="Confirmar Registo" isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)}>
-        <div className="space-y-4 text-[14px] text-slate-700">
-          <p>Confirmar registo do eleitor com os campos da tabela?</p>
-          <div className="rounded-md bg-slate-50 p-3">
-            <p><strong>codigo:</strong> {renderValue(form.codigo)}</p>
-            <p><strong>nome:</strong> {renderValue(form.nome)}</p>
-            <p><strong>email:</strong> {renderValue(form.email)}</p>
-            <p><strong>perfil:</strong> {form.perfil}</p>
-            <p><strong>activo:</strong> {boolLabel(form.activo)}</p>
-            <p><strong>mustSetPassword:</strong> {boolLabel(form.mustSetPassword)}</p>
-            <p><strong>eleicaoId:</strong> {renderValue(form.eleicaoId)}</p>
-            <p><strong>jaVotou:</strong> {boolLabel(form.jaVotou)}</p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setIsConfirmOpen(false)}
-              className="h-10 rounded-md border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={confirmRegister}
-              className="h-10 rounded-md bg-blue-600 px-4 text-[13px] font-semibold text-white hover:bg-blue-700"
-            >
-              Confirmar
-            </button>
-          </div>
-        </div>
-      </BaseModal>
-
-      <BaseModal title="Registo Concluido" isOpen={isSuccessOpen} onClose={() => setIsSuccessOpen(false)}>
-        <div className="flex flex-col items-center justify-center gap-3 py-4 text-center">
-          <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-          <p className="text-[15px] font-semibold text-slate-900">Eleitor registado com sucesso.</p>
-          <button
-            type="button"
-            onClick={() => setIsSuccessOpen(false)}
-            className="mt-2 h-10 rounded-md bg-blue-600 px-4 text-[13px] font-semibold text-white hover:bg-blue-700"
-          >
-            Fechar
-          </button>
-        </div>
-      </BaseModal>
+          {result.skipped.length > 0 ? (
+            <div className="mt-4 overflow-hidden rounded-sm border border-[#e2e8f0]">
+              <UiTable
+                ariaLabel="Códigos ignorados"
+                columns={[
+                  { id: 'codigo', label: 'Código', className: 'font-semibold' },
+                  { id: 'motivo', label: 'Motivo', className: 'font-semibold' },
+                ]}
+                rows={result.skipped.map((item) => ({
+                  id: `${item.codigo}:${item.reason}`,
+                  cells: [
+                    <span key={`${item.codigo}:code`} className="text-sm">{item.codigo}</span>,
+                    <span key={`${item.codigo}:reason`} className="text-sm">{item.reason}</span>,
+                  ],
+                }))}
+              />
+            </div>
+          ) : (
+            <p className="mt-3 rounded-sm border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 text-sm text-[#15803d]">
+              Nenhum código foi ignorado.
+            </p>
+          )}
+        </section>
+      ) : null}
     </section>
   );
 }

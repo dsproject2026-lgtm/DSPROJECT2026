@@ -1,4 +1,9 @@
-import type { LoginResult, LoginStartResponse, RefreshTokenResult, SessionUser } from '@/types/auth';
+import type {
+  LoginResult,
+  LoginStartResponse,
+  RefreshTokenResult,
+  SessionUser,
+} from '@/types/auth';
 
 import { endpoints } from './endpoints';
 import { apiClient } from './http';
@@ -48,6 +53,14 @@ export const authApi = {
       token,
       novaSenha,
     });
+  },
+
+  changePassword(senhaAtual: string, novaSenha: string) {
+    return apiClient.post<{ changed: boolean }>(
+      endpoints.auth.changePassword,
+      { senhaAtual, novaSenha },
+      { auth: true },
+    );
   },
 
   refresh(refreshToken: string) {

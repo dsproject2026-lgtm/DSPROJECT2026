@@ -98,6 +98,19 @@ class AuthRepository {
     });
   }
 
+  async updatePasswordById(userId: string, senhaHash: string) {
+    return prisma.utilizador.update({
+      where: { id: userId },
+      data: {
+        senhaHash,
+        mustSetPassword: false,
+        passwordSetupTokenHash: null,
+        passwordSetupTokenExpiresAt: null,
+      },
+      select: utilizadorAuthSelect,
+    });
+  }
+
   async createRefreshToken({
     userId,
     tokenHash,
@@ -190,6 +203,27 @@ class AuthRepository {
         revokedAt: new Date(),
       },
     });
+  }
+
+  async assignElectorAsEligibleInAllElections(userId: string) {
+    const elections = await prisma.eleicao.findMany({
+      select: { id: true },
+    });
+
+    if (elections.length === 0) {
+      return 0;
+    }
+
+    const result = await prisma.elegivel.createMany({
+      data: elections.map((election) => ({
+        eleicaoId: election.id,
+        utilizadorId: userId,
+        jaVotou: false,
+      })),
+      skipDuplicates: true,
+    });
+
+    return result.count;
   }
 }
 

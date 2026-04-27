@@ -1,174 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { getElectorVoteReceipt } from '@/features/elector/lib/vote-receipt';
+import { electionsApi } from '@/api/elections.api';
+import { Spinner, toast } from '@/components/ui';
+import { env } from '@/config/env';
+import { getElectorVoteReceipt, saveElectorVoteReceipt, type ElectorVoteReceipt } from '@/features/elector/lib/vote-receipt';
+import { ApiError } from '@/lib/http/api-error';
+import type { ElectionListItem, ElectionResults, VoteStatusResult } from '@/types/elector';
 
-interface CandidateResult {
-  id: string;
-  nome: string;
-  detalhe?: string;
-  foto?: string;
-  votos: number;
-  percentual: number;
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-interface ElectionResultData {
-  id: string;
-  titulo: string;
-  cargo: string;
-  initialCountdownSeconds: number;
-  candidatos: CandidateResult[];
-}
-
-const electionResultsData: Record<string, ElectionResultData> = {
-  '1': {
-    id: '1',
-    titulo: 'Eleições AEUP 2026',
-    cargo: 'Presidente da Direção',
-    initialCountdownSeconds: 4 * 60 * 60 + 12 * 60 + 45,
-    candidatos: [
-      {
-        id: 'ricardo-mondlane',
-        nome: 'Ricardo Mondlane',
-        foto: '/images/candidates/ricardo-mondlane.png',
-        votos: 1184,
-        percentual: 9.5,
-      },
-      {
-        id: 'ana-bela',
-        nome: 'Ana Bela Chissano',
-        foto: '/images/candidates/ana-bela.png',
-        votos: 3996,
-        percentual: 32.1,
-      },
-      {
-        id: 'sergio-mabunda',
-        nome: 'Sérgio Mabunda',
-        foto: '/images/candidates/sergio-mabunda.png',
-        votos: 7270,
-        percentual: 58.4,
-      },
-    ],
-  },
-  '2': {
-    id: '2',
-    titulo: 'Eleições AEUP 2026',
-    cargo: 'Representante Principal',
-    initialCountdownSeconds: 12 * 60 * 60 + 1 * 60 + 10,
-    candidatos: [
-      {
-        id: 'beatriz-sitoe',
-        nome: 'Beatriz Sitoe',
-        votos: 2140,
-        percentual: 51.2,
-      },
-      {
-        id: 'joao-mondlane',
-        nome: 'João Mondlane',
-        votos: 2040,
-        percentual: 48.8,
-      },
-    ],
-  },
-  '3': {
-    id: '3',
-    titulo: 'Conselho Universitário',
-    cargo: 'Representante da Faculdade',
-    initialCountdownSeconds: 9 * 60 * 60 + 58 * 60 + 22,
-    candidatos: [
-      {
-        id: 'lucia-gove',
-        nome: 'Lúcia Gove',
-        votos: 1670,
-        percentual: 44.8,
-      },
-      {
-        id: 'samuel-ubisse',
-        nome: 'Samuel Ubisse',
-        votos: 2056,
-        percentual: 55.2,
-      },
-    ],
-  },
-};
-
-const electionNamesById: Record<string, string> = {
-  '1': 'Eleições AEUP 2026',
-  '2': 'Eleições AEUP 2026',
-  '3': 'Conselho Universitário',
-};
-
-const candidateNamesById: Record<string, string> = {
-  'ricardo-mondlane': 'Ricardo Mondlane',
-  'ana-bela': 'Ana Bela Chissano',
-  'sergio-mabunda': 'Sérgio Mabunda',
-  'beatriz-sitoe': 'Beatriz Sitoe',
-  'joao-mondlane': 'João Mondlane',
-  'lucia-gove': 'Lúcia Gove',
-  'samuel-ubisse': 'Samuel Ubisse',
-  'voto-branco': 'Voto em Branco',
-};
-
-function formatSeconds(totalSeconds: number) {
-  const safe = Math.max(0, totalSeconds);
-  const hours = Math.floor(safe / 3600);
-  const minutes = Math.floor((safe % 3600) / 60);
-  const seconds = safe % 60;
-
-  return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
-}
-
-function getDeadlineStorageKey(electionId: string) {
-  return `election:${electionId}:deadline`;
-}
-
-function ensureElectionDeadline(electionId: string, initialSeconds: number) {
-  if (typeof window === 'undefined') {
-    return Date.now() + initialSeconds * 1000;
+function isVoteCastEvent(value: unknown): value is { electionId: string } {
+  if (!value || typeof value !== 'object') {
+    return false;
   }
 
-  const storageKey = getDeadlineStorageKey(electionId);
-  const saved = window.localStorage.getItem(storageKey);
-
-  if (saved) {
-    const parsed = Number(saved);
-    if (Number.isFinite(parsed) && parsed > Date.now()) {
-      return parsed;
-    }
-  }
-
-  const nextDeadline = Date.now() + initialSeconds * 1000;
-  window.localStorage.setItem(storageKey, String(nextDeadline));
-  return nextDeadline;
-}
-
-function useElectionCountdown(electionId: string, initialSeconds: number) {
-  const [remainingSeconds, setRemainingSeconds] = useState(initialSeconds);
-
-  useEffect(() => {
-    const deadline = ensureElectionDeadline(electionId, initialSeconds);
-
-    const tick = () => {
-      const diffInSeconds = Math.max(0, Math.floor((deadline - Date.now()) / 1000));
-      setRemainingSeconds(diffInSeconds);
-    };
-
-    tick();
-    const intervalId = window.setInterval(tick, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [electionId, initialSeconds]);
-
-  const progressPercent = Math.max(
-    0,
-    Math.min(100, (remainingSeconds / initialSeconds) * 100),
-  );
-
-  return {
-    remainingSeconds,
-    formattedTime: formatSeconds(remainingSeconds),
-    progressPercent,
-  };
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.electionId === 'string' && candidate.electionId.length > 0;
 }
 
 function formatVoteDate(date: Date) {
@@ -188,17 +38,7 @@ function formatVoteTime(date: Date) {
   }).format(date);
 }
 
-function CandidateAvatar({ name, image }: { name: string; image?: string }) {
-  if (image) {
-    return (
-      <img
-        src={image}
-        alt={name}
-        className="h-12 w-12 rounded-xl object-cover ring-1 ring-[#d9dee8]"
-      />
-    );
-  }
-
+function CandidateAvatar({ name }: { name: string }) {
   return (
     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#dbeafe] text-xs font-bold text-[#1d4ed8]">
       {name
@@ -230,7 +70,127 @@ function CheckCircleIcon() {
 
 export function ElectorConfirmationPage() {
   const navigate = useNavigate();
-  const voteReceipt = useMemo(() => getElectorVoteReceipt(), []);
+  const [searchParams] = useSearchParams();
+  const [voteReceipt, setVoteReceipt] = useState<ElectorVoteReceipt | null>(() => getElectorVoteReceipt());
+  const [isLoadingFallback, setIsLoadingFallback] = useState(false);
+
+  useEffect(() => {
+    if (voteReceipt) {
+      return;
+    }
+
+    let isActive = true;
+
+    const loadFallbackReceipt = async () => {
+      setIsLoadingFallback(true);
+
+      try {
+        const electionIdParam = searchParams.get('electionId');
+
+        if (electionIdParam && isUuid(electionIdParam)) {
+          const [status, election] = await Promise.all([
+            electionsApi.getMyVoteStatus(electionIdParam),
+            electionsApi.getById(electionIdParam).catch(() => null),
+          ]);
+
+          if (!isActive || !status.hasVoted || !status.receiptCode) {
+            return;
+          }
+
+          const receipt: ElectorVoteReceipt = {
+            electionId: status.electionId,
+            candidateId: '',
+            confirmedAt: status.votedAt ?? new Date().toISOString(),
+            confirmationCode: status.receiptCode,
+            electionTitle: election?.titulo,
+          };
+
+          saveElectorVoteReceipt(receipt);
+          setVoteReceipt(receipt);
+          return;
+        }
+
+        const elections = await electionsApi.list();
+        let latestReceipt: ElectorVoteReceipt | null = null;
+        let latestTimestamp = 0;
+
+        await Promise.all(
+          elections.items.map(async (item) => {
+            try {
+              const status = await electionsApi.getMyVoteStatus(item.id);
+              if (!status.hasVoted || !status.receiptCode) {
+                return;
+              }
+
+              const votedTimestamp = status.votedAt ? new Date(status.votedAt).getTime() : 0;
+              if (Number.isNaN(votedTimestamp) || votedTimestamp < latestTimestamp) {
+                return;
+              }
+
+              latestTimestamp = votedTimestamp;
+              latestReceipt = {
+                electionId: status.electionId,
+                candidateId: '',
+                confirmedAt: status.votedAt ?? new Date().toISOString(),
+                confirmationCode: status.receiptCode,
+                electionTitle: item.titulo,
+              };
+            } catch (cause) {
+              if (cause instanceof ApiError && cause.code !== 'AUTH_TOKEN_REQUIRED') {
+                return;
+              }
+              throw cause;
+            }
+          }),
+        );
+
+        if (!isActive || !latestReceipt) {
+          return;
+        }
+
+        saveElectorVoteReceipt(latestReceipt);
+        setVoteReceipt(latestReceipt);
+      } catch {
+        // Keep silent and render the unavailable state.
+      } finally {
+        if (isActive) {
+          setIsLoadingFallback(false);
+        }
+      }
+    };
+
+    void loadFallbackReceipt();
+
+    return () => {
+      isActive = false;
+    };
+  }, [searchParams, voteReceipt]);
+
+  const confirmedAt = useMemo(() => {
+    const confirmedAtParam = voteReceipt?.confirmedAt;
+
+    if (!confirmedAtParam) {
+      return new Date();
+    }
+
+    const parsed = new Date(confirmedAtParam);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }, [voteReceipt?.confirmedAt]);
+
+  const electionId = voteReceipt?.electionId ?? '';
+  const candidateId = voteReceipt?.candidateId ?? '';
+  const confirmationCode = voteReceipt?.confirmationCode ?? '';
+
+  if (isLoadingFallback) {
+    return (
+      <section className="mx-auto flex min-h-[260px] w-full max-w-xl items-center justify-center rounded-lg bg-white p-5 font-sans shadow-sm">
+        <div className="flex items-center gap-3 text-[#334155]">
+          <Spinner color="accent" />
+          <span className="text-base font-medium capitalize">A Carregar Comprovativo...</span>
+        </div>
+      </section>
+    );
+  }
 
   if (!voteReceipt) {
     return (
@@ -249,27 +209,6 @@ export function ElectorConfirmationPage() {
       </section>
     );
   }
-
-  const { electionId, candidateId, confirmedAt: confirmedAtParam, confirmationCode } = voteReceipt;
-
-  const electionName = useMemo(
-    () => electionNamesById[electionId] ?? 'Eleição selecionada',
-    [electionId],
-  );
-
-  const candidateName = useMemo(
-    () => candidateNamesById[candidateId] ?? 'Candidato selecionado',
-    [candidateId],
-  );
-
-  const confirmedAt = useMemo(() => {
-    if (!confirmedAtParam) {
-      return new Date();
-    }
-
-    const parsed = new Date(confirmedAtParam);
-    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-  }, [confirmedAtParam]);
 
   return (
     <section className="mx-auto w-full max-w-md rounded-[28px] bg-white p-5 shadow-sm">
@@ -296,9 +235,7 @@ export function ElectorConfirmationPage() {
           </p>
 
           <div className="mt-3 rounded-xl bg-[#ececef] px-4 py-4">
-            <p className="text-[20px] font-extrabold tracking-[0.14em] text-[#1f2937]">
-              {confirmationCode}
-            </p>
+            <p className="text-[20px] font-extrabold tracking-[0.14em] text-[#1f2937]">{confirmationCode}</p>
           </div>
         </div>
 
@@ -306,39 +243,24 @@ export function ElectorConfirmationPage() {
 
         <div className="mt-5 grid grid-cols-2 gap-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#8b95a3]">
-              Data
-            </p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#8b95a3]">Data</p>
             <p className="mt-2 text-[15px] font-bold text-[#1f2937]">{formatVoteDate(confirmedAt)}</p>
           </div>
 
           <div className="text-right">
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#8b95a3]">
-              Hora
-            </p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#8b95a3]">Hora</p>
             <p className="mt-2 text-[15px] font-bold text-[#1f2937]">{formatVoteTime(confirmedAt)}</p>
           </div>
         </div>
 
         <div className="mt-6 rounded-2xl border border-[#e2e8f0] bg-white p-4">
           <p className="text-[12px] text-[#64748b]">
-            <span className="font-bold text-[#334155]">Eleição:</span> {electionName}
-          </p>
-          <p className="mt-2 text-[12px] text-[#64748b]">
-            <span className="font-bold text-[#334155]">Seleção:</span> {candidateName}
+            <span className="font-bold text-[#334155]">Eleição:</span> {voteReceipt.electionTitle ?? electionId}
           </p>
         </div>
       </div>
 
       <div className="mt-5 flex gap-3">
-        {/* <button
-          type="button"
-          onClick={() => navigate('/eleitor/dashboard')}
-          className="flex-1 rounded-2xl bg-[#f3f4f6] px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#111827]"
-        >
-          Novo voto 
-        </button>*/}
-
         <button
           type="button"
           onClick={() =>
@@ -362,48 +284,212 @@ export function ElectorResultsPage() {
   const [searchParams] = useSearchParams();
   const voteReceipt = useMemo(() => getElectorVoteReceipt(), []);
 
-  const candidateIdFromQuery = searchParams.get('candidateId');
-  const electionIdFromQuery = searchParams.get('electionId');
-  const fallbackElectionId = voteReceipt?.electionId ?? '1';
-  const resolvedElectionId =
-    electionIdFromQuery && electionResultsData[electionIdFromQuery]
-      ? electionIdFromQuery
-      : fallbackElectionId;
+  const [participatedElections, setParticipatedElections] = useState<
+    Array<{
+      election: ElectionListItem;
+      voteStatus: VoteStatusResult;
+    }>
+  >([]);
+  const [selectedElectionId, setSelectedElectionId] = useState('');
+  const [resultData, setResultData] = useState<ElectionResults | null>(null);
+  const [isBootLoading, setIsBootLoading] = useState(true);
+  const [isResultsLoading, setIsResultsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const election = useMemo(
-    () => electionResultsData[resolvedElectionId] ?? electionResultsData['1'] ?? null,
-    [resolvedElectionId],
-  );
+  const queryElectionId = searchParams.get('electionId') ?? '';
 
-  const candidateId =
-    candidateIdFromQuery ??
-    (voteReceipt?.electionId === election?.id ? voteReceipt.candidateId : '');
+  useEffect(() => {
+    let isActive = true;
 
-  const countdown = useElectionCountdown(
-    election?.id ?? 'fallback-results-election',
-    election?.initialCountdownSeconds ?? 1,
-  );
+    const loadParticipated = async () => {
+      setIsBootLoading(true);
+      setError(null);
 
-  const totalVotos = useMemo(() => {
-    if (!election) return 0;
-    return election.candidatos.reduce((sum, candidate) => sum + candidate.votos, 0);
-  }, [election]);
+      try {
+        const elections = await electionsApi.list();
+        const votedEntries = await Promise.all(
+          elections.items.map(async (item) => {
+            try {
+              const status = await electionsApi.getMyVoteStatus(item.id);
+              if (!status.hasVoted) {
+                return null;
+              }
 
-  const highlightedCandidateId = useMemo(() => {
-    if (!election) return '';
-    if (candidateId && election.candidatos.some((candidate) => candidate.id === candidateId)) {
-      return candidateId;
+              return {
+                election: item,
+                voteStatus: status,
+              };
+            } catch (cause) {
+              if (cause instanceof ApiError && cause.code !== 'AUTH_TOKEN_REQUIRED') {
+                return null;
+              }
+              throw cause;
+            }
+          }),
+        );
+
+        if (!isActive) {
+          return;
+        }
+
+        const participated = votedEntries
+          .filter((entry): entry is { election: ElectionListItem; voteStatus: VoteStatusResult } => Boolean(entry))
+          .sort((a, b) => {
+            const dateA = a.voteStatus.votedAt ? new Date(a.voteStatus.votedAt).getTime() : 0;
+            const dateB = b.voteStatus.votedAt ? new Date(b.voteStatus.votedAt).getTime() : 0;
+            return dateB - dateA;
+          });
+
+        setParticipatedElections(participated);
+
+        if (participated.length === 0) {
+          setSelectedElectionId('');
+          setResultData(null);
+          setError('Ainda não participou em nenhuma eleição.');
+          return;
+        }
+
+        const preferredElectionId =
+          (queryElectionId && isUuid(queryElectionId) ? queryElectionId : '') ||
+          voteReceipt?.electionId ||
+          participated[0].election.id;
+
+        const hasPreferred = participated.some((entry) => entry.election.id === preferredElectionId);
+        setSelectedElectionId(hasPreferred ? preferredElectionId : participated[0].election.id);
+      } catch (cause) {
+        if (!isActive) {
+          return;
+        }
+
+        const message = cause instanceof ApiError ? cause.message : 'Não foi possível carregar as eleições votadas.';
+
+        setError(message);
+        toast.danger(message);
+      } finally {
+        if (isActive) {
+          setIsBootLoading(false);
+        }
+      }
+    };
+
+    void loadParticipated();
+
+    return () => {
+      isActive = false;
+    };
+  }, [queryElectionId, voteReceipt?.electionId]);
+
+  useEffect(() => {
+    if (!selectedElectionId) {
+      return;
     }
 
-    return [...election.candidatos].sort((a, b) => b.percentual - a.percentual)[0]?.id ?? '';
-  }, [candidateId, election]);
+    if (!isUuid(selectedElectionId)) {
+      setError('ID de eleição inválido. Volte ao dashboard do eleitor e selecione uma eleição válida.');
+      return;
+    }
 
-  if (!election) {
+    let isActive = true;
+
+    const loadResults = async () => {
+      setIsResultsLoading(true);
+      setError(null);
+
+      try {
+        const data = await electionsApi.getResults(selectedElectionId);
+
+        if (!isActive) {
+          return;
+        }
+
+        setResultData(data);
+      } catch (cause) {
+        if (!isActive) {
+          return;
+        }
+
+        const message =
+          cause instanceof ApiError ? cause.message : 'Não foi possível carregar os resultados da eleição.';
+
+        setError(message);
+        toast.danger(message);
+      } finally {
+        if (isActive) {
+          setIsResultsLoading(false);
+        }
+      }
+    };
+
+    void loadResults();
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedElectionId]);
+
+  useEffect(() => {
+    if (!selectedElectionId || !isUuid(selectedElectionId)) {
+      return;
+    }
+
+    const eventSource = new EventSource(`${env.apiBaseUrl}/events/stream`);
+
+    const handleVoteCast = (event: Event) => {
+      const messageEvent = event as MessageEvent<string>;
+
+      try {
+        const parsed = JSON.parse(messageEvent.data) as unknown;
+
+        if (!isVoteCastEvent(parsed) || parsed.electionId !== selectedElectionId) {
+          return;
+        }
+
+        void electionsApi
+          .getResults(selectedElectionId)
+          .then((data) => {
+            setResultData(data);
+          })
+          .catch(() => {
+            // Silently ignore transient refresh failures.
+          });
+      } catch {
+        // Ignore invalid event payloads.
+      }
+    };
+
+    eventSource.addEventListener('vote_cast', handleVoteCast);
+
+    return () => {
+      eventSource.removeEventListener('vote_cast', handleVoteCast);
+      eventSource.close();
+    };
+  }, [selectedElectionId]);
+
+  const highlightedCandidateId = useMemo(() => {
+    if (!resultData) {
+      return '';
+    }
+
+    return resultData.winner?.candidateId ?? '';
+  }, [resultData]);
+
+  if (isBootLoading) {
+    return (
+      <section className="mx-auto flex min-h-[260px] w-full max-w-md items-center justify-center rounded-[28px] bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex items-center gap-3 text-[#334155]">
+          <Spinner color="accent" />
+          <span className="text-sm font-semibold">A carregar resultados...</span>
+        </div>
+      </section>
+    );
+  }
+
+  if (error && participatedElections.length === 0) {
     return (
       <section className="mx-auto w-full max-w-md rounded-[28px] bg-white p-5 shadow-sm">
         <h1 className="text-lg font-semibold text-[#0f172a]">Resultados indisponíveis</h1>
         <p className="mt-2 text-sm text-[#64748b]">
-          Não foi possível localizar a eleição pedida.
+          {error}
         </p>
         <button
           type="button"
@@ -418,111 +504,102 @@ export function ElectorResultsPage() {
 
   return (
     <section className="mx-auto w-full max-w-md rounded-[28px] bg-white p-4 shadow-sm sm:p-5">
-      <header>
-        <h1 className="max-w-[290px] text-[18px] font-extrabold leading-tight text-[#111827] sm:text-[20px]">
-          {election.titulo}
-        </h1>
-
-        <div className="mt-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#555f6d]">
-              Tempo restante
-            </span>
-            <span className="text-[13px] font-bold text-[#2b6edb]">
-              {countdown.formattedTime}
-            </span>
-          </div>
-
-          <div className="h-[4px] w-full rounded-full bg-[#e5e7eb]">
-            <div
-              className="h-[4px] rounded-full bg-[#e9b321] transition-all duration-1000"
-              style={{ width: `${countdown.progressPercent}%` }}
-            />
-          </div>
-        </div>
-      </header>
-
-      <div className="mt-6 rounded-[20px] bg-[#f8f8f9] p-4">
-        <div>
-          <h2 className="text-[16px] font-extrabold text-[#1f2937]">{election.cargo}</h2>
-          <p className="mt-1 text-[12px] text-[#6b7280]">Total de votos: {totalVotos.toLocaleString('pt-PT')}</p>
-        </div>
-
-        <div className="mt-5 space-y-3">
-          {election.candidatos.map((candidate) => {
-            const isHighlighted = candidate.id === highlightedCandidateId;
-
+      <div className="mb-4 rounded-[20px] bg-[#f8f8f9] p-4">
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6b7280]">
+          Eleições em que participou
+        </p>
+        <div className="mt-3 space-y-2">
+          {participatedElections.map((entry) => {
+            const isActive = entry.election.id === selectedElectionId;
             return (
-              <div
-                key={candidate.id}
-                className={`rounded-2xl border p-3 ${
-                  isHighlighted
-                    ? 'border-[#f1d58b] bg-[#fdf7e8]'
-                    : 'border-[#e5e7eb] bg-white'
+              <button
+                key={entry.election.id}
+                type="button"
+                onClick={() => setSelectedElectionId(entry.election.id)}
+                className={`w-full rounded-xl border px-3 py-2 text-left transition ${
+                  isActive
+                    ? 'border-[#2d5fe1] bg-white'
+                    : 'border-[#e5e7eb] bg-white hover:border-[#c7d2fe]'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <CandidateAvatar name={candidate.nome} image={candidate.foto} />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p
-                          className={`truncate text-[14px] font-extrabold ${
-                            isHighlighted ? 'text-[#0b63c8]' : 'text-[#1f2937]'
-                          }`}
-                        >
-                          {candidate.nome}
-                        </p>
-                      </div>
-
-                      <div className="text-right">
-                        <p
-                          className={`text-[18px] font-extrabold ${
-                            isHighlighted ? 'text-[#0b63c8]' : 'text-[#1f2937]'
-                          }`}
-                        >
-                          {candidate.percentual.toFixed(1)}%
-                        </p>
-                        <p className="text-[11px] text-[#8b95a3]">
-                          {candidate.votos.toLocaleString('pt-PT')} votos
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 h-[4px] w-full rounded-full bg-[#eceef2]">
-                      <div
-                        className="h-[4px] rounded-full bg-[#e9b321]"
-                        style={{ width: `${candidate.percentual}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+                <p className="truncate text-[13px] font-bold text-[#1f2937]">{entry.election.titulo}</p>
+                <p className="mt-1 text-[11px] text-[#6b7280]">
+                  Votou em {entry.voteStatus.votedAt ? formatVoteDate(new Date(entry.voteStatus.votedAt)) : '-'}
+                </p>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* <div className="mt-5 flex gap-3">
-        {/* <button
-          type="button"
-          onClick={() => navigate('/eleitor/dashboard')}
-          className="flex-1 rounded-2xl bg-[#f3f4f6] px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#111827]"
-        >
-          Voltar
-        </button> 
+      {isResultsLoading ? (
+        <div className="flex min-h-[220px] items-center justify-center">
+          <div className="flex items-center gap-3 text-[#334155]">
+            <Spinner color="accent" />
+            <span className="text-sm font-semibold">A carregar resultados...</span>
+          </div>
+        </div>
+      ) : error || !resultData ? (
+        <div className="rounded-[20px] border border-[#e5e7eb] bg-white p-4">
+          <h1 className="text-base font-semibold text-[#0f172a]">Resultados indisponíveis</h1>
+          <p className="mt-2 text-sm text-[#64748b]">
+            {error ?? 'Não foi possível localizar a eleição pedida.'}
+          </p>
+        </div>
+      ) : (
+        <>
+      <header>
+        <h1 className="max-w-[290px] text-[18px] font-extrabold leading-tight text-[#111827] sm:text-[20px]">
+          {resultData.election.titulo}
+        </h1>
+        <p className="mt-2 text-[12px] text-[#6b7280]">Estado: {resultData.election.estado}</p>
+      </header>
 
-        <button
-          type="button"
-          onClick={() =>
-            navigate(`/eleitor/confirmacao?electionId=${encodeURIComponent(election.id)}`)
-          }
-          className="flex-1 rounded-2xl bg-[#2d5fe1] px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-white"
-        >
-          Comprovativo
-        </button>
-      </div> */}
+      <div className="mt-4 rounded-[20px] bg-[#f8f8f9] p-4">
+        <p className="text-[12px] text-[#475569]">Total de elegíveis: {resultData.summary.totalEligibleVoters.toLocaleString('pt-PT')}</p>
+        <p className="mt-1 text-[12px] text-[#475569]">Total de votos: {resultData.summary.totalVotes.toLocaleString('pt-PT')}</p>
+        <p className="mt-1 text-[12px] text-[#475569]">Participação: {resultData.summary.turnoutPercentage.toFixed(2)}%</p>
+      </div>
+
+      <div className="mt-5 space-y-3">
+        {resultData.candidates.map((candidate) => {
+          const isHighlighted = candidate.id === highlightedCandidateId;
+
+          return (
+            <div
+              key={candidate.id}
+              className={`rounded-2xl border p-3 ${
+                isHighlighted ? 'border-[#f1d58b] bg-[#fdf7e8]' : 'border-[#e5e7eb] bg-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <CandidateAvatar name={candidate.nome} />
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className={`truncate text-[14px] font-extrabold ${isHighlighted ? 'text-[#0b63c8]' : 'text-[#1f2937]'}`}>
+                      {candidate.nome}
+                    </p>
+
+                    <div className="text-right">
+                      <p className={`text-[18px] font-extrabold ${isHighlighted ? 'text-[#0b63c8]' : 'text-[#1f2937]'}`}>
+                        {candidate.percentage.toFixed(2)}%
+                      </p>
+                      <p className="text-[11px] text-[#8b95a3]">{candidate.votes.toLocaleString('pt-PT')} votos</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 h-[4px] w-full rounded-full bg-[#eceef2]">
+                    <div className="h-[4px] rounded-full bg-[#e9b321]" style={{ width: `${candidate.percentage}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+        </>
+      )}
     </section>
   );
 }

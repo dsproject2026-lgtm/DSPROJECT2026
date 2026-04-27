@@ -15,6 +15,8 @@ const MESSAGES_PT_PT: Record<string, string> = {
   AUTH_PASSWORD_RECOVERY_TOKEN_EXPIRED: 'O token de recuperação de senha expirou.',
   AUTH_EMAIL_REQUIRED: 'O email do utilizador é obrigatório para esta operação.',
   AUTH_PASSWORD_ALREADY_CONFIGURED: 'A senha do utilizador já está configurada.',
+  AUTH_CURRENT_PASSWORD_INVALID: 'A senha atual está incorreta.',
+  AUTH_NEW_PASSWORD_EQUALS_CURRENT: 'A nova senha deve ser diferente da senha atual.',
   AUTH_INVALID_REFRESH_TOKEN: 'Refresh token inválido.',
   AUTH_REFRESH_TOKEN_REVOKED: 'O refresh token foi revogado.',
   AUTH_REFRESH_TOKEN_EXPIRED: 'O refresh token expirou.',

@@ -14,11 +14,12 @@ export interface SessionUser {
   codigo: string;
   nome: string;
   email?: string | null;
-  perfil: 'ADMIN' | 'GESTOR_ELEITORAL' | 'AUDITOR' | 'ELEITOR';
+  perfil: 'ADMIN' | 'GESTOR_ELEITORAL' | 'AUDITOR' | 'ELEITOR' | 'CANDIDATO';
   activo: boolean;
   mustSetPassword: boolean;
   createdAt: string;
 }
+
 
 export interface SessionTokens {
   accessToken: string;

@@ -1,4 +1,4 @@
-export type ElectorElectionStatus = 'ACTIVA' | 'PROGRAMADA' | 'PARTICIPOU';
+export type ElectorElectionStatus = 'ABERTA' | 'PENDENTE' | 'PARTICIPOU';
 
 export interface ElectorElectionSummary {
   id: string;
@@ -14,7 +14,7 @@ export interface ElectorElectionSummary {
 export const electorElectionsData: ElectorElectionSummary[] = [
   {
     id: '1',
-    status: 'ACTIVA',
+    status: 'ABERTA',
     title: 'Eleições AEUP 2026',
     desc: 'Associação de Estudantes da Universidade Pedagógica - Mandato Bienal.',
     date: '12 MAI - 14 MAI, 2026',
@@ -24,7 +24,7 @@ export const electorElectionsData: ElectorElectionSummary[] = [
   },
   {
     id: '2',
-    status: 'PROGRAMADA',
+    status: 'PENDENTE',
     title: 'Eleições AEUP 2026',
     desc: 'Associação de Estudantes da Universidade Pedagógica - Mandato Bienal.',
     date: '12 MAI - 14 MAI, 2026',

@@ -1,100 +1,149 @@
-import { useState } from 'react';
-import type { ReactNode } from 'react';
-import { CheckCircle2, Plus, X } from 'lucide-react';
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { ImagePlus, Plus } from 'lucide-react';
 
-type CandidateStatus = 'PENDENTE' | 'APROVADO' | 'REJEITADO';
+import { commissionApi } from '@/api/commission.api';
+import { CommissionSegmentTabs } from '@/features/commission/components/CommissionSegmentTabs';
+import { Spinner, UiPageSkeleton, UiSelect, toast } from '@/components/ui';
+import { ApiError } from '@/lib/http/api-error';
+import type { CandidateItem, CandidateUserItem, CommissionElectionItem } from '@/types/commission';
 
 type CandidateFormData = {
-  eleicaoId: string;
-  utilizadorId: string;
-  registadoPor: string;
   nome: string;
-  fotoUrl: string;
+  fotoDataUrl: string;
   biografia: string;
   proposta: string;
-  estado: CandidateStatus;
-};
-
-type ModalProps = {
-  title: string;
-  isOpen: boolean;
-  onClose: () => void;
-  children: ReactNode;
 };
 
 type CandidateFormErrors = Partial<Record<keyof CandidateFormData, string>>;
 
 const INITIAL_FORM: CandidateFormData = {
-  eleicaoId: '',
-  utilizadorId: '',
-  registadoPor: '',
   nome: '',
-  fotoUrl: '',
+  fotoDataUrl: '',
   biografia: '',
   proposta: '',
-  estado: 'PENDENTE',
 };
 
-function BaseModal({ title, isOpen, onClose, children }: ModalProps) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-6">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-md bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h3 className="text-[18px] font-semibold text-slate-900">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50"
-            aria-label="Fechar"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="max-h-[calc(90vh-74px)] overflow-y-auto px-5 py-5">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function renderValue(value: string) {
-  return value.trim().length > 0 ? value : '-';
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error('Falha ao ler ficheiro de imagem.'));
+    };
+    reader.onerror = () => reject(new Error('Falha ao ler ficheiro de imagem.'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export function CommissionCandidatesRegisterPage() {
+  const [elections, setElections] = useState<CommissionElectionItem[]>([]);
+  const [registeredCandidates, setRegisteredCandidates] = useState<CandidateItem[]>([]);
+  const [selectedElectionId, setSelectedElectionId] = useState('');
+  const [candidateUsers, setCandidateUsers] = useState<CandidateUserItem[]>([]);
+  const [selectedCandidateUserId, setSelectedCandidateUserId] = useState('');
   const [form, setForm] = useState<CandidateFormData>(INITIAL_FORM);
   const [errors, setErrors] = useState<CandidateFormErrors>({});
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  const [message, setMessage] = useState('');
+  const [isBootLoading, setIsBootLoading] = useState(true);
+  const [isCandidatesLoading, setIsCandidatesLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const selectedElection = useMemo(
+    () => elections.find((item) => item.id === selectedElectionId) ?? null,
+    [elections, selectedElectionId],
+  );
+
+  const registeredCandidateUserIds = useMemo(
+    () => new Set(registeredCandidates.map((candidate) => candidate.utilizadorId)),
+    [registeredCandidates],
+  );
+
+  const availableCandidateUsers = useMemo(
+    () => candidateUsers.filter((user) => !registeredCandidateUserIds.has(user.id)),
+    [candidateUsers, registeredCandidateUserIds],
+  );
+
+  useEffect(() => {
+    let isActive = true;
+    const load = async () => {
+      setIsBootLoading(true);
+      try {
+        const [electionsResponse, usersResponse] = await Promise.all([
+          commissionApi.listElections(),
+          commissionApi.listCandidateUsers(),
+        ]);
+        if (!isActive) return;
+        const openElection =
+          electionsResponse.items.find((item) => item.estado === 'ABERTA') ?? electionsResponse.items[0];
+        setElections(electionsResponse.items);
+        setSelectedElectionId(openElection?.id ?? '');
+        setCandidateUsers(usersResponse.items);
+      } catch (cause) {
+        if (!isActive) return;
+        const message =
+          cause instanceof ApiError ? cause.message : 'Não foi possível carregar dados de registo.';
+        toast.danger(message);
+      } finally {
+        if (isActive) setIsBootLoading(false);
+      }
+    };
+
+    void load();
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedElectionId) {
+      setRegisteredCandidates([]);
+      return;
+    }
+
+    let isActive = true;
+    const loadRegisteredCandidates = async () => {
+      setIsCandidatesLoading(true);
+      try {
+        const response = await commissionApi.listCandidates(selectedElectionId);
+        if (!isActive) return;
+        setRegisteredCandidates(response.items);
+        setSelectedCandidateUserId((current) =>
+          response.items.some((candidate) => candidate.utilizadorId === current) ? '' : current,
+        );
+      } catch (cause) {
+        if (!isActive) return;
+        const message =
+          cause instanceof ApiError ? cause.message : 'Não foi possível carregar candidatos vinculados.';
+        toast.danger(message);
+        setRegisteredCandidates([]);
+      } finally {
+        if (isActive) setIsCandidatesLoading(false);
+      }
+    };
+
+    void loadRegisteredCandidates();
+    return () => {
+      isActive = false;
+    };
+  }, [selectedElectionId]);
 
   const validateForm = () => {
     const nextErrors: CandidateFormErrors = {};
-
-    if (!form.eleicaoId.trim()) nextErrors.eleicaoId = 'eleicaoId e obrigatorio.';
-    if (!form.utilizadorId.trim()) nextErrors.utilizadorId = 'utilizadorId e obrigatorio.';
-    if (!form.nome.trim()) nextErrors.nome = 'nome e obrigatorio.';
-    if (form.fotoUrl.trim() && !/^https?:\/\//i.test(form.fotoUrl.trim())) {
-      nextErrors.fotoUrl = 'fotoUrl deve ser um URL valido (http/https).';
+    if (!selectedElectionId) {
+      toast.danger('Nenhuma eleição disponível para candidatura.');
     }
-
+    if (!selectedCandidateUserId) {
+      toast.danger('Selecione o eleitor a promover.');
+    }
+    if (!form.nome.trim()) nextErrors.nome = 'Nome é obrigatório.';
     setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  };
-
-  const openConfirmation = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!validateForm()) return;
-    setIsConfirmOpen(true);
-  };
-
-  const confirmRegister = () => {
-    setIsConfirmOpen(false);
-    setIsSuccessOpen(true);
-    setMessage('Candidato preparado com campos alinhados ao modelo da DB.');
-    setForm(INITIAL_FORM);
-    setErrors({});
+    return (
+      Object.keys(nextErrors).length === 0 &&
+      Boolean(selectedElectionId) &&
+      Boolean(selectedCandidateUserId)
+    );
   };
 
   const updateField = <K extends keyof CandidateFormData>(key: K, value: CandidateFormData[K]) => {
@@ -104,166 +153,219 @@ export function CommissionCandidatesRegisterPage() {
     }
   };
 
+  const onSelectPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.danger('Selecione um ficheiro de imagem válido.');
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      updateField('fotoDataUrl', dataUrl);
+    } catch (cause) {
+      const message =
+        cause instanceof Error ? cause.message : 'Não foi possível carregar a foto.';
+      toast.danger(message);
+    }
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!validateForm()) return;
+
+    try {
+      setIsSaving(true);
+      const createdCandidate = await commissionApi.createCandidate(selectedElectionId, {
+        utilizadorId: selectedCandidateUserId,
+        nome: form.nome.trim(),
+        fotoUrl: form.fotoDataUrl || null,
+        biografia: form.biografia.trim() || null,
+        proposta: form.proposta.trim() || null,
+      });
+
+      toast.success('Candidato registado com sucesso.');
+      setRegisteredCandidates((current) => [createdCandidate, ...current]);
+      setCandidateUsers((current) =>
+        current.map((user) =>
+          user.id === createdCandidate.utilizadorId ? { ...user, perfil: 'CANDIDATO' } : user,
+        ),
+      );
+      setForm(INITIAL_FORM);
+      setSelectedCandidateUserId('');
+      setErrors({});
+    } catch (cause) {
+      const message =
+        cause instanceof ApiError
+          ? cause.message
+          : cause instanceof Error
+            ? cause.message
+            : 'Falha ao registar candidato.';
+      toast.danger(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isBootLoading) {
+    return <UiPageSkeleton />;
+  }
+
   return (
     <section className="space-y-6">
       <div>
-        <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-slate-900">Registrar Candidato</h1>
-        <p className="mt-1 text-[13px] text-slate-500">
-          Formulario alinhado com os atributos de <strong>candidatos</strong>: eleicaoId, utilizadorId,
-          registadoPor, nome, fotoUrl, biografia, proposta e estado.
-        </p>
+        <h1 className="text-ui-2xl font-semibold leading-tight tracking-[-0.01em] text-[#0f172a]">
+          Registrar Candidato
+        </h1>
+        <p className="text-ui-sm text-[#475569]">Promova um eleitor e vincule-o à eleição selecionada.</p>
       </div>
 
-      {message ? (
-        <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-[13px] text-blue-700">{message}</div>
-      ) : null}
+      <CommissionSegmentTabs segment="candidatos" />
 
-      <form onSubmit={openConfirmation} className="rounded-md border border-slate-200 bg-white p-5">
+      <form onSubmit={submit} className="rounded-sm border border-[#e2e8f0] bg-white p-5 shadow-none">
         <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">eleicaoId</label>
-            <input
-              value={form.eleicaoId}
-              onChange={(event) => updateField('eleicaoId', event.target.value)}
-              className={`h-10 w-full rounded-md border px-3 text-[14px] outline-none focus:ring-2 ${errors.eleicaoId ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'}`}
-              placeholder="Ex: ele-2026-aeup"
+          <div className="md:col-span-2">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+              Eleição
+            </label>
+            <UiSelect
+              value={selectedElectionId}
+              onChange={(value) => {
+                setSelectedElectionId(value);
+                setSelectedCandidateUserId('');
+                setForm(INITIAL_FORM);
+                setErrors({});
+              }}
+              placeholder="Selecione a eleição"
+              ariaLabel="Eleição"
+              options={elections.map((election) => ({
+                value: election.id,
+                label: `${election.titulo} (${election.estado})`,
+              }))}
+              isSearchable
+              searchPlaceholder="Pesquisar por eleição..."
             />
-            {errors.eleicaoId ? <p className="mt-1 text-[12px] text-red-600">{errors.eleicaoId}</p> : null}
+            {selectedElection ? (
+              <p className="mt-2 text-xs text-[#64748b]">
+                Estado atual: {selectedElection.estado}
+              </p>
+            ) : null}
           </div>
 
-          <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">utilizadorId</label>
-            <input
-              value={form.utilizadorId}
-              onChange={(event) => updateField('utilizadorId', event.target.value)}
-              className={`h-10 w-full rounded-md border px-3 text-[14px] outline-none focus:ring-2 ${errors.utilizadorId ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'}`}
-              placeholder="Ex: user-2026001"
-            />
-            {errors.utilizadorId ? <p className="mt-1 text-[12px] text-red-600">{errors.utilizadorId}</p> : null}
+          <div className="md:col-span-2">
+            <div className="rounded-sm border border-[#d1d9e6] bg-[#f8fafc] p-3">
+              <p className="text-sm font-semibold text-[#0f172a]">Como funciona o registo</p>
+              <p className="mt-1 text-sm text-[#475569]">
+                Selecione um eleitor existente. Ao guardar, o sistema promove esse utilizador para candidato e
+                cria a candidatura na eleição vinculada.
+              </p>
+            </div>
           </div>
 
-          <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">registadoPor (opcional)</label>
-            <input
-              value={form.registadoPor}
-              onChange={(event) => updateField('registadoPor', event.target.value)}
-              className="h-10 w-full rounded-md border border-slate-300 px-3 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              placeholder="Ex: com-0001"
+          <div className="md:col-span-2">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+              Eleitor a promover
+            </label>
+            <UiSelect
+              value={selectedCandidateUserId}
+              onChange={(value) => {
+                setSelectedCandidateUserId(value);
+                const selected = candidateUsers.find((user) => user.id === value);
+                if (selected) {
+                  updateField('nome', selected.nome);
+                }
+              }}
+              placeholder={
+                isCandidatesLoading
+                  ? 'A carregar eleitores disponíveis'
+                  : 'Pesquisar por nome, código ou email'
+              }
+              ariaLabel="Eleitor a promover"
+              isDisabled={!selectedElectionId || isCandidatesLoading}
+              options={availableCandidateUsers.map((user) => ({
+                value: user.id,
+                label: `${user.nome} (${user.codigo})${user.perfil === 'CANDIDATO' ? ' - candidato' : ''}`,
+                disabled: !user.activo,
+              }))}
+              isSearchable
+              searchPlaceholder="Pesquisar eleitor..."
             />
+            {selectedElectionId && !isCandidatesLoading && availableCandidateUsers.length === 0 ? (
+              <p className="mt-2 text-xs text-[#64748b]">
+                Todos os eleitores disponíveis já estão vinculados a esta eleição.
+              </p>
+            ) : null}
           </div>
 
-          <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">nome</label>
+          <div className="md:col-span-2">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+              Nome do candidato
+            </label>
             <input
               value={form.nome}
               onChange={(event) => updateField('nome', event.target.value)}
-              className={`h-10 w-full rounded-md border px-3 text-[14px] outline-none focus:ring-2 ${errors.nome ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'}`}
-              placeholder="Nome do candidato"
+              className={`h-11 w-full rounded-sm border px-3 text-sm outline-none ${errors.nome ? 'border-[#fecaca] text-[#dc2626] focus:border-[#dc2626]' : 'border-[#d1d9e6] bg-white text-[#475569] focus:border-[#0b73c9]'}`}
+              placeholder="Digite o nome do candidato"
             />
-            {errors.nome ? <p className="mt-1 text-[12px] text-red-600">{errors.nome}</p> : null}
+            {errors.nome ? <p className="mt-1 text-xs text-[#dc2626]">{errors.nome}</p> : null}
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">fotoUrl (opcional)</label>
-            <input
-              value={form.fotoUrl}
-              onChange={(event) => updateField('fotoUrl', event.target.value)}
-              className={`h-10 w-full rounded-md border px-3 text-[14px] outline-none focus:ring-2 ${errors.fotoUrl ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'}`}
-              placeholder="https://..."
-            />
-            {errors.fotoUrl ? <p className="mt-1 text-[12px] text-red-600">{errors.fotoUrl}</p> : null}
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+              Foto (opcional)
+            </label>
+            <label className="inline-flex h-11 cursor-pointer items-center rounded-sm border border-[#d1d9e6] bg-white px-3 text-sm text-[#475569] transition hover:bg-[#f8fafc]">
+              <ImagePlus className="mr-2 h-4 w-4" />
+              Carregar foto do dispositivo
+              <input type="file" accept="image/*" className="hidden" onChange={onSelectPhoto} />
+            </label>
+            {form.fotoDataUrl ? (
+              <div className="mt-3">
+                <img
+                  src={form.fotoDataUrl}
+                  alt="Pré-visualização da foto"
+                  className="h-32 w-32 rounded-md border border-[#d1d9e6] object-cover"
+                />
+              </div>
+            ) : null}
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">biografia (opcional)</label>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+              Biografia (opcional)
+            </label>
             <textarea
               value={form.biografia}
               onChange={(event) => updateField('biografia', event.target.value)}
-              className="min-h-[96px] w-full rounded-md border border-slate-300 px-3 py-2 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              placeholder="Resumo do candidato"
+              className="min-h-[96px] w-full rounded-sm border border-[#d1d9e6] bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">proposta (opcional)</label>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
+              Proposta (opcional)
+            </label>
             <textarea
               value={form.proposta}
               onChange={(event) => updateField('proposta', event.target.value)}
-              className="min-h-[96px] w-full rounded-md border border-slate-300 px-3 py-2 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              placeholder="Plano/proposta"
+              className="min-h-[96px] w-full rounded-sm border border-[#d1d9e6] bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
             />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">estado</label>
-            <select
-              value={form.estado}
-              onChange={(event) => updateField('estado', event.target.value as CandidateStatus)}
-              className="h-10 w-full rounded-md border border-slate-300 px-3 text-[14px] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            >
-              <option value="PENDENTE">PENDENTE</option>
-              <option value="APROVADO">APROVADO</option>
-              <option value="REJEITADO">REJEITADO</option>
-            </select>
           </div>
         </div>
 
         <div className="mt-5 flex justify-end">
           <button
             type="submit"
-            className="inline-flex h-10 items-center rounded-md bg-blue-600 px-4 text-[13px] font-semibold text-white transition hover:bg-blue-700"
+            disabled={isSaving || isCandidatesLoading || !selectedElectionId}
+            className="inline-flex h-10 items-center rounded-md bg-[#1A56DB] px-4 text-sm font-medium text-white transition hover:bg-[#1647C0] disabled:opacity-60"
           >
-            <Plus className="mr-2 h-4 w-4" />
+            {isSaving ? <Spinner size="sm" className="mr-2 text-white" /> : <Plus className="mr-2 h-4 w-4" />}
             Guardar Candidato
           </button>
         </div>
       </form>
-
-      <BaseModal title="Confirmar Registo" isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)}>
-        <div className="space-y-4 text-[14px] text-slate-700">
-          <p>Confirmar registo do candidato com os campos da tabela?</p>
-          <div className="rounded-md bg-slate-50 p-3">
-            <p><strong>eleicaoId:</strong> {renderValue(form.eleicaoId)}</p>
-            <p><strong>utilizadorId:</strong> {renderValue(form.utilizadorId)}</p>
-            <p><strong>registadoPor:</strong> {renderValue(form.registadoPor)}</p>
-            <p><strong>nome:</strong> {renderValue(form.nome)}</p>
-            <p><strong>fotoUrl:</strong> {renderValue(form.fotoUrl)}</p>
-            <p><strong>biografia:</strong> {renderValue(form.biografia)}</p>
-            <p><strong>proposta:</strong> {renderValue(form.proposta)}</p>
-            <p><strong>estado:</strong> {form.estado}</p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setIsConfirmOpen(false)}
-              className="h-10 rounded-md border border-slate-300 bg-white px-4 text-[13px] font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={confirmRegister}
-              className="h-10 rounded-md bg-blue-600 px-4 text-[13px] font-semibold text-white hover:bg-blue-700"
-            >
-              Confirmar
-            </button>
-          </div>
-        </div>
-      </BaseModal>
-
-      <BaseModal title="Registo Concluido" isOpen={isSuccessOpen} onClose={() => setIsSuccessOpen(false)}>
-        <div className="flex flex-col items-center justify-center gap-3 py-4 text-center">
-          <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-          <p className="text-[15px] font-semibold text-slate-900">Candidato registado com sucesso.</p>
-          <button
-            type="button"
-            onClick={() => setIsSuccessOpen(false)}
-            className="mt-2 h-10 rounded-md bg-blue-600 px-4 text-[13px] font-semibold text-white hover:bg-blue-700"
-          >
-            Fechar
-          </button>
-        </div>
-      </BaseModal>
     </section>
   );
 }
