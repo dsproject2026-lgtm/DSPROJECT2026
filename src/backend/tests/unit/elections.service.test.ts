@@ -9,6 +9,8 @@ const { electionsRepositoryMock } = vi.hoisted(() => ({
     delete: vi.fn(),
     findCargoById: vi.fn(),
     findActiveElectionByCargo: vi.fn(),
+    findUsersByIds: vi.fn(),
+    assignAllActiveElectorsAsEligible: vi.fn(),
   },
 }));
 
@@ -37,6 +39,8 @@ describe('ElectionsService', () => {
         descricao: 'Cargo de presidente',
       });
       electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue(null);
+      electionsRepositoryMock.findUsersByIds.mockResolvedValue([]);
+      electionsRepositoryMock.assignAllActiveElectorsAsEligible.mockResolvedValue(0);
 
       electionsRepositoryMock.create.mockResolvedValue({
         id: 'eleicao-1',
@@ -55,7 +59,10 @@ describe('ElectionsService', () => {
       expect(result.message).toBe('Eleição criada com sucesso.');
       expect(result.data.titulo).toBe('Eleição para Presidente 2026');
       expect(electionsRepositoryMock.findCargoById).toHaveBeenCalledWith('cargo-1');
-      expect(electionsRepositoryMock.create).toHaveBeenCalledWith(inputData);
+      expect(electionsRepositoryMock.create).toHaveBeenCalledWith(inputData, undefined);
+      expect(electionsRepositoryMock.assignAllActiveElectorsAsEligible).toHaveBeenCalledWith(
+        'eleicao-1',
+      );
     });
 
     it('throws conflict when creating active election for cargo with ongoing election', async () => {
@@ -94,6 +101,91 @@ describe('ElectionsService', () => {
       await expect(electionsService.createElection(inputData)).rejects.toThrow(
         'Cargo com ID cargo-invalid não encontrado.',
       );
+    });
+
+    it('creates election with linked candidates', async () => {
+      const inputData = {
+        cargoId: 'cargo-1',
+        titulo: 'Eleição com Candidatos',
+        candidatos: [
+          {
+            utilizadorId: 'user-1',
+            nome: 'Candidato 1',
+            estado: 'PENDENTE' as const,
+          },
+        ],
+      };
+
+      electionsRepositoryMock.findCargoById.mockResolvedValue({
+        id: 'cargo-1',
+        nome: 'Presidente',
+        descricao: 'Cargo de presidente',
+      });
+      electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue(null);
+      electionsRepositoryMock.findUsersByIds.mockResolvedValue([
+        { id: 'user-1', perfil: 'CANDIDATO' },
+      ]);
+      electionsRepositoryMock.create.mockResolvedValue({
+        id: 'eleicao-1',
+        cargoId: 'cargo-1',
+        titulo: 'Eleição com Candidatos',
+        estado: 'RASCUNHO',
+        cargo: { id: 'cargo-1', nome: 'Presidente', descricao: 'Cargo de presidente' },
+        candidatos: [{ id: 'cand-1', nome: 'Candidato 1', estado: 'PENDENTE' }],
+        elegiveis: [],
+        comprovativos: [],
+      });
+      electionsRepositoryMock.assignAllActiveElectorsAsEligible.mockResolvedValue(0);
+
+      await electionsService.createElection(inputData, 'gestor-1');
+
+      expect(electionsRepositoryMock.findUsersByIds).toHaveBeenCalledWith(['user-1']);
+      expect(electionsRepositoryMock.create).toHaveBeenCalledWith(inputData, 'gestor-1');
+    });
+
+    it('throws error when linked candidates contain duplicated utilizadorId', async () => {
+      const inputData = {
+        cargoId: 'cargo-1',
+        titulo: 'Eleição com Candidatos Duplicados',
+        candidatos: [
+          { utilizadorId: 'user-1', nome: 'Candidato 1' },
+          { utilizadorId: 'user-1', nome: 'Candidato 1B' },
+        ],
+      };
+
+      electionsRepositoryMock.findCargoById.mockResolvedValue({
+        id: 'cargo-1',
+        nome: 'Presidente',
+        descricao: 'Cargo de presidente',
+      });
+      electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue(null);
+
+      await expect(electionsService.createElection(inputData)).rejects.toThrow(
+        'Não é permitido vincular o mesmo utilizador mais de uma vez na mesma eleição.',
+      );
+      expect(electionsRepositoryMock.findUsersByIds).not.toHaveBeenCalled();
+      expect(electionsRepositoryMock.create).not.toHaveBeenCalled();
+    });
+
+    it('throws error when linked user is not CANDIDATO', async () => {
+      const inputData = {
+        cargoId: 'cargo-1',
+        titulo: 'Eleição com Perfil Inválido',
+        candidatos: [{ utilizadorId: 'user-1', nome: 'Utilizador Inválido' }],
+      };
+
+      electionsRepositoryMock.findCargoById.mockResolvedValue({
+        id: 'cargo-1',
+        nome: 'Presidente',
+        descricao: 'Cargo de presidente',
+      });
+      electionsRepositoryMock.findActiveElectionByCargo.mockResolvedValue(null);
+      electionsRepositoryMock.findUsersByIds.mockResolvedValue([{ id: 'user-1', perfil: 'ELEITOR' }]);
+
+      await expect(electionsService.createElection(inputData)).rejects.toThrow(
+        'Apenas utilizadores com perfil CANDIDATO podem ser vinculados na eleição.',
+      );
+      expect(electionsRepositoryMock.create).not.toHaveBeenCalled();
     });
   });
 

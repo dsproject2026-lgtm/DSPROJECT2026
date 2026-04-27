@@ -63,7 +63,7 @@ class CandidatesRepository {
         return prisma.candidato.create({
             data: {
                 eleicaoId: electionId,
-                utilizadorId: data.utilizadorId,
+                utilizadorId: data.utilizadorId!,
                 ...(registadoPor !== undefined ? { registadoPor } : {}),
                 nome: data.nome,
                 ...(data.fotoUrl !== undefined ? { fotoUrl: data.fotoUrl } : {}),
@@ -141,6 +141,7 @@ class CandidatesRepository {
             where: { id: userId },
             select: {
                 id: true,
+                perfil: true,
             },
         });
     }

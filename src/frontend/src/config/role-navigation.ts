@@ -38,6 +38,12 @@ export const BACKOFFICE_CONFIGS: Record<BackofficeRole, BackofficeRoleConfig> = 
         description: 'Base pronta para cadastro, validação e ciclo de vida dos candidatos.',
       },
       {
+        segment: 'cargos',
+        label: 'Cargos',
+        title: 'Gestão de Cargos',
+        description: 'Base pronta para registo e visualização de cargos eleitorais.',
+      },
+      {
         segment: 'estudantes',
         label: 'Estudantes',
         title: 'Gestão de Estudantes',
@@ -162,4 +168,3 @@ export function getRoleHomeRouteFromSession(session: LoginResult | null): string
 
   return getRoleHomeRoute(session.user.perfil);
 }
-

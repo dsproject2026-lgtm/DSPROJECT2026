@@ -4,24 +4,37 @@ import { BACKOFFICE_CONFIGS, getRoleHomeRoute, getRoleHomeRouteFromSession } fro
 import { BackofficeLayout } from '@/components/layout/BackofficeLayout';
 import { ElectorLayout } from '@/components/layout/ElectorLayout';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
-import { AdminAuditPage, AdminCandidatesPage, AdminCommissionPage, AdminDashboardPage, AdminSettingsPage, AdminStudentsPage } from '@/features/admin/pages/AdminPages';
+import { AdminAuditPage } from '@/features/admin/pages/AdminAuditPage';
+import { AdminCandidatesPage } from '@/features/admin/pages/AdminCandidatesPage';
+import { AdminCommissionPage } from '@/features/admin/pages/AdminCommissionPage';
+import { AdminDashboardPage } from '@/features/admin/pages/AdminDashboardPage';
+import { AdminPositionsRegisterPage } from '@/features/admin/pages/AdminPositionsRegisterPage';
+import { AdminPositionsViewPage } from '@/features/admin/pages/AdminPositionsViewPage';
+import { AdminSettingsPage } from '@/features/admin/pages/AdminSettingsPage';
+import { AdminStudentsPage } from '@/features/admin/pages/AdminStudentsPage';
 import { CodeLoginPage } from '@/features/auth/pages/CodeLoginPage';
 import { FirstAccessPage } from '@/features/auth/pages/FirstAccessPage';
 import { OnboardingLoaderPage } from '@/features/auth/pages/OnboardingLoaderPage';
 import { PasswordLoginPage } from '@/features/auth/pages/PasswordLoginPage';
 import { PasswordRecoveryPage } from '@/features/auth/pages/PasswordRecoveryPage';
-import {
-  CommissionCandidatesPage,
-  CommissionDashboardPage,
-  CommissionElectionsPage,
-  CommissionResultsPage,
-  CommissionSettingsPage,
-  CommissionStudentsPage,
-} from '@/features/commission/pages/CommissionPages';
+import { CommissionCandidatesPage } from '@/features/commission/pages/CommissionCandidatesPage';
+import { CommissionCandidatesRegisterPage } from '@/features/commission/pages/CommissionCandidatesRegisterPage';
+import { CommissionDashboardPage } from '@/features/commission/pages/CommissionDashboardPage';
+import { CommissionElectionDetailsPage } from '@/features/commission/pages/CommissionElectionDetailsPage';
+import { CommissionElectionsPage } from '@/features/commission/pages/CommissionElectionsPage';
+import { CommissionResultsPage } from '@/features/commission/pages/CommissionResultsPage';
+import { CommissionSettingsPage } from '@/features/commission/pages/CommissionSettingsPage';
+import { CommissionStudentsPage } from '@/features/commission/pages/CommissionStudentsPage';
+import { CommissionStudentsRegisterPage } from '@/features/commission/pages/CommissionStudentsRegisterPage';
 import { ElectorDashboardPage } from '@/features/elector/pages/ElectorDashboardPage';
+import { ElectorElectionDetailsPage } from '@/features/elector/pages/ElectorElectionDetailsPage';
 import { ElectorElectionsPage } from '@/features/elector/pages/ElectorElectionsPage';
-import { ElectorConfirmationPage, ElectorResultsPage } from '@/features/elector/pages/ElectorPages';
-import { FiscalAuditPage, FiscalDashboardPage, FiscalReportsPage, FiscalResultsPage } from '@/features/fiscal/pages/FiscalPages';
+import { ElectorConfirmationPage } from '@/features/elector/pages/ElectorConfirmationPage';
+import { ElectorResultsPage } from '@/features/elector/pages/ElectorResultsPage';
+import { FiscalAuditPage } from '@/features/fiscal/pages/FiscalAuditPage';
+import { FiscalDashboardPage } from '@/features/fiscal/pages/FiscalDashboardPage';
+import { FiscalReportsPage } from '@/features/fiscal/pages/FiscalReportsPage';
+import { FiscalResultsPage } from '@/features/fiscal/pages/FiscalResultsPage';
 import { sessionStorageService } from '@/lib/storage/session-storage';
 
 function RoleHomeRedirect() {
@@ -97,6 +110,7 @@ export function AppRouter() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<ElectorDashboardPage />} />
         <Route path="elections" element={<Navigate to="dashboard" replace />} />
+        <Route path="election-details/:electionId" element={<ElectorElectionDetailsPage />} />
         <Route path="elections/:electionId" element={<ElectorElectionsPage />} />
         <Route path="confirmacao" element={<ElectorConfirmationPage />} />
         <Route path="resultados" element={<ElectorResultsPage />} />
@@ -117,8 +131,15 @@ export function AppRouter() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboardPage />} />
-        <Route path="candidatos" element={<AdminCandidatesPage />} />
-        <Route path="estudantes" element={<AdminStudentsPage />} />
+        <Route path="candidatos" element={<Navigate to="visualizar" replace />} />
+        <Route path="candidatos/visualizar" element={<AdminCandidatesPage />} />
+        <Route path="candidatos/registrar" element={<AdminCandidatesPage />} />
+        <Route path="cargos" element={<Navigate to="visualizar" replace />} />
+        <Route path="cargos/visualizar" element={<AdminPositionsViewPage />} />
+        <Route path="cargos/registrar" element={<AdminPositionsRegisterPage />} />
+        <Route path="estudantes" element={<Navigate to="visualizar" replace />} />
+        <Route path="estudantes/visualizar" element={<AdminStudentsPage />} />
+        <Route path="estudantes/registrar" element={<AdminStudentsPage />} />
         <Route path="comissao" element={<AdminCommissionPage />} />
         <Route path="auditoria" element={<AdminAuditPage />} />
         <Route path="configuracoes" element={<AdminSettingsPage />} />
@@ -139,10 +160,17 @@ export function AppRouter() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<CommissionDashboardPage />} />
-        <Route path="eleicoes" element={<CommissionElectionsPage />} />
+        <Route path="eleicoes" element={<Navigate to="visualizar" replace />} />
+        <Route path="eleicoes/visualizar" element={<CommissionDashboardPage />} />
+        <Route path="eleicoes/detalhes/:electionId" element={<CommissionElectionDetailsPage />} />
+        <Route path="eleicoes/registrar" element={<CommissionElectionsPage />} />
         <Route path="resultados" element={<CommissionResultsPage />} />
-        <Route path="candidatos" element={<CommissionCandidatesPage />} />
-        <Route path="estudantes" element={<CommissionStudentsPage />} />
+        <Route path="candidatos" element={<Navigate to="visualizar" replace />} />
+        <Route path="candidatos/visualizar" element={<CommissionCandidatesPage />} />
+        <Route path="candidatos/registrar" element={<CommissionCandidatesRegisterPage />} />
+        <Route path="estudantes" element={<Navigate to="visualizar" replace />} />
+        <Route path="estudantes/visualizar" element={<CommissionStudentsPage />} />
+        <Route path="estudantes/registrar" element={<CommissionStudentsRegisterPage />} />
         <Route path="configuracoes" element={<CommissionSettingsPage />} />
       </Route>
 

@@ -6,7 +6,7 @@ import type {
   UpdateElectionApiInput,
 } from '../types/eleicoes.types.js';
 
-const ACTIVE_ELECTION_STATES = ['CANDIDATURAS_ABERTAS', 'VOTACAO_ABERTA'] as const;
+const ACTIVE_ELECTION_STATES = ['ABERTA'] as const;
 
 const electionWithRelationsSelect = {
   id: true,
@@ -49,12 +49,12 @@ const electionWithRelationsSelect = {
 } as const;
 
 class ElectionsRepository {
-  async create(data: CreateElectionApiInput) {
+  async create(data: CreateElectionApiInput, registadoPor?: EntityId) {
     const createData = {
       cargoId: data.cargoId,
       titulo: data.titulo,
       ...(data.descricao !== undefined ? { descricao: data.descricao } : {}),
-      estado: data.estado ?? 'RASCUNHO',
+      estado: data.estado ?? 'PENDENTE',
       dataInicioCandidatura: data.dataInicioCandidatura
         ? new Date(data.dataInicioCandidatura)
         : null,
@@ -67,6 +67,21 @@ class ElectionsRepository {
       dataFimVotacao: data.dataFimVotacao
         ? new Date(data.dataFimVotacao)
         : null,
+      ...(data.candidatos && data.candidatos.length > 0
+        ? {
+            candidatos: {
+              create: data.candidatos.map((candidate) => ({
+                utilizadorId: candidate.utilizadorId,
+                nome: candidate.nome,
+                ...(registadoPor !== undefined ? { registadoPor } : {}),
+                ...(candidate.fotoUrl !== undefined ? { fotoUrl: candidate.fotoUrl } : {}),
+                ...(candidate.biografia !== undefined ? { biografia: candidate.biografia } : {}),
+                ...(candidate.proposta !== undefined ? { proposta: candidate.proposta } : {}),
+                ...(candidate.estado !== undefined ? { estado: candidate.estado } : {}),
+              })),
+            },
+          }
+        : {}),
     };
 
     return prisma.eleicao.create({
@@ -163,6 +178,51 @@ class ElectionsRepository {
     });
   }
 
+  async findUsersByIds(userIds: EntityId[]) {
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    return prisma.utilizador.findMany({
+      where: {
+        id: {
+          in: userIds,
+        },
+      },
+      select: {
+        id: true,
+        perfil: true,
+      },
+    });
+  }
+
+  async findCandidateUsers(search?: string) {
+    return prisma.utilizador.findMany({
+      where: {
+        perfil: 'CANDIDATO',
+        ...(search && search.trim() !== ''
+          ? {
+              OR: [
+                { nome: { contains: search.trim(), mode: 'insensitive' } },
+                { codigo: { contains: search.trim(), mode: 'insensitive' } },
+                { email: { contains: search.trim(), mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        codigo: true,
+        nome: true,
+        email: true,
+        activo: true,
+      },
+      orderBy: {
+        nome: 'asc',
+      },
+    });
+  }
+
   async findActiveElectionByCargo(cargoId: EntityId, excludeElectionId?: EntityId) {
     return prisma.eleicao.findFirst({
       where: {
@@ -179,6 +239,33 @@ class ElectionsRepository {
         estado: true,
       },
     });
+  }
+
+  async assignAllActiveElectorsAsEligible(electionId: EntityId) {
+    const electors = await prisma.utilizador.findMany({
+      where: {
+        perfil: 'ELEITOR',
+        activo: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (electors.length === 0) {
+      return 0;
+    }
+
+    const result = await prisma.elegivel.createMany({
+      data: electors.map((elector) => ({
+        eleicaoId: electionId,
+        utilizadorId: elector.id,
+        jaVotou: false,
+      })),
+      skipDuplicates: true,
+    });
+
+    return result.count;
   }
 }
 

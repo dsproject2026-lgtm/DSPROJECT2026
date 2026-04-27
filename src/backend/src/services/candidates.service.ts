@@ -10,23 +10,34 @@ import { AppError } from '../utils/app-error.js';
 
 class CandidatesService {
     async createCandidate(electionId: string, data: CreateCandidateApiInput, registadoPor?: string) {
+        const utilizadorId = data.utilizadorId;
+
         const election = await candidatesRepository.findElectionById(electionId);
 
         if (!election) {
             throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
         }
 
-        const user = await candidatesRepository.findUserById(data.utilizadorId);
+        const user = await candidatesRepository.findUserById(utilizadorId);
 
         if (!user) {
             throw new AppError('Utilizador não encontrado.', 404, 'USER_NOT_FOUND', {
-                utilizadorId: data.utilizadorId,
+                utilizadorId,
             });
+        }
+
+        if (user.perfil !== 'CANDIDATO') {
+            throw new AppError(
+                'Apenas utilizadores com perfil CANDIDATO podem ser registados como candidatos.',
+                400,
+                'CANDIDATE_PROFILE_INVALID',
+                { utilizadorId },
+            );
         }
 
         const existingCandidate = await candidatesRepository.findByElectionAndUser(
             electionId,
-            data.utilizadorId,
+            utilizadorId,
         );
 
         if (existingCandidate) {
@@ -36,12 +47,20 @@ class CandidatesService {
                 'CANDIDATE_ALREADY_REGISTERED',
                 {
                     electionId,
-                    utilizadorId: data.utilizadorId,
+                    utilizadorId,
                 },
             );
         }
 
-        const candidate = await candidatesRepository.create(electionId, data, registadoPor);
+        const candidate = await candidatesRepository.create(
+            electionId,
+            {
+                ...data,
+                utilizadorId,
+                estado: 'APROVADO',
+            },
+            registadoPor,
+        );
 
         return {
             message: 'Candidato registado com sucesso.',

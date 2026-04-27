@@ -4,13 +4,22 @@ import { BrowserRouter } from 'react-router-dom';
 
 import { App } from './App';
 import { AppProviders } from './app/providers/AppProviders';
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/500.css';
+import '@fontsource/ibm-plex-sans/600.css';
+import '@fontsource/ibm-plex-sans/700.css';
 import './styles/globals.css';
 
 function isInvalidViewTransitionState(cause: unknown): cause is DOMException {
+  const domCause = cause as DOMException;
+  if (!(domCause instanceof DOMException)) {
+    return false;
+  }
+
+  const message = domCause.message.toLowerCase();
   return (
-    cause instanceof DOMException &&
-    cause.name === 'InvalidStateError' &&
-    cause.message.toLowerCase().includes('transition was aborted')
+    (domCause.name === 'InvalidStateError' && message.includes('transition was aborted'))
+    || (domCause.name === 'AbortError' && message.includes('transition was skipped'))
   );
 }
 

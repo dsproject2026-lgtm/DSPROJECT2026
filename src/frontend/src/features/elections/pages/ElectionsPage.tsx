@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { electionsApi } from '@/api/elections.api';
 import { EmptyState } from '@/components/common/EmptyState';
 import { PageTitle } from '@/components/common/PageTitle';
-import { Spinner } from '@/components/ui';
+import { Spinner, toast } from '@/components/ui';
 import { ApiError } from '@/lib/http/api-error';
 import type { ElectionSummary } from '@/types/election';
 
@@ -23,8 +23,10 @@ export function ElectionsPage() {
       } catch (cause) {
         if (cause instanceof ApiError) {
           setError(cause.message);
+          toast.danger(cause.message);
         } else {
           setError('Não foi possível carregar eleições.');
+          toast.danger('Não foi possível carregar eleições.');
         }
       } finally {
         setIsLoading(false);

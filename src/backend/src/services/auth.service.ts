@@ -67,7 +67,13 @@ class AuthService {
       mustSetPassword: resolvedMustSetPassword,
     };
 
-    return authRepository.createUser(data);
+    const createdUser = await authRepository.createUser(data);
+
+    if (createdUser.perfil === 'ELEITOR' && createdUser.activo) {
+      await authRepository.assignElectorAsEligibleInAllElections(createdUser.id);
+    }
+
+    return createdUser;
   }
 
   async startLogin({ codigo }: LoginStartInput): Promise<LoginStartResult> {

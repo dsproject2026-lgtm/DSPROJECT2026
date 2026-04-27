@@ -10,16 +10,15 @@ import { buildSuccessResponse } from '../utils/success-response.js';
 const createCandidateSchema = z.object({
     utilizadorId: z.string().uuid('O utilizadorId deve ser um UUID válido.'),
     nome: z.string().trim().min(3, 'O nome deve ter pelo menos 3 caracteres.').max(150),
-    fotoUrl: z.string().trim().url().max(2_000).optional().nullable(),
+    fotoUrl: z.string().trim().max(2_000_000).optional().nullable(),
     biografia: z.string().trim().max(3_000).optional().nullable(),
     proposta: z.string().trim().max(5_000).optional().nullable(),
-    estado: z.enum(ESTADOS_CANDIDATO).optional(),
 });
 
 const updateCandidateSchema = z.object({
     utilizadorId: z.string().uuid().optional(),
     nome: z.string().trim().min(3).max(150).optional(),
-    fotoUrl: z.string().trim().url().max(2_000).optional().nullable(),
+    fotoUrl: z.string().trim().max(2_000_000).optional().nullable(),
     biografia: z.string().trim().max(3_000).optional().nullable(),
     proposta: z.string().trim().max(5_000).optional().nullable(),
     estado: z.enum(ESTADOS_CANDIDATO).optional(),

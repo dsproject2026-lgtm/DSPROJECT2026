@@ -4,11 +4,8 @@ export const PERFIS = ['ADMIN', 'GESTOR_ELEITORAL', 'AUDITOR', 'ELEITOR', 'CANDI
 export type Perfil = (typeof PERFIS)[number];
 
 export const ESTADOS_ELEICAO = [
-  'RASCUNHO',
-  'CANDIDATURAS_ABERTAS',
-  'CANDIDATURAS_ENCERRADAS',
-  'VOTACAO_ABERTA',
-  'VOTACAO_ENCERRADA',
+  'PENDENTE',
+  'ABERTA',
   'CONCLUIDA',
   'CANCELADA',
 ] as const;

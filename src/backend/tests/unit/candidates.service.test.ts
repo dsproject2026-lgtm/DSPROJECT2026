@@ -44,14 +44,21 @@ describe('CandidatesService', () => {
                 eleicaoId: electionId,
                 utilizadorId: 'user-1',
                 nome: 'Candidate One',
-                estado: 'PENDENTE',
+                estado: 'APROVADO',
             });
 
             const result = await candidatesService.createCandidate(electionId, inputData, 'admin-1');
 
             expect(result.message).toBe('Candidato registado com sucesso.');
             expect(result.data.id).toBe('candidate-1');
-            expect(candidatesRepositoryMock.create).toHaveBeenCalledWith(electionId, inputData, 'admin-1');
+            expect(candidatesRepositoryMock.create).toHaveBeenCalledWith(
+                electionId,
+                {
+                    ...inputData,
+                    estado: 'APROVADO',
+                },
+                'admin-1',
+            );
         });
 
         it('throws when election does not exist', async () => {

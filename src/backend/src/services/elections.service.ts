@@ -6,10 +6,10 @@ import type {
 } from '../types/eleicoes.types.js';
 import { AppError } from '../utils/app-error.js';
 
-const ACTIVE_ELECTION_STATES = new Set(['CANDIDATURAS_ABERTAS', 'VOTACAO_ABERTA']);
+const ACTIVE_ELECTION_STATES = new Set(['ABERTA']);
 
 class ElectionsService {
-  async createElection(data: CreateElectionApiInput) {
+  async createElection(data: CreateElectionApiInput, registadoPor?: string) {
     const cargo = await electionsRepository.findCargoById(data.cargoId);
 
     if (!cargo) {
@@ -21,7 +21,7 @@ class ElectionsService {
       );
     }
 
-    const requestedState = data.estado ?? 'RASCUNHO';
+    const requestedState = data.estado ?? 'PENDENTE';
 
     if (ACTIVE_ELECTION_STATES.has(requestedState)) {
       const activeElection = await electionsRepository.findActiveElectionByCargo(data.cargoId);
@@ -40,7 +40,50 @@ class ElectionsService {
       }
     }
 
-    const election = await electionsRepository.create(data);
+    if (data.candidatos && data.candidatos.length > 0) {
+      const seen = new Set<string>();
+      const duplicatedUserId = data.candidatos.find((candidate) => {
+        if (seen.has(candidate.utilizadorId)) return true;
+        seen.add(candidate.utilizadorId);
+        return false;
+      })?.utilizadorId;
+
+      if (duplicatedUserId) {
+        throw new AppError(
+          'Não é permitido vincular o mesmo utilizador mais de uma vez na mesma eleição.',
+          400,
+          'ELECTION_CANDIDATE_DUPLICATED_USER',
+          { utilizadorId: duplicatedUserId },
+        );
+      }
+
+      const requestedUserIds = [...seen];
+      const users = await electionsRepository.findUsersByIds(requestedUserIds);
+      const existingUserIds = new Set(users.map((user) => user.id));
+      const missingUserId = requestedUserIds.find((id) => !existingUserIds.has(id));
+
+      if (missingUserId) {
+        throw new AppError(
+          'Utilizador não encontrado para vincular candidatura.',
+          404,
+          'USER_NOT_FOUND',
+          { utilizadorId: missingUserId },
+        );
+      }
+
+      const invalidProfileUserId = users.find((user) => user.perfil !== 'CANDIDATO')?.id;
+      if (invalidProfileUserId) {
+        throw new AppError(
+          'Apenas utilizadores com perfil CANDIDATO podem ser vinculados na eleição.',
+          400,
+          'ELECTION_CANDIDATE_PROFILE_INVALID',
+          { utilizadorId: invalidProfileUserId },
+        );
+      }
+    }
+
+    const election = await electionsRepository.create(data, registadoPor);
+    await electionsRepository.assignAllActiveElectorsAsEligible(election.id);
 
     return {
       message: 'Eleição criada com sucesso.',
@@ -68,6 +111,16 @@ class ElectionsService {
       message: 'Eleições listadas com sucesso.',
       data: elections,
       count: elections.length,
+    };
+  }
+
+  async listCandidateUsers(search?: string) {
+    const users = await electionsRepository.findCandidateUsers(search);
+
+    return {
+      message: 'Candidatos disponíveis listados com sucesso.',
+      data: users,
+      count: users.length,
     };
   }
 

@@ -1,8 +1,21 @@
-import { useMemo } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  BarChart3,
+  BriefcaseBusiness,
+  ClipboardList,
+  FileCheck2,
+  FileSpreadsheet,
+  GraduationCap,
+  Megaphone,
+  PanelRightClose,
+  Shield,
+  UserSquare2,
+  Users,
+} from 'lucide-react';
 
 import type { BackofficeNavItem } from '@/config/role-navigation';
-import { Button } from '@/components/ui';
+import { UiPageSkeleton } from '@/components/ui';
 import { sessionStorageService } from '@/lib/storage/session-storage';
 
 interface BackofficeLayoutProps {
@@ -12,46 +25,63 @@ interface BackofficeLayoutProps {
   navItems: BackofficeNavItem[];
 }
 
+type SidebarSubItem = {
+  label: string;
+  path: string;
+};
+
 function getInitials(name: string | undefined) {
-  if (!name) {
-    return 'US';
-  }
-
+  if (!name) return 'US';
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) {
-    return 'US';
-  }
-
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-
+  if (parts.length === 0) return 'US';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
 function SidebarIcon({ segment }: { segment: string }) {
-  if (segment === 'dashboard') {
-    return (
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9">
-        <path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 4h7m-7 3h7" />
-      </svg>
-    );
-  }
+  const iconClass = 'h-[18px] w-[18px]';
+  if (segment === 'dashboard') return <BarChart3 className={iconClass} />;
+  if (segment === 'eleicoes') return <ClipboardList className={iconClass} />;
+  if (segment === 'resultados') return <FileCheck2 className={iconClass} />;
+  if (segment === 'candidatos') return <Megaphone className={iconClass} />;
+  if (segment === 'cargos') return <BriefcaseBusiness className={iconClass} />;
+  if (segment === 'estudantes') return <GraduationCap className={iconClass} />;
+  if (segment === 'comissao') return <Users className={iconClass} />;
+  if (segment === 'auditoria') return <Shield className={iconClass} />;
+  if (segment === 'relatorios') return <FileSpreadsheet className={iconClass} />;
+  return <UserSquare2 className={iconClass} />;
+}
 
-  if (segment === 'configuracoes') {
-    return (
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9">
-        <path d="M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 1 0 12 8.5z" />
-        <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 1 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 1 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a2 2 0 1 1 4 0v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a2 2 0 1 1 0 4h-.1a1 1 0 0 0-.9.6z" />
-      </svg>
-    );
+function getSidebarSubItems(basePath: string, segment: string): SidebarSubItem[] {
+  if (segment === 'candidatos') {
+    return [
+      { label: 'Registar', path: `/${basePath}/candidatos/registrar` },
+      { label: 'Visualizar', path: `/${basePath}/candidatos/visualizar` },
+    ];
   }
+  if (segment === 'estudantes') {
+    return [
+      { label: 'Registar', path: `/${basePath}/estudantes/registrar` },
+      { label: 'Visualizar', path: `/${basePath}/estudantes/visualizar` },
+    ];
+  }
+  if (segment === 'eleicoes') {
+    return [
+      { label: 'Registar', path: `/${basePath}/eleicoes/registrar` },
+      { label: 'Visualizar', path: `/${basePath}/eleicoes/visualizar` },
+    ];
+  }
+  if (segment === 'cargos') {
+    return [
+      { label: 'Registar', path: `/${basePath}/cargos/registrar` },
+      { label: 'Visualizar', path: `/${basePath}/cargos/visualizar` },
+    ];
+  }
+  return [];
+}
 
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9">
-      <path d="M4 19h16M5.5 19V8.5L12 4l6.5 4.5V19M9 19v-5h6v5" />
-    </svg>
-  );
+function BackofficeRouteSkeleton() {
+  return <UiPageSkeleton blocks={3} />;
 }
 
 export function BackofficeLayout({
@@ -63,106 +93,172 @@ export function BackofficeLayout({
   const navigate = useNavigate();
   const location = useLocation();
   const session = sessionStorageService.getSession();
+  const [isRouteLoading, setIsRouteLoading] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const activeItem = useMemo(() => {
     const item = navItems.find((entry) =>
       location.pathname.startsWith(`/${basePath}/${entry.segment}`),
     );
-
     return item ?? navItems[0];
   }, [basePath, location.pathname, navItems]);
 
+  const activeSubItems = useMemo(
+    () => getSidebarSubItems(basePath, activeItem.segment),
+    [activeItem.segment, basePath],
+  );
+
+  const activeSubPath = useMemo(
+    () =>
+      activeSubItems.find((item) => location.pathname.startsWith(item.path))?.path ??
+      activeSubItems[0]?.path ??
+      '',
+    [activeSubItems, location.pathname],
+  );
+  const showLayoutSubTabs = basePath !== 'comissao';
+
   const userName = session?.user.nome ?? 'Utilizador';
+  const userInitials = getInitials(userName);
 
   const handleLogout = () => {
     sessionStorageService.clearSession();
     navigate('/login', { replace: true });
   };
 
+  useEffect(() => {
+    setIsRouteLoading(true);
+    const timeoutId = window.setTimeout(() => setIsRouteLoading(false), 220);
+    return () => window.clearTimeout(timeoutId);
+  }, [location.pathname, location.search]);
+
   return (
-    <div className="min-h-screen bg-[#f2f4f8] text-[#0f172a] lg:flex">
-      <aside className="hidden min-h-screen w-[260px] flex-col border-r border-[#d7deea] bg-[#eef2f7] lg:flex">
-        <div className="border-b border-[#d7deea] px-6 py-8">
-          <div className="flex items-center gap-3">
-            <img src="/images/logo.svg" alt="SIVO-UP" className="h-9 w-9" />
-            <p className="text-[30px] font-bold leading-none tracking-[-0.01em] text-[#0b2a12]">SIVO-UP</p>
+    <div className="min-h-screen bg-[#f3f4f6] text-[#111827]">
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 hidden h-screen border-r border-[#e5e7eb] bg-[#f3f4f6] transition-[width] duration-200 lg:block ${
+          isSidebarCollapsed ? 'w-[86px]' : 'w-[286px]'
+        }`}
+      >
+        <div className="flex h-full flex-col p-4">
+          <div className={`${isSidebarCollapsed ? 'px-0 py-2' : 'px-1 py-2'}`}>
+            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
+              <img src="/images/logo.svg" alt="SIVO-UP" className="h-14 w-14 rounded-full border border-[#d1d5db] bg-white object-contain p-0.5" />
+              {!isSidebarCollapsed ? <p className="text-ui-2xl font-bold tracking-[-0.02em] text-[#111827]">SIVO-UP</p> : null}
+            </div>
+            {!isSidebarCollapsed ? (
+              <div className="mt-5">
+                <p className="text-[15px] font-semibold leading-tight text-[#111827]">{identityLabel}</p>
+                <p className="mt-1 text-[13px] text-[#6b7280]">{identityCampus}</p>
+              </div>
+            ) : null}
           </div>
-          <p className="mt-8 text-[24px] font-semibold leading-[1.12] text-[#0f2c12]">{identityLabel}</p>
-          <p className="mt-2 text-[15px] text-[#5f7493]">{identityCampus}</p>
-        </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-5">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.segment}
-              to={`/${basePath}/${item.segment}`}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-md px-3 py-3 text-[16px] font-medium transition ${
-                  isActive
-                    ? 'bg-white text-[#0e4f9c] shadow-[inset_3px_0_0_#0ea5e9]'
-                    : 'text-[#334155] hover:bg-[#e8edf5]'
-                }`
-              }
+          {!isSidebarCollapsed ? (
+            <div className="mt-6">
+              <p className="px-2 text-[13px] font-medium text-[#4b5563]">Plataforma</p>
+            </div>
+          ) : null}
+
+          <nav className="mt-3 space-y-1">
+            {navItems.map((item) => {
+              const itemPath = `/${basePath}/${item.segment}`;
+              const itemActive = location.pathname.startsWith(itemPath);
+              const itemTargetPath = getSidebarSubItems(basePath, item.segment)[0]?.path ?? itemPath;
+
+              return (
+                <button
+                  key={item.segment}
+                  type="button"
+                  onClick={() => navigate(itemTargetPath)}
+                  className={`flex w-full items-center rounded-xl py-2.5 text-left font-medium transition ${
+                    isSidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3'
+                  } ${
+                    itemActive
+                      ? 'bg-[#e9e9e9] text-[#111827]'
+                      : 'text-[#111827] hover:bg-[#ececec]'
+                  }`}
+                  title={isSidebarCollapsed ? item.label : undefined}
+                >
+                  <SidebarIcon segment={item.segment} />
+                  {!isSidebarCollapsed ? <span className="text-[15px] leading-[1.2]">{item.label}</span> : null}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="mt-auto">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={`flex w-full items-center rounded-xl py-2.5 text-left hover:bg-[#ececec] ${
+                isSidebarCollapsed ? 'justify-center px-2' : 'justify-between px-3'
+              }`}
+              title={isSidebarCollapsed ? userName : undefined}
             >
-              <SidebarIcon segment={item.segment} />
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="border-t border-[#d7deea] px-6 py-4">
-          <p className="text-sm font-semibold text-[#0f172a]">{userName}</p>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Sair"
-            onClick={handleLogout}
-            className="mt-2 h-8 w-8 rounded-md text-[#64748b] hover:bg-[#e8edf5]"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <path d="M16 17l5-5-5-5" />
-              <path d="M21 12H9" />
-            </svg>
-          </Button>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e2e8f0] text-[13px] font-semibold">
+                  {userInitials}
+                </div>
+                {!isSidebarCollapsed ? (
+                  <span className="max-w-[150px] truncate text-[13px] font-medium leading-none text-[#111827]">
+                    {userName}
+                  </span>
+                ) : null}
+              </div>
+              {!isSidebarCollapsed ? (
+                <svg viewBox="0 0 24 24" className="h-4 w-4 text-[#374151]" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              ) : null}
+            </button>
+          </div>
         </div>
       </aside>
 
-      <div className="flex min-h-screen flex-1 flex-col">
-        <header className="border-b border-[#d7deea] bg-white px-4 py-4 md:px-10">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="hidden text-xs uppercase tracking-[0.16em] text-[#94a3b8] md:block">
-                {activeItem.title}
-              </p>
-            </div>
-
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#dbeafe] text-sm font-semibold text-[#1d4ed8]">
-              {getInitials(userName)}
-            </div>
-          </div>
-
-          <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:hidden">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.segment}
-                to={`/${basePath}/${item.segment}`}
-                className={({ isActive }) =>
-                  `rounded-md px-3 py-2 text-sm whitespace-nowrap ${
-                    isActive ? 'bg-[#dbeafe] text-[#1d4ed8]' : 'bg-[#e2e8f0] text-[#334155]'
-                  }`
-                }
+      <div className={`transition-[padding] duration-200 ${isSidebarCollapsed ? 'lg:pl-[86px]' : 'lg:pl-[286px]'}`}>
+        <main className="p-3.5 md:p-4 lg:p-5">
+          <section className="rounded-2xl border border-[#e5e7eb] bg-[#f9fafb]">
+            <div className="flex items-center gap-2.5 px-4 py-5">
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed((current) => !current)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#d1d5db] bg-white text-[#111827] transition hover:bg-[#f3f4f6]"
+                aria-label={isSidebarCollapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'}
               >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        </header>
+                <PanelRightClose className={`h-5 w-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
+              </button>
+              <h1 className="text-ui-xl font-medium tracking-[-0.01em]">
+                {activeItem.label}
+              </h1>
+            </div>
+          </section>
 
-        <main className="flex-1 px-4 py-6 md:px-10 md:py-8">
-          <div className="mx-auto w-full max-w-6xl">
-            <Outlet />
-          </div>
+          {showLayoutSubTabs && activeSubItems.length > 0 ? (
+            <section className="mt-4 rounded-2xl border border-[#e5e7eb] bg-[#f9fafb] p-4">
+              <div className="inline-flex rounded-xl bg-[#ececec] p-1">
+                {activeSubItems.map((subItem) => {
+                  const isActive = activeSubPath === subItem.path;
+                  return (
+                    <button
+                      key={subItem.path}
+                      type="button"
+                      onClick={() => navigate(subItem.path)}
+                      className={`text-ui-sm min-w-[150px] rounded-lg px-4 py-2 font-semibold transition ${
+                        isActive
+                          ? 'bg-white text-[#111827] shadow-[0_1px_2px_rgba(0,0,0,0.1)]'
+                          : 'text-[#374151] hover:bg-[#f5f5f5]'
+                      }`}
+                    >
+                      {subItem.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+
+          <section className="mt-4">
+            {isRouteLoading ? <BackofficeRouteSkeleton /> : <Outlet />}
+          </section>
         </main>
       </div>
     </div>

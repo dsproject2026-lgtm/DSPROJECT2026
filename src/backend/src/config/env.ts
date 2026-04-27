@@ -9,6 +9,7 @@ dotenv.config({
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
+  HOST: z.string().trim().min(1).default('0.0.0.0'),
   API_PREFIX: z
     .string()
     .trim()
