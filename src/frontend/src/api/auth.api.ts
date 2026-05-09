@@ -2,15 +2,25 @@ import type {
   LoginResult,
   LoginStartResponse,
   RefreshTokenResult,
+  RegisteredUser,
+  RegisterUserInput,
   SessionUser,
-} from '@/types/auth';
+} from "@/types/auth";
 
-import { endpoints } from './endpoints';
-import { apiClient } from './http';
+import { endpoints } from "./endpoints";
+import { apiClient } from "./http";
 
 export const authApi = {
+  register(payload: RegisterUserInput) {
+    return apiClient.post<RegisteredUser>(endpoints.auth.register, payload, {
+      auth: true,
+    });
+  },
+
   startLogin(codigo: string) {
-    return apiClient.post<LoginStartResponse>(endpoints.auth.loginStart, { codigo });
+    return apiClient.post<LoginStartResponse>(endpoints.auth.loginStart, {
+      codigo,
+    });
   },
 
   finishLogin(codigo: string, senha: string, loginFlowToken: string) {
@@ -22,12 +32,12 @@ export const authApi = {
   },
 
   startFirstAccess(codigo: string) {
-    return apiClient.post<{ nextStep: 'EMAIL_TOKEN'; expiresInSeconds: number }>(
-      endpoints.auth.firstAccessStart,
-      {
-        codigo,
-      },
-    );
+    return apiClient.post<{
+      nextStep: "EMAIL_TOKEN";
+      expiresInSeconds: number;
+    }>(endpoints.auth.firstAccessStart, {
+      codigo,
+    });
   },
 
   finishFirstAccess(codigo: string, token: string, novaSenha: string) {
@@ -39,12 +49,12 @@ export const authApi = {
   },
 
   startPasswordRecovery(codigo: string) {
-    return apiClient.post<{ nextStep: 'EMAIL_TOKEN'; expiresInSeconds: number }>(
-      endpoints.auth.passwordRecoveryStart,
-      {
-        codigo,
-      },
-    );
+    return apiClient.post<{
+      nextStep: "EMAIL_TOKEN";
+      expiresInSeconds: number;
+    }>(endpoints.auth.passwordRecoveryStart, {
+      codigo,
+    });
   },
 
   finishPasswordRecovery(codigo: string, token: string, novaSenha: string) {
@@ -64,11 +74,15 @@ export const authApi = {
   },
 
   refresh(refreshToken: string) {
-    return apiClient.post<RefreshTokenResult>(endpoints.auth.refresh, { refreshToken });
+    return apiClient.post<RefreshTokenResult>(endpoints.auth.refresh, {
+      refreshToken,
+    });
   },
 
   logout(refreshToken: string) {
-    return apiClient.post<{ revoked: boolean }>(endpoints.auth.logout, { refreshToken });
+    return apiClient.post<{ revoked: boolean }>(endpoints.auth.logout, {
+      refreshToken,
+    });
   },
 
   me() {

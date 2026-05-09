@@ -19,6 +19,18 @@ import { generateAccessToken } from '../../src/utils/auth-token.js';
 
 const app = createApp();
 
+type SuccessResponse<TData> = {
+  success: boolean;
+  data: TData;
+};
+
+type ErrorResponse = {
+  success: boolean;
+  error: {
+    code: string;
+  };
+};
+
 describe('voting routes integration', () => {
   const electionId = '11111111-1111-4111-8111-111111111111';
   const accessToken = generateAccessToken({
@@ -39,7 +51,7 @@ describe('voting routes integration', () => {
         election: {
           id: electionId,
           titulo: 'Eleição 2026',
-          estado: 'VOTACAO_ABERTA',
+          estado: 'ABERTA',
           dataInicioVotacao: null,
           dataFimVotacao: null,
         },
@@ -50,9 +62,10 @@ describe('voting routes integration', () => {
     const response = await request(app)
       .get(`/api/v1/elections/${electionId}/ballot`)
       .set('Authorization', `Bearer ${accessToken}`);
+    const body = response.body as SuccessResponse<unknown>;
 
     expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
+    expect(body.success).toBe(true);
   });
 
   it('POST /votes returns 201 for valid vote payload', async () => {
@@ -72,10 +85,11 @@ describe('voting routes integration', () => {
       .send({
         candidatoId: '22222222-2222-4222-8222-222222222222',
       });
+    const body = response.body as SuccessResponse<{ receiptCode: string }>;
 
     expect(response.status).toBe(201);
-    expect(response.body.success).toBe(true);
-    expect(response.body.data.receiptCode).toBe('RCPT-ABC123');
+    expect(body.success).toBe(true);
+    expect(body.data.receiptCode).toBe('RCPT-ABC123');
   });
 
   it('GET /votes/me/status returns 200 with vote status', async () => {
@@ -92,18 +106,20 @@ describe('voting routes integration', () => {
     const response = await request(app)
       .get(`/api/v1/elections/${electionId}/votes/me/status`)
       .set('Authorization', `Bearer ${accessToken}`);
+    const body = response.body as SuccessResponse<{ hasVoted: boolean }>;
 
     expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
-    expect(response.body.data.hasVoted).toBe(true);
+    expect(body.success).toBe(true);
+    expect(body.data.hasVoted).toBe(true);
   });
 
   it('returns 401 when request is unauthenticated', async () => {
     const response = await request(app).get(`/api/v1/elections/${electionId}/ballot`);
+    const body = response.body as ErrorResponse;
 
     expect(response.status).toBe(401);
-    expect(response.body.success).toBe(false);
-    expect(response.body.error.code).toBe('AUTH_TOKEN_REQUIRED');
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('AUTH_TOKEN_REQUIRED');
   });
 
   it('GET /results returns 200 for authenticated user', async () => {
@@ -113,7 +129,7 @@ describe('voting routes integration', () => {
         election: {
           id: electionId,
           titulo: 'Eleição 2026',
-          estado: 'VOTACAO_ENCERRADA',
+          estado: 'CONCLUIDA',
         },
         summary: {
           totalEligibleVoters: 10,
@@ -140,9 +156,10 @@ describe('voting routes integration', () => {
     const response = await request(app)
       .get(`/api/v1/elections/${electionId}/results`)
       .set('Authorization', `Bearer ${accessToken}`);
+    const body = response.body as SuccessResponse<{ summary: { totalVotes: number } }>;
 
     expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
-    expect(response.body.data.summary.totalVotes).toBe(8);
+    expect(body.success).toBe(true);
+    expect(body.data.summary.totalVotes).toBe(8);
   });
 });

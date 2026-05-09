@@ -19,16 +19,50 @@ type CreatePositionInput = {
   descricao?: string | null;
 };
 
+type RawPositionItem = Omit<PositionItem, 'eleicoes'> & {
+  eleicoes?:
+    | NonNullable<PositionItem['eleicoes']>
+    | NonNullable<PositionItem['eleicoes']>[number]
+    | null;
+};
+
+type RawPositionListResponse = Omit<PositionListResponse, 'items'> & {
+  items: RawPositionItem[];
+};
+
+function normalizePosition(position: RawPositionItem): PositionItem {
+  const eleicoes =
+    position.eleicoes == null
+      ? []
+      : Array.isArray(position.eleicoes)
+        ? position.eleicoes
+        : [position.eleicoes];
+
+  return {
+    ...position,
+    eleicoes,
+  };
+}
+
 export const positionsApi = {
-  list(search?: string) {
-    return apiClient.get<PositionListResponse>(
+  async list(search?: string) {
+    const response = await apiClient.get<RawPositionListResponse>(
       withQuery(endpoints.positions.list, { nome: search }),
       { auth: true },
     );
+
+    return {
+      ...response,
+      items: response.items.map(normalizePosition),
+    };
   },
 
-  create(payload: CreatePositionInput) {
-    return apiClient.post<PositionItem>(endpoints.positions.create, payload, { auth: true });
+  async create(payload: CreatePositionInput) {
+    const response = await apiClient.post<RawPositionItem>(endpoints.positions.create, payload, {
+      auth: true,
+    });
+
+    return normalizePosition(response);
   },
 
   delete(positionId: string) {

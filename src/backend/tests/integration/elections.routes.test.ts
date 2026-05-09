@@ -62,7 +62,7 @@ describe('elections routes integration', () => {
             id: 'eleicao-1',
             cargoId: 'cargo-1',
             titulo: 'Eleição para Presidente 2026',
-            estado: 'CANDIDATURAS_ABERTAS',
+            estado: 'ABERTA',
             cargo: { id: 'cargo-1', nome: 'Presidente', descricao: null },
             candidatos: [],
             elegiveis: [],
@@ -99,7 +99,7 @@ describe('elections routes integration', () => {
             id: 'eleicao-1',
             cargoId: 'cargo-1',
             titulo: 'Eleição para Presidente 2026',
-            estado: 'CANDIDATURAS_ABERTAS',
+            estado: 'ABERTA',
             cargo: { id: 'cargo-1', nome: 'Presidente', descricao: null },
             candidatos: [],
             elegiveis: [],
@@ -109,13 +109,13 @@ describe('elections routes integration', () => {
         count: 1,
       });
 
-      const response = await request(app).get('/api/v1/elections?estado=CANDIDATURAS_ABERTAS');
+      const response = await request(app).get('/api/v1/elections?estado=ABERTA');
       const body = response.body as ListElectionsResponse;
 
       expect(response.status).toBe(200);
       expect(body.data.items).toHaveLength(1);
       expect(electionsServiceMock.listElections).toHaveBeenCalledWith({
-        estado: 'CANDIDATURAS_ABERTAS',
+        estado: 'ABERTA',
       });
     });
 
@@ -128,7 +128,7 @@ describe('elections routes integration', () => {
             id: 'eleicao-1',
             cargoId,
             titulo: 'Eleição para Presidente 2026',
-            estado: 'CANDIDATURAS_ABERTAS',
+            estado: 'ABERTA',
             cargo: { id: cargoId, nome: 'Presidente', descricao: null },
             candidatos: [],
             elegiveis: [],
@@ -139,7 +139,6 @@ describe('elections routes integration', () => {
       });
 
       const response = await request(app).get(`/api/v1/elections?cargoId=${cargoId}`);
-      const body = response.body as ListElectionsResponse;
 
       expect(response.status).toBe(200);
       expect(electionsServiceMock.listElections).toHaveBeenCalledWith({ cargoId });
@@ -153,17 +152,57 @@ describe('elections routes integration', () => {
       perfil: 'GESTOR_ELEITORAL',
       purpose: 'ACCESS',
     });
+    const validAdminToken = generateAccessToken({
+      sub: 'user-admin',
+      codigo: 'ADMIN001',
+      perfil: 'ADMIN',
+      purpose: 'ACCESS',
+    });
 
     it('lists existing candidate users', async () => {
       electionsServiceMock.listCandidateUsers.mockResolvedValue({
         message: 'Candidatos disponíveis listados com sucesso.',
-        data: [{ id: 'user-1', codigo: '026001', nome: 'Candidato Um', email: 'cand@up.ac.mz', activo: true }],
+        data: [
+          {
+            id: 'user-1',
+            codigo: '026001',
+            nome: 'Candidato Um',
+            email: 'cand@up.ac.mz',
+            activo: true,
+          },
+        ],
         count: 1,
       });
 
       const response = await request(app)
         .get('/api/v1/elections/candidate-users')
         .set('Authorization', `Bearer ${validGestorToken}`);
+
+      const body = response.body as ListElectionsResponse;
+      expect(response.status).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data.items).toHaveLength(1);
+      expect(electionsServiceMock.listCandidateUsers).toHaveBeenCalledWith(undefined);
+    });
+
+    it('lists existing candidate users with ADMIN token', async () => {
+      electionsServiceMock.listCandidateUsers.mockResolvedValue({
+        message: 'Candidatos disponíveis listados com sucesso.',
+        data: [
+          {
+            id: 'user-1',
+            codigo: '026001',
+            nome: 'Candidato Um',
+            email: 'cand@up.ac.mz',
+            activo: true,
+          },
+        ],
+        count: 1,
+      });
+
+      const response = await request(app)
+        .get('/api/v1/elections/candidate-users')
+        .set('Authorization', `Bearer ${validAdminToken}`);
 
       const body = response.body as ListElectionsResponse;
       expect(response.status).toBe(200);
@@ -182,7 +221,7 @@ describe('elections routes integration', () => {
           cargoId: 'cargo-1',
           titulo: 'Eleição para Presidente 2026',
           descricao: 'Eleição anual',
-          estado: 'CANDIDATURAS_ABERTAS',
+          estado: 'ABERTA',
           cargo: { id: 'cargo-1', nome: 'Presidente', descricao: 'Cargo de presidente' },
           candidatos: [],
           elegiveis: [],
@@ -291,12 +330,10 @@ describe('elections routes integration', () => {
     });
 
     it('rejects create without authentication', async () => {
-      const response = await request(app)
-        .post('/api/v1/elections')
-        .send({
-          cargoId: 'cargo-1',
-          titulo: 'Eleição Não Autorizada',
-        });
+      const response = await request(app).post('/api/v1/elections').send({
+        cargoId: 'cargo-1',
+        titulo: 'Eleição Não Autorizada',
+      });
 
       const body = response.body as ErrorResponse;
 
@@ -330,7 +367,7 @@ describe('elections routes integration', () => {
           cargoId: 'cargo-1',
           titulo: 'Eleição Atualizada',
           descricao: 'Nova descrição',
-          estado: 'CANDIDATURAS_ABERTAS',
+          estado: 'ABERTA',
           cargo: { id: 'cargo-1', nome: 'Presidente', descricao: null },
           candidatos: [],
           elegiveis: [],
@@ -338,12 +375,10 @@ describe('elections routes integration', () => {
         },
       });
 
-      const response = await request(app)
-        .patch('/api/v1/elections/eleicao-1')
-        .send({
-          titulo: 'Eleição Atualizada',
-          estado: 'CANDIDATURAS_ABERTAS',
-        });
+      const response = await request(app).patch('/api/v1/elections/eleicao-1').send({
+        titulo: 'Eleição Atualizada',
+        estado: 'ABERTA',
+      });
 
       const body = response.body as ElectionResponse;
 
@@ -353,11 +388,9 @@ describe('elections routes integration', () => {
     });
 
     it('rejects update with invalid data', async () => {
-      const response = await request(app)
-        .patch('/api/v1/elections/eleicao-1')
-        .send({
-          titulo: 'A',
-        });
+      const response = await request(app).patch('/api/v1/elections/eleicao-1').send({
+        titulo: 'A',
+      });
 
       const body = response.body as ErrorResponse;
 

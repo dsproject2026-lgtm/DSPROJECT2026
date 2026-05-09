@@ -1,5 +1,5 @@
-import { env } from '@/config/env';
-import { sessionStorageService } from '@/lib/storage/session-storage';
+import { env } from "@/config/env";
+import { sessionStorageService } from "@/lib/storage/session-storage";
 import type {
   CandidateListResponse,
   CandidateItem,
@@ -13,16 +13,17 @@ import type {
   PositionListResponse,
   UpdateCandidateInput,
   UpdateElectionInput,
-} from '@/types/commission';
-import type { ApiErrorResponse, ApiSuccessResponse } from '@/types/api';
+} from "@/types/commission";
+import type { ElectionResults } from "@/types/elector";
+import type { ApiErrorResponse, ApiSuccessResponse } from "@/types/api";
 
-import { endpoints } from './endpoints';
-import { apiClient } from './http';
+import { endpoints } from "./endpoints";
+import { apiClient } from "./http";
 
 function withQuery(path: string, params: Record<string, string | undefined>) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value.trim() !== '') {
+    if (value !== undefined && value.trim() !== "") {
       query.set(key, value);
     }
   });
@@ -32,17 +33,25 @@ function withQuery(path: string, params: Record<string, string | undefined>) {
 
 export const commissionApi = {
   listPositions() {
-    return apiClient.get<PositionListResponse>(endpoints.positions.list, { auth: true });
+    return apiClient.get<PositionListResponse>(endpoints.positions.list, {
+      auth: true,
+    });
   },
 
   listElections() {
-    return apiClient.get<CommissionElectionListResponse>(endpoints.elections.list, { auth: true });
+    return apiClient.get<CommissionElectionListResponse>(
+      endpoints.elections.list,
+      { auth: true },
+    );
   },
 
   getElectionById(electionId: string) {
-    return apiClient.get<CommissionElectionDetailsItem>(endpoints.elections.detail(electionId), {
-      auth: true,
-    });
+    return apiClient.get<CommissionElectionDetailsItem>(
+      endpoints.elections.detail(electionId),
+      {
+        auth: true,
+      },
+    );
   },
 
   listCandidateUsers(search?: string) {
@@ -57,11 +66,22 @@ export const commissionApi = {
   },
 
   updateElection(electionId: string, payload: UpdateElectionInput) {
-    return apiClient.patch(endpoints.elections.update(electionId), payload, { auth: true });
+    return apiClient.patch(endpoints.elections.update(electionId), payload, {
+      auth: true,
+    });
   },
 
   deleteElection(electionId: string) {
-    return apiClient.delete(endpoints.elections.remove(electionId), { auth: true });
+    return apiClient.delete(endpoints.elections.remove(electionId), {
+      auth: true,
+    });
+  },
+
+  getElectionResults(electionId: string) {
+    return apiClient.get<ElectionResults>(
+      endpoints.elections.results(electionId),
+      { auth: true },
+    );
   },
 
   listCandidates(
@@ -86,7 +106,11 @@ export const commissionApi = {
     );
   },
 
-  updateCandidate(electionId: string, candidateId: string, payload: UpdateCandidateInput) {
+  updateCandidate(
+    electionId: string,
+    candidateId: string,
+    payload: UpdateCandidateInput,
+  ) {
     return apiClient.patch(
       endpoints.elections.candidates.update(electionId, candidateId),
       payload,
@@ -127,7 +151,7 @@ export const commissionApi = {
 
   listEligibleVoters(
     electionId: string,
-    filters?: { codigo?: string; nome?: string; jaVotou?: 'true' | 'false' },
+    filters?: { codigo?: string; nome?: string; jaVotou?: "true" | "false" },
   ) {
     return apiClient.get<EligibleVoterListResponse>(
       withQuery(endpoints.elections.eligibleVoters.list(electionId), {
@@ -144,9 +168,9 @@ export const commissionApi = {
     const response = await fetch(
       `${env.apiBaseUrl}${endpoints.elections.eligibleVoters.importCsv(electionId)}`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'text/plain',
+          "Content-Type": "text/plain",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: csvContent,
@@ -162,7 +186,7 @@ export const commissionApi = {
       const message =
         json && json.success === false
           ? json.error.message
-          : 'Falha ao importar eleitores elegíveis.';
+          : "Falha ao importar eleitores elegíveis.";
       throw new Error(message);
     }
 

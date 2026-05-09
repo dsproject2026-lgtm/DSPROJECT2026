@@ -110,7 +110,11 @@ class AuthService {
     const user = await authRepository.findUserByCodigo(codigo);
 
     if (!user) {
-      throw new AppError('Pedido de primeiro acesso inválido.', 400, 'AUTH_INVALID_FIRST_ACCESS_REQUEST');
+      throw new AppError(
+        'Pedido de primeiro acesso inválido.',
+        400,
+        'AUTH_INVALID_FIRST_ACCESS_REQUEST',
+      );
     }
 
     if (!user.activo) {
@@ -120,9 +124,14 @@ class AuthService {
     }
 
     if (!user.email) {
-      throw new AppError('O email do utilizador é obrigatório para o primeiro acesso.', 400, 'AUTH_EMAIL_REQUIRED', {
-        codigo,
-      });
+      throw new AppError(
+        'O email do utilizador é obrigatório para o primeiro acesso.',
+        400,
+        'AUTH_EMAIL_REQUIRED',
+        {
+          codigo,
+        },
+      );
     }
 
     if (!user.mustSetPassword && user.senhaHash) {
@@ -151,22 +160,38 @@ class AuthService {
     const user = await authRepository.findUserByCodigo(codigo);
 
     if (!user || (!user.mustSetPassword && user.senhaHash)) {
-      throw new AppError('Token de primeiro acesso inválido.', 401, 'AUTH_INVALID_FIRST_ACCESS_TOKEN');
+      throw new AppError(
+        'Token de primeiro acesso inválido.',
+        401,
+        'AUTH_INVALID_FIRST_ACCESS_TOKEN',
+      );
     }
 
     if (!user.passwordSetupTokenHash || !user.passwordSetupTokenExpiresAt) {
-      throw new AppError('Token de primeiro acesso inválido.', 401, 'AUTH_INVALID_FIRST_ACCESS_TOKEN');
+      throw new AppError(
+        'Token de primeiro acesso inválido.',
+        401,
+        'AUTH_INVALID_FIRST_ACCESS_TOKEN',
+      );
     }
 
     if (user.passwordSetupTokenExpiresAt.getTime() < Date.now()) {
-      throw new AppError('O token de primeiro acesso expirou.', 401, 'AUTH_FIRST_ACCESS_TOKEN_EXPIRED');
+      throw new AppError(
+        'O token de primeiro acesso expirou.',
+        401,
+        'AUTH_FIRST_ACCESS_TOKEN_EXPIRED',
+      );
     }
 
     const providedTokenHash = hashSecureToken(token);
     const tokenMatches = safeEqualTokenHash(providedTokenHash, user.passwordSetupTokenHash);
 
     if (!tokenMatches) {
-      throw new AppError('Token de primeiro acesso inválido.', 401, 'AUTH_INVALID_FIRST_ACCESS_TOKEN');
+      throw new AppError(
+        'Token de primeiro acesso inválido.',
+        401,
+        'AUTH_INVALID_FIRST_ACCESS_TOKEN',
+      );
     }
 
     const senhaHash = await generatePasswordHash(novaSenha);
@@ -181,9 +206,14 @@ class AuthService {
 
   private async issueFirstAccessToken(user: AuthUserRecord) {
     if (!user.email) {
-      throw new AppError('O email do utilizador é obrigatório para o primeiro acesso.', 400, 'AUTH_EMAIL_REQUIRED', {
-        codigo: user.codigo,
-      });
+      throw new AppError(
+        'O email do utilizador é obrigatório para o primeiro acesso.',
+        400,
+        'AUTH_EMAIL_REQUIRED',
+        {
+          codigo: user.codigo,
+        },
+      );
     }
 
     const rawToken = generateSecureToken();
@@ -227,9 +257,14 @@ class AuthService {
     }
 
     if (!user.email) {
-      throw new AppError('O email do utilizador é obrigatório para recuperar a senha.', 400, 'AUTH_EMAIL_REQUIRED', {
-        codigo,
-      });
+      throw new AppError(
+        'O email do utilizador é obrigatório para recuperar a senha.',
+        400,
+        'AUTH_EMAIL_REQUIRED',
+        {
+          codigo,
+        },
+      );
     }
 
     if (user.mustSetPassword || !user.senhaHash) {
@@ -274,22 +309,38 @@ class AuthService {
     const user = await authRepository.findUserByCodigo(codigo);
 
     if (!user || user.mustSetPassword || !user.senhaHash) {
-      throw new AppError('Token de recuperação de senha inválido.', 401, 'AUTH_INVALID_PASSWORD_RECOVERY_TOKEN');
+      throw new AppError(
+        'Token de recuperação de senha inválido.',
+        401,
+        'AUTH_INVALID_PASSWORD_RECOVERY_TOKEN',
+      );
     }
 
     if (!user.passwordSetupTokenHash || !user.passwordSetupTokenExpiresAt) {
-      throw new AppError('Token de recuperação de senha inválido.', 401, 'AUTH_INVALID_PASSWORD_RECOVERY_TOKEN');
+      throw new AppError(
+        'Token de recuperação de senha inválido.',
+        401,
+        'AUTH_INVALID_PASSWORD_RECOVERY_TOKEN',
+      );
     }
 
     if (user.passwordSetupTokenExpiresAt.getTime() < Date.now()) {
-      throw new AppError('O token de recuperação de senha expirou.', 401, 'AUTH_PASSWORD_RECOVERY_TOKEN_EXPIRED');
+      throw new AppError(
+        'O token de recuperação de senha expirou.',
+        401,
+        'AUTH_PASSWORD_RECOVERY_TOKEN_EXPIRED',
+      );
     }
 
     const providedTokenHash = hashSecureToken(token);
     const tokenMatches = safeEqualTokenHash(providedTokenHash, user.passwordSetupTokenHash);
 
     if (!tokenMatches) {
-      throw new AppError('Token de recuperação de senha inválido.', 401, 'AUTH_INVALID_PASSWORD_RECOVERY_TOKEN');
+      throw new AppError(
+        'Token de recuperação de senha inválido.',
+        401,
+        'AUTH_INVALID_PASSWORD_RECOVERY_TOKEN',
+      );
     }
 
     const senhaHash = await generatePasswordHash(novaSenha);
@@ -487,6 +538,12 @@ class AuthService {
 
     if (!user) {
       throw new AppError('Utilizador autenticado não encontrado.', 404, 'AUTH_USER_NOT_FOUND');
+    }
+
+    if (!user.activo) {
+      throw new AppError('A conta do utilizador está inativa.', 403, 'AUTH_ACCOUNT_INACTIVE', {
+        userId,
+      });
     }
 
     return this.buildAuthenticatedUser(user);

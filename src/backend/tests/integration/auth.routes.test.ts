@@ -32,6 +32,19 @@ type LoginStartResponse = {
   };
 };
 
+type RegisterResponse = {
+  success: boolean;
+  data: {
+    id: string;
+    codigo: string;
+    nome: string;
+    email: string | null;
+    perfil: string;
+    activo: boolean;
+    mustSetPassword: boolean;
+  };
+};
+
 type ErrorResponse = {
   success: boolean;
   error: {
@@ -49,6 +62,41 @@ type MeResponse = {
 describe('auth routes integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('registers a backoffice user', async () => {
+    authServiceMock.createUser.mockResolvedValue({
+      id: 'user-gestor-1',
+      codigo: 'GEST001',
+      nome: 'Gestor Eleitoral',
+      email: 'gestor@up.ac.mz',
+      perfil: 'GESTOR_ELEITORAL',
+      activo: true,
+      mustSetPassword: true,
+      createdAt: new Date().toISOString(),
+    });
+
+    const response = await request(app).post('/api/v1/auth/register').send({
+      nome: 'Gestor Eleitoral',
+      codigo: 'GEST001',
+      email: 'gestor@up.ac.mz',
+      perfil: 'GESTOR_ELEITORAL',
+      activo: true,
+      mustSetPassword: true,
+    });
+    const body = response.body as RegisterResponse;
+
+    expect(response.status).toBe(201);
+    expect(body.success).toBe(true);
+    expect(body.data.perfil).toBe('GESTOR_ELEITORAL');
+    expect(authServiceMock.createUser).toHaveBeenCalledWith({
+      nome: 'Gestor Eleitoral',
+      codigo: 'GEST001',
+      email: 'gestor@up.ac.mz',
+      perfil: 'GESTOR_ELEITORAL',
+      activo: true,
+      mustSetPassword: true,
+    });
   });
 
   it('starts login flow with code-only request', async () => {

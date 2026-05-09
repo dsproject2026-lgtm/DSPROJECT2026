@@ -1,23 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Search, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from "react";
+import { RefreshCw, Search, Trash2 } from "lucide-react";
 
-import { positionsApi } from '@/api/positions.api';
-import { Chip, Spinner, UiPageSkeleton, UiTable, toast } from '@/components/ui';
-import { ApiError } from '@/lib/http/api-error';
-import { formatStateLabel, getStateChipColor } from '@/lib/ui/state-chip';
-import type { PositionItem } from '@/types/commission';
+import { positionsApi } from "@/api/positions.api";
+import { Chip, Spinner, UiPageSkeleton, UiTable, toast } from "@/components/ui";
+import { ApiError } from "@/lib/http/api-error";
+import { formatStateLabel, getStateChipColor } from "@/lib/ui/state-chip";
+import type { PositionItem } from "@/types/commission";
 
 function getPositionStatus(position: PositionItem) {
   const states = position.eleicoes?.map((election) => election.estado) ?? [];
-  if (states.includes('ABERTA')) return 'EM_USO';
-  if (states.includes('PENDENTE')) return 'PLANEADO';
-  if (states.length === 0) return 'SEM_ELEICOES';
-  return 'HISTORICO';
+  if (states.includes("ABERTA")) return "EM_USO";
+  if (states.includes("PENDENTE")) return "PLANEADO";
+  if (states.length === 0) return "SEM_ELEICOES";
+  return "HISTORICO";
 }
 
 export function AdminPositionsViewPage() {
   const [rows, setRows] = useState<PositionItem[]>([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -38,7 +38,9 @@ export function AdminPositionsViewPage() {
       } catch (cause) {
         if (!isActive) return;
         const message =
-          cause instanceof ApiError ? cause.message : 'Não foi possível carregar os cargos.';
+          cause instanceof ApiError
+            ? cause.message
+            : "Não foi possível carregar os cargos.";
         toast.danger(message);
       } finally {
         if (isActive) setIsLoading(false);
@@ -55,7 +57,7 @@ export function AdminPositionsViewPage() {
     const query = search.trim().toLowerCase();
     if (!query) return rows;
     return rows.filter((row) =>
-      [row.nome, row.descricao ?? ''].join(' ').toLowerCase().includes(query),
+      [row.nome, row.descricao ?? ""].join(" ").toLowerCase().includes(query),
     );
   }, [rows, search]);
 
@@ -63,10 +65,12 @@ export function AdminPositionsViewPage() {
     try {
       setIsRefreshing(true);
       await load();
-      toast.success('Lista de cargos atualizada.');
+      toast.success("Lista de cargos atualizada.");
     } catch (cause) {
       const message =
-        cause instanceof ApiError ? cause.message : 'Não foi possível atualizar os cargos.';
+        cause instanceof ApiError
+          ? cause.message
+          : "Não foi possível atualizar os cargos.";
       toast.danger(message);
     } finally {
       setIsRefreshing(false);
@@ -74,17 +78,19 @@ export function AdminPositionsViewPage() {
   };
 
   const removePosition = async (id: string) => {
-    const confirmed = window.confirm('Pretende remover este cargo?');
+    const confirmed = window.confirm("Pretende remover este cargo?");
     if (!confirmed) return;
 
     try {
       setBusyId(id);
       await positionsApi.delete(id);
       await load(search);
-      toast.success('Cargo removido com sucesso.');
+      toast.success("Cargo removido com sucesso.");
     } catch (cause) {
       const message =
-        cause instanceof ApiError ? cause.message : 'Não foi possível remover o cargo.';
+        cause instanceof ApiError
+          ? cause.message
+          : "Não foi possível remover o cargo.";
       toast.danger(message);
     } finally {
       setBusyId(null);
@@ -105,7 +111,6 @@ export function AdminPositionsViewPage() {
           Consulte os cargos registados e respetiva utilização nas eleições.
         </p>
       </div>
-
       <div className="rounded-sm border border-[#e2e8f0] bg-white p-5 shadow-none">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
           <div className="relative">
@@ -123,7 +128,11 @@ export function AdminPositionsViewPage() {
             disabled={isRefreshing}
             className="inline-flex h-11 items-center justify-center rounded-md border border-[#d1d9e6] bg-white px-4 text-sm font-medium text-[#111827] transition hover:bg-[#f8fafc] disabled:opacity-60"
           >
-            {isRefreshing ? <Spinner size="sm" className="mr-2" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            {isRefreshing ? (
+              <Spinner size="sm" className="mr-2" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
             Atualizar
           </button>
         </div>
@@ -133,11 +142,15 @@ export function AdminPositionsViewPage() {
         <UiTable
           ariaLabel="Cargos registados"
           columns={[
-            { id: 'nome', label: 'Nome', className: 'font-semibold' },
-            { id: 'descricao', label: 'Descrição', className: 'font-semibold' },
-            { id: 'eleicoes', label: 'Eleições', className: 'font-semibold' },
-            { id: 'estado', label: 'Estado', className: 'font-semibold' },
-            { id: 'acoes', label: 'Ações', className: 'font-semibold text-right' },
+            { id: "nome", label: "Nome", className: "font-semibold" },
+            { id: "descricao", label: "Descrição", className: "font-semibold" },
+            { id: "eleicoes", label: "Eleições", className: "font-semibold" },
+            { id: "estado", label: "Estado", className: "font-semibold" },
+            {
+              id: "acoes",
+              label: "Ações",
+              className: "font-semibold text-right",
+            },
           ]}
           rows={filteredRows.map((row) => {
             const status = getPositionStatus(row);
@@ -146,11 +159,14 @@ export function AdminPositionsViewPage() {
             return {
               id: row.id,
               cells: [
-                <span key={`${row.id}:nome`} className="font-semibold text-[#0f172a]">
+                <span
+                  key={`${row.id}:nome`}
+                  className="font-semibold text-[#0f172a]"
+                >
                   {row.nome}
                 </span>,
                 <span key={`${row.id}:descricao`} className="text-[#475569]">
-                  {row.descricao ?? '-'}
+                  {row.descricao ?? "-"}
                 </span>,
                 <span key={`${row.id}:eleicoes`} className="text-[#475569]">
                   {electionCount}

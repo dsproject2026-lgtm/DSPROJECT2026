@@ -19,12 +19,11 @@ const electionsRouter = Router();
 // PUBLIC ROUTES (read-only for auditors)
 // ─────────────────────────────────────────────
 
-
 electionsRouter.get('/', listElections);
 electionsRouter.get(
   '/candidate-users',
   authenticateAccessToken,
-  requirePerfis('GESTOR_ELEITORAL'),
+  requirePerfis('GESTOR_ELEITORAL', 'ADMIN'),
   listCandidateUsers,
 );
 
@@ -32,13 +31,22 @@ electionsRouter.use('/:electionId/candidates', candidatesRouter);
 electionsRouter.use('/:electionId/eligible-voters', eligibleVotersRouter);
 electionsRouter.use('/:electionId', votingRouter);
 
-electionsRouter.patch('/:id', updateElection,
-);
+electionsRouter.patch('/:id', updateElection);
 electionsRouter.get('/:id', getElectionById);
 
-electionsRouter.post('/', authenticateAccessToken, requirePerfis('GESTOR_ELEITORAL'), createElection,);
+electionsRouter.post(
+  '/',
+  authenticateAccessToken,
+  requirePerfis('GESTOR_ELEITORAL'),
+  createElection,
+);
 //electionsRouter.put('/:id', authenticateAccessToken, requirePerfis('GESTOR_ELEITORAL'), updateElection,
 //);
-electionsRouter.delete('/:id', authenticateAccessToken, requirePerfis('GESTOR_ELEITORAL'), deleteElection,);
+electionsRouter.delete(
+  '/:id',
+  authenticateAccessToken,
+  requirePerfis('GESTOR_ELEITORAL'),
+  deleteElection,
+);
 
 export default electionsRouter;

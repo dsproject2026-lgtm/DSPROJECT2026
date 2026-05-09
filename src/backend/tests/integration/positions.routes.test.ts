@@ -162,7 +162,7 @@ describe('positions routes integration', () => {
       expect(body.data.id).toBe('pos-new');
     });
 
-    it('creates position with GESTOR_ELEITORAL token', async () => {
+    it('rejects create with GESTOR_ELEITORAL token', async () => {
       positionsServiceMock.createPosition.mockResolvedValue({
         message: 'Cargo criado com sucesso.',
         data: {
@@ -182,17 +182,17 @@ describe('positions routes integration', () => {
 
       const body = response.body as PositionResponse;
 
-      expect(response.status).toBe(201);
-      expect(body.success).toBe(true);
+      expect(response.status).toBe(403);
+      expect(body.success).toBe(false);
+      expect((body as unknown as ErrorResponse).error.code).toBe('AUTH_FORBIDDEN');
+      expect(positionsServiceMock.createPosition).not.toHaveBeenCalled();
     });
 
     it('rejects create without authentication', async () => {
-      const response = await request(app)
-        .post('/api/v1/positions')
-        .send({
-          nome: 'Tesoureiro',
-          descricao: 'Cargo de tesoureiro',
-        });
+      const response = await request(app).post('/api/v1/positions').send({
+        nome: 'Tesoureiro',
+        descricao: 'Cargo de tesoureiro',
+      });
 
       const body = response.body as ErrorResponse;
 
@@ -251,11 +251,9 @@ describe('positions routes integration', () => {
     });
 
     it('rejects update without authentication', async () => {
-      const response = await request(app)
-        .put('/api/v1/positions/pos-1')
-        .send({
-          nome: 'Presidente Atualizado',
-        });
+      const response = await request(app).put('/api/v1/positions/pos-1').send({
+        nome: 'Presidente Atualizado',
+      });
 
       const body = response.body as ErrorResponse;
 

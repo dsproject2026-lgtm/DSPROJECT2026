@@ -239,7 +239,7 @@ describe('ElectionsService', () => {
         cargoId: 'cargo-1',
         titulo: 'Eleição para Presidente 2026',
         descricao: 'Eleição anual',
-        estado: 'CANDIDATURAS_ABERTAS',
+        estado: 'ABERTA',
         cargo: { id: 'cargo-1', nome: 'Presidente', descricao: 'Cargo de presidente' },
         candidatos: [],
         elegiveis: [],
@@ -268,7 +268,7 @@ describe('ElectionsService', () => {
           id: 'eleicao-1',
           cargoId: 'cargo-1',
           titulo: 'Eleição para Presidente 2026',
-          estado: 'CANDIDATURAS_ABERTAS',
+          estado: 'ABERTA',
           cargo: { id: 'cargo-1', nome: 'Presidente', descricao: null },
           candidatos: [],
           elegiveis: [],
@@ -301,7 +301,7 @@ describe('ElectionsService', () => {
           id: 'eleicao-1',
           cargoId: 'cargo-1',
           titulo: 'Eleição para Presidente 2026',
-          estado: 'CANDIDATURAS_ABERTAS',
+          estado: 'ABERTA',
           cargo: { id: 'cargo-1', nome: 'Presidente', descricao: null },
           candidatos: [],
           elegiveis: [],
@@ -311,12 +311,12 @@ describe('ElectionsService', () => {
 
       electionsRepositoryMock.findAll.mockResolvedValue(elections);
 
-      const result = await electionsService.listElections({ estado: 'CANDIDATURAS_ABERTAS' });
+      const result = await electionsService.listElections({ estado: 'ABERTA' });
 
       expect(result.message).toBe('Eleições listadas com sucesso.');
       expect(result.data).toHaveLength(1);
       expect(electionsRepositoryMock.findAll).toHaveBeenCalledWith({
-        estado: 'CANDIDATURAS_ABERTAS',
+        estado: 'ABERTA',
       });
     });
 
@@ -326,7 +326,7 @@ describe('ElectionsService', () => {
           id: 'eleicao-1',
           cargoId: 'cargo-1',
           titulo: 'Eleição para Presidente 2026',
-          estado: 'CANDIDATURAS_ABERTAS',
+          estado: 'ABERTA',
           cargo: { id: 'cargo-1', nome: 'Presidente', descricao: null },
           candidatos: [],
           elegiveis: [],
@@ -360,7 +360,7 @@ describe('ElectionsService', () => {
       const updatedElection = {
         ...existingElection,
         titulo: 'Eleição para Presidente 2026 - Atualizada',
-        estado: 'CANDIDATURAS_ABERTAS',
+        estado: 'ABERTA',
       };
 
       electionsRepositoryMock.findById.mockResolvedValue(existingElection);
@@ -369,7 +369,7 @@ describe('ElectionsService', () => {
 
       const result = await electionsService.updateElection('eleicao-1', {
         titulo: 'Eleição para Presidente 2026 - Atualizada',
-        estado: 'CANDIDATURAS_ABERTAS',
+        estado: 'ABERTA',
       });
 
       expect(result.message).toBe('Eleição atualizada com sucesso.');
@@ -458,7 +458,7 @@ describe('ElectionsService', () => {
         id: 'eleicao-1',
         cargoId: 'cargo-1',
         titulo: 'Eleição para Presidente 2026',
-        estado: 'CANDIDATURAS_ABERTAS',
+        estado: 'ABERTA',
         cargo: { id: 'cargo-1', nome: 'Presidente', descricao: null },
         candidatos: [{ id: 'cand-1', nome: 'Candidato 1', estado: 'APROVADO' }],
         elegiveis: [],
@@ -477,7 +477,7 @@ describe('ElectionsService', () => {
         id: 'eleicao-1',
         cargoId: 'cargo-1',
         titulo: 'Eleição para Presidente 2026',
-        estado: 'CANDIDATURAS_ABERTAS',
+        estado: 'ABERTA',
         cargo: { id: 'cargo-1', nome: 'Presidente', descricao: null },
         candidatos: [],
         elegiveis: [{ id: 'eleg-1', utilizadorId: 'user-1', jaVotou: false }],

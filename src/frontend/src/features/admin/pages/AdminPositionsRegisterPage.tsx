@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useState } from "react";
+import { Plus } from "lucide-react";
 
-import { positionsApi } from '@/api/positions.api';
-import { Spinner, toast } from '@/components/ui';
-import { ApiError } from '@/lib/http/api-error';
+import { positionsApi } from "@/api/positions.api";
+import { Spinner, toast } from "@/components/ui";
+import { ApiError } from "@/lib/http/api-error";
 
 type PositionFormData = {
   nome: string;
@@ -11,8 +11,8 @@ type PositionFormData = {
 };
 
 const INITIAL_FORM: PositionFormData = {
-  nome: '',
-  descricao: '',
+  nome: "",
+  descricao: "",
 };
 
 export function AdminPositionsRegisterPage() {
@@ -22,7 +22,7 @@ export function AdminPositionsRegisterPage() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.nome.trim()) {
-      toast.danger('Indique o nome do cargo.');
+      toast.danger("Indique o nome do cargo.");
       return;
     }
 
@@ -33,14 +33,14 @@ export function AdminPositionsRegisterPage() {
         descricao: form.descricao.trim() || null,
       });
       setForm(INITIAL_FORM);
-      toast.success('Cargo registado com sucesso.');
+      toast.success("Cargo registado com sucesso.");
     } catch (cause) {
       const message =
         cause instanceof ApiError
           ? cause.message
           : cause instanceof Error
             ? cause.message
-            : 'Não foi possível registar o cargo.';
+            : "Não foi possível registar o cargo.";
       toast.danger(message);
     } finally {
       setIsSaving(false);
@@ -57,8 +57,10 @@ export function AdminPositionsRegisterPage() {
           Crie um novo cargo para ser usado nas eleições.
         </p>
       </div>
-
-      <form onSubmit={submit} className="rounded-sm border border-[#e2e8f0] bg-white p-5 shadow-none">
+      <form
+        onSubmit={submit}
+        className="rounded-sm border border-[#e2e8f0] bg-white p-5 shadow-none"
+      >
         <div className="grid gap-4">
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
@@ -66,7 +68,9 @@ export function AdminPositionsRegisterPage() {
             </label>
             <input
               value={form.nome}
-              onChange={(event) => setForm((current) => ({ ...current, nome: event.target.value }))}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, nome: event.target.value }))
+              }
               className="h-11 w-full rounded-sm border border-[#d1d9e6] bg-white px-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
               placeholder="Ex.: Presidente da Associação"
             />
@@ -79,7 +83,10 @@ export function AdminPositionsRegisterPage() {
             <textarea
               value={form.descricao}
               onChange={(event) =>
-                setForm((current) => ({ ...current, descricao: event.target.value }))
+                setForm((current) => ({
+                  ...current,
+                  descricao: event.target.value,
+                }))
               }
               className="min-h-[110px] w-full rounded-sm border border-[#d1d9e6] bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
               placeholder="Descrição breve do cargo"
@@ -93,7 +100,11 @@ export function AdminPositionsRegisterPage() {
             disabled={isSaving}
             className="inline-flex h-10 items-center rounded-md bg-[#1A56DB] px-4 text-sm font-medium text-white transition hover:bg-[#1647C0] disabled:opacity-60"
           >
-            {isSaving ? <Spinner size="sm" className="mr-2 text-white" /> : <Plus className="mr-2 h-4 w-4" />}
+            {isSaving ? (
+              <Spinner size="sm" className="mr-2 text-white" />
+            ) : (
+              <Plus className="mr-2 h-4 w-4" />
+            )}
             Guardar Cargo
           </button>
         </div>

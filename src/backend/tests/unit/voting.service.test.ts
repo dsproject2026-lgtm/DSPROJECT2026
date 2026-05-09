@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { votingRepositoryMock } = vi.hoisted(() => ({
+const { electionsServiceMock, settingsServiceMock, votingRepositoryMock } = vi.hoisted(() => ({
+  electionsServiceMock: {
+    concludeExpiredOpenElections: vi.fn(),
+  },
+  settingsServiceMock: {
+    getSystemSettings: vi.fn(),
+  },
   votingRepositoryMock: {
     findElectionById: vi.fn(),
     findEligibleVoter: vi.fn(),
@@ -18,18 +24,31 @@ vi.mock('../../src/repositories/voting.repository.js', () => ({
   votingRepository: votingRepositoryMock,
 }));
 
+vi.mock('../../src/services/elections.service.js', () => ({
+  electionsService: electionsServiceMock,
+}));
+
+vi.mock('../../src/services/settings.service.js', () => ({
+  settingsService: settingsServiceMock,
+}));
+
 import { votingService } from '../../src/services/voting.service.js';
 
 describe('VotingService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    settingsServiceMock.getSystemSettings.mockResolvedValue({
+      settings: {
+        allowImmediateResults: false,
+      },
+    });
   });
 
   it('returns ballot when election is open and voter is eligible', async () => {
     votingRepositoryMock.findElectionById.mockResolvedValue({
       id: 'election-1',
       titulo: 'Eleição 2026',
-      estado: 'VOTACAO_ABERTA',
+      estado: 'ABERTA',
       dataInicioVotacao: new Date('2026-04-13T10:00:00.000Z'),
       dataFimVotacao: new Date('2026-04-13T18:00:00.000Z'),
     });
@@ -59,7 +78,7 @@ describe('VotingService', () => {
     votingRepositoryMock.findElectionById.mockResolvedValue({
       id: 'election-1',
       titulo: 'Eleição 2026',
-      estado: 'VOTACAO_ABERTA',
+      estado: 'ABERTA',
       dataInicioVotacao: null,
       dataFimVotacao: null,
     });
@@ -96,7 +115,7 @@ describe('VotingService', () => {
     votingRepositoryMock.findElectionById.mockResolvedValue({
       id: 'election-1',
       titulo: 'Eleição 2026',
-      estado: 'VOTACAO_ABERTA',
+      estado: 'ABERTA',
       dataInicioVotacao: null,
       dataFimVotacao: null,
     });
@@ -116,7 +135,7 @@ describe('VotingService', () => {
     votingRepositoryMock.findElectionById.mockResolvedValue({
       id: 'election-1',
       titulo: 'Eleição 2026',
-      estado: 'VOTACAO_ABERTA',
+      estado: 'ABERTA',
       dataInicioVotacao: null,
       dataFimVotacao: null,
     });
@@ -142,7 +161,7 @@ describe('VotingService', () => {
     votingRepositoryMock.findElectionById.mockResolvedValue({
       id: 'election-1',
       titulo: 'Eleição 2026',
-      estado: 'VOTACAO_ENCERRADA',
+      estado: 'CONCLUIDA',
       dataInicioVotacao: null,
       dataFimVotacao: null,
     });
@@ -169,7 +188,7 @@ describe('VotingService', () => {
     votingRepositoryMock.findElectionById.mockResolvedValue({
       id: 'election-1',
       titulo: 'Eleição 2026',
-      estado: 'VOTACAO_ABERTA',
+      estado: 'ABERTA',
       dataInicioVotacao: null,
       dataFimVotacao: null,
     });
