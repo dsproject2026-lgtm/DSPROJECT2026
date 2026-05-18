@@ -44,10 +44,28 @@ export const BACKOFFICE_CONFIGS: Record<BackofficeRole, BackofficeRoleConfig> = 
         description: 'Base pronta para registo e visualização de cargos eleitorais.',
       },
       {
+        segment: 'eleicoes',
+        label: 'Eleições',
+        title: 'Consulta de Eleições',
+        description: 'Consulta administrativa das eleições registadas.',
+      },
+      {
         segment: 'estudantes',
         label: 'Eleitores',
         title: 'Gestão de Eleitores',
         description: 'Base pronta para listagem, elegibilidade e importação de eleitores.',
+      },
+      {
+        segment: 'resultados',
+        label: 'Resultados',
+        title: 'Resultados',
+        description: 'Consulta administrativa dos resultados eleitorais.',
+      },
+      {
+        segment: 'faculdades',
+        label: 'Faculdades',
+        title: 'Faculdades e Cursos',
+        description: 'Registo de faculdades e cursos usados nos estudantes e eleicoes.',
       },
       {
         segment: 'comissao',

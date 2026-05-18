@@ -3,14 +3,17 @@ import { sessionStorageService } from '@/lib/storage/session-storage';
 import type {
   CandidateListResponse,
   CandidateItem,
+  AuditLogListResponse,
   CommissionElectionDetailsItem,
   CandidateUserListResponse,
   CommissionElectionListResponse,
   CreateCandidateInput,
   CreateElectionInput,
   EligibleVoterListResponse,
+  FacultyListResponse,
   ImportEligibleVotersResult,
   PositionListResponse,
+  TeamMemberListResponse,
   UpdateCandidateInput,
   UpdateElectionInput,
 } from '@/types/commission';
@@ -33,6 +36,37 @@ function withQuery(path: string, params: Record<string, string | undefined>) {
 export const commissionApi = {
   listPositions() {
     return apiClient.get<PositionListResponse>(endpoints.positions.list, { auth: true });
+  },
+
+  listFaculties() {
+    return apiClient.get<FacultyListResponse>(endpoints.faculties.list, { auth: true });
+  },
+
+  createFaculty(payload: { nome: string; cursos: string[] }) {
+    return apiClient.post(endpoints.faculties.create, payload, { auth: true });
+  },
+
+  addCourses(facultyId: string, payload: { cursos: string[] }) {
+    return apiClient.post(endpoints.faculties.addCourses(facultyId), payload, { auth: true });
+  },
+
+  listTeamMembers() {
+    return apiClient.get<TeamMemberListResponse>(endpoints.team.list, { auth: true });
+  },
+
+  createTeamMember(payload: { nome: string; email: string; perfil: 'GESTOR_ELEITORAL' | 'AUDITOR' }) {
+    return apiClient.post(endpoints.team.create, payload, { auth: true });
+  },
+
+  updateTeamMemberStatus(memberId: string, activo: boolean) {
+    return apiClient.patch(endpoints.team.updateStatus(memberId), { activo }, { auth: true });
+  },
+
+  listAuditLogs(filters?: { electionId?: string }) {
+    return apiClient.get<AuditLogListResponse>(
+      withQuery(endpoints.audit.list, { electionId: filters?.electionId }),
+      { auth: true },
+    );
   },
 
   listElections() {

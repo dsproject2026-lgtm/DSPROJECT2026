@@ -3,13 +3,14 @@ import { KeyRound, LogOut, UserRound } from 'lucide-react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@heroui/react';
 
+import { candidateApi } from '@/api/candidate.api';
 import { authApi } from '@/api/auth.api';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Spinner, toast } from '@/components/ui';
 import { clearElectorVoteReceipt, getElectorVoteReceipt } from '@/features/elector/lib/vote-receipt';
 import { ApiError } from '@/lib/http/api-error';
 import { sessionStorageService } from '@/lib/storage/session-storage';
 
-function ElectorNavIcon({ type }: { type: 'votar' | 'confirmacao' | 'resultados' }) {
+function ElectorNavIcon({ type }: { type: 'votar' | 'confirmacao' | 'resultados' | 'candidatura' }) {
   if (type === 'votar') {
     return (
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -25,6 +26,15 @@ function ElectorNavIcon({ type }: { type: 'votar' | 'confirmacao' | 'resultados'
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
         <path d="M7 3.5h10v17H7z" />
         <path d="M10 8h4M10 12h4M10 16h4" />
+      </svg>
+    );
+  }
+
+  if (type === 'candidatura') {
+    return (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+        <path d="M5 20a7 7 0 0 1 14 0" />
       </svg>
     );
   }
@@ -102,6 +112,30 @@ function ElectorResultsSkeleton() {
   );
 }
 
+function DesktopNavLink({
+  to,
+  label,
+  type,
+}: {
+  to: string;
+  label: string;
+  type: 'votar' | 'confirmacao' | 'resultados' | 'candidatura';
+}) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition ${
+          isActive ? 'bg-[#e7eff9] text-[#1f8ee6]' : 'text-[#475569] hover:bg-[#f8fafc] hover:text-[#0f172a]'
+        }`
+      }
+    >
+      <ElectorNavIcon type={type} />
+      {label}
+    </NavLink>
+  );
+}
+
 function getElectorRouteSkeleton(pathname: string) {
   if (pathname.includes('/eleitor/elections/')) return <ElectorVotingSkeleton />;
   if (pathname.includes('/eleitor/election-details/')) return <ElectorDetailsSkeleton />;
@@ -118,6 +152,7 @@ export function ElectorLayout() {
   const voteReceipt = useMemo(() => getElectorVoteReceipt(), [location.pathname, location.search]);
   const [isRouteLoading, setIsRouteLoading] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [hasCandidacy, setHasCandidacy] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     senhaAtual: '',
@@ -128,6 +163,31 @@ export function ElectorLayout() {
   const avatarLabel = session?.user.nome ? `Perfil de ${session.user.nome}` : 'Perfil';
   const userName = session?.user.nome ?? 'Eleitor';
   const userEmail = session?.user.email ?? 'sem-email@up.ac.mz';
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadCandidacyAccess = async () => {
+      if (session?.user.perfil !== 'CANDIDATO') {
+        setHasCandidacy(false);
+        return;
+      }
+
+      try {
+        const response = await candidateApi.listMine();
+        if (!isActive) return;
+        setHasCandidacy(response.count > 0);
+      } catch {
+        if (isActive) setHasCandidacy(false);
+      }
+    };
+
+    void loadCandidacyAccess();
+
+    return () => {
+      isActive = false;
+    };
+  }, [session?.user.perfil]);
 
   const handleLogout = async () => {
     const refreshToken = session?.refreshToken;
@@ -192,11 +252,15 @@ export function ElectorLayout() {
 
   return (
     <div className="min-h-screen bg-bg font-sans">
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-[#e3e6eb] bg-white">
-        <div className="mx-auto flex min-h-[76px] w-full max-w-xl items-center justify-between px-4 py-5">
-          <div className="flex items-center gap-3">
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-[#e3e6eb] bg-white lg:left-64">
+        <div className="mx-auto flex min-h-[76px] w-full max-w-6xl items-center justify-between px-4 py-5 lg:px-8">
+          <div className="flex items-center gap-3 lg:hidden">
             <img src="/images/logo.svg" alt="SIVO-UP" className="h-10 w-10" />
             <p className="text-xl font-bold tracking-[-0.01em] capitalize text-[#101521]">SIVO-UP</p>
+          </div>
+          <div className="hidden lg:block">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#64748b]">Portal do eleitor</p>
+            <p className="text-lg font-semibold text-[#0f172a]">{userName}</p>
           </div>
 
           <DropdownMenu>
@@ -204,7 +268,7 @@ export function ElectorLayout() {
               <button
                 type="button"
                 aria-label={avatarLabel}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#5f8f94] text-white transition hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1f8ee6] focus-visible:ring-offset-2"
+                className="ml-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#1A56DB] text-white transition hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1f8ee6] focus-visible:ring-offset-2"
               >
                 <span className="text-sm leading-none">👤</span>
               </button>
@@ -233,18 +297,35 @@ export function ElectorLayout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-xl px-4 pb-[96px] pt-[98px] sm:px-6 sm:pt-[102px]">
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 border-r border-[#e3e6eb] bg-white px-4 py-5 lg:block">
+        <div className="flex items-center gap-3">
+          <img src="/images/logo.svg" alt="SIVO-UP" className="h-10 w-10" />
+          <p className="text-xl font-bold tracking-[-0.01em] text-[#101521]">SIVO-UP</p>
+        </div>
+        <nav className="mt-8 space-y-2">
+          <DesktopNavLink to="/eleitor/dashboard" label="Votar" type="votar" />
+          <DesktopNavLink to="/eleitor/confirmacao" label="Confirmação" type="confirmacao" />
+          <DesktopNavLink to={resultsNavPath} label="Resultados" type="resultados" />
+          {hasCandidacy ? <DesktopNavLink to="/eleitor/candidatura" label="Candidatura" type="candidatura" /> : null}
+        </nav>
+        <div className="absolute inset-x-4 bottom-5 rounded-sm border border-[#e2e8f0] bg-[#f8fafc] p-3">
+          <p className="truncate text-sm font-semibold text-[#0f172a]">{userName}</p>
+          <p className="truncate text-xs text-[#64748b]">{userEmail}</p>
+        </div>
+      </aside>
+
+      <main className="mx-auto w-full max-w-xl px-4 pb-[96px] pt-[98px] sm:px-6 sm:pt-[102px] lg:ml-64 lg:max-w-none lg:px-8 lg:pb-10">
         {isRouteLoading ? (
           getElectorRouteSkeleton(location.pathname)
         ) : (
-          <div key={`${location.pathname}${location.search}`} className="elector-page-enter">
+          <div key={`${location.pathname}${location.search}`} className="elector-page-enter mx-auto w-full max-w-6xl">
             <Outlet />
           </div>
         )}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#e3e6eb] bg-[#f6f6f7]">
-        <div className="mx-auto grid w-full max-w-xl grid-cols-3 px-6 py-3">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#e3e6eb] bg-[#f6f6f7] lg:hidden">
+        <div className={`mx-auto grid w-full max-w-xl ${hasCandidacy ? 'grid-cols-4 px-3' : 'grid-cols-3 px-6'} py-3`}>
           <NavLink
             to="/eleitor/dashboard"
             className={({ isActive }) =>
@@ -278,6 +359,19 @@ export function ElectorLayout() {
             <ElectorNavIcon type="resultados" />
             <span className="text-sm font-medium tracking-wide">Resultados</span>
           </NavLink>
+          {hasCandidacy ? (
+            <NavLink
+              to="/eleitor/candidatura"
+              className={({ isActive }) =>
+                `justify-self-center rounded-lg px-3 py-2 flex flex-col items-center gap-1 transition capitalize ${
+                  isActive ? 'bg-[#e7eff9] text-[#1f8ee6]' : 'text-[#8ea0b9]'
+                }`
+              }
+            >
+              <ElectorNavIcon type="candidatura" />
+              <span className="text-sm font-medium tracking-wide">Candidatura</span>
+            </NavLink>
+          ) : null}
         </div>
       </nav>
 

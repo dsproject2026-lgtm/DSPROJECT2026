@@ -43,11 +43,28 @@ export const endpoints = {
       importCsv: (electionId: string) => `/elections/${electionId}/eligible-voters/import-csv`,
     },
   },
+  candidates: {
+    me: '/candidates/me',
+    updateMine: (electionId: string, candidateId: string) => `/candidates/${electionId}/${candidateId}`,
+  },
   positions: {
     list: '/positions',
     create: '/positions',
     detail: (positionId: string) => `/positions/${positionId}`,
     remove: (positionId: string) => `/positions/${positionId}`,
+  },
+  faculties: {
+    list: '/faculties',
+    create: '/faculties',
+    addCourses: (facultyId: string) => `/faculties/${facultyId}/courses`,
+  },
+  team: {
+    list: '/team',
+    create: '/team',
+    updateStatus: (memberId: string) => `/team/${memberId}/status`,
+  },
+  audit: {
+    list: '/audit',
   },
   settings: {
     system: '/settings',

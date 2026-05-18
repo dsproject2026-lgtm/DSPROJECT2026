@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  CalendarDays,
   Check,
   Download,
   Eye,
@@ -462,8 +461,6 @@ export function AdminDashboardPage() {
   const activeCount = rows.filter((row) => row.estado === 'ABERTA').length;
   const totalVotes = rows.reduce((acc, row) => acc + row.votos, 0);
   const eligibleStudents = 28400;
-  const participation = ((14502 / eligibleStudents) * 100).toFixed(1);
-
   useEffect(() => {
     if (message) toast.info(message);
   }, [message]);
@@ -483,16 +480,10 @@ export function AdminDashboardPage() {
         <div className="rounded-sm border border-[#bfdbfe] bg-[#eff6ff] px-4 py-3 text-sm text-[#1d4ed8]">{message}</div>
       ) : null}
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-3">
         <SummaryCard title="Eleições Abertas" value={String(activeCount)} icon={<Vote className="h-4 w-4" />} />
         <SummaryCard title="Total de Votos" value={formatNumber(totalVotes)} icon={<Check className="h-4 w-4" />} />
         <SummaryCard title="Estudantes Elegíveis" value={formatNumber(eligibleStudents)} icon={<Users className="h-4 w-4" />} />
-        <SummaryCard
-          title="Participação"
-          value={`${participation}%`}
-          icon={<CalendarDays className="h-4 w-4" />}
-          accent={<div className="mt-3 h-[3px] w-[60px] rounded-full bg-[#fbbf24]" />}
-        />
       </div>
 
       <Card className="overflow-hidden rounded-sm border-[#e2e8f0] shadow-none">

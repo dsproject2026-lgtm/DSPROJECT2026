@@ -1,1 +1,1 @@
-export { AdminCandidatesPage } from './AdminPages';
+export { CommissionCandidatesPage as AdminCandidatesPage } from '@/features/commission/pages/CommissionCandidatesPage';

@@ -1,24 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Upload } from 'lucide-react';
 
 import { commissionApi } from '@/api/commission.api';
-import { CommissionSegmentTabs } from '@/features/commission/components/CommissionSegmentTabs';
 import { Spinner, UiSelect, UiTable, toast } from '@/components/ui';
+import { CommissionSegmentTabs } from '@/features/commission/components/CommissionSegmentTabs';
 import { ApiError } from '@/lib/http/api-error';
 import type { CommissionElectionItem } from '@/types/commission';
-
-function parseCodes(input: string) {
-  return input
-    .replace(/\r\n/g, '\n')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
 
 export function CommissionElectorsRegisterPage() {
   const [elections, setElections] = useState<CommissionElectionItem[]>([]);
   const [electionId, setElectionId] = useState('');
-  const [codesInput, setCodesInput] = useState('codigo\n');
+  const [csvContent, setCsvContent] = useState('');
+  const [fileName, setFileName] = useState('');
   const [isBootLoading, setIsBootLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [result, setResult] = useState<{
@@ -38,9 +31,7 @@ export function CommissionElectorsRegisterPage() {
         setElectionId(response.items[0]?.id || '');
       } catch (cause) {
         if (!isActive) return;
-        const message =
-          cause instanceof ApiError ? cause.message : 'Não foi possível carregar eleições.';
-        toast.danger(message);
+        toast.danger(cause instanceof ApiError ? cause.message : 'Não foi possível carregar as eleições.');
       } finally {
         if (isActive) setIsBootLoading(false);
       }
@@ -51,23 +42,39 @@ export function CommissionElectorsRegisterPage() {
     };
   }, []);
 
-  const previewCodes = useMemo(() => parseCodes(codesInput).filter((code) => code !== 'codigo'), [codesInput]);
+  const csvRowsCount = csvContent
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.toLowerCase().startsWith('codigo')).length;
+
+  const handleFileChange = async (file: File | null) => {
+    if (!file) {
+      setCsvContent('');
+      setFileName('');
+      return;
+    }
+
+    setCsvContent(await file.text());
+    setFileName(file.name);
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!electionId) {
-      toast.danger('Selecione uma eleição.');
+      toast.danger('Seleccione uma eleição.');
       return;
     }
 
-    if (previewCodes.length === 0) {
-      toast.danger('Informe pelo menos um código de eleitor.');
+    if (csvRowsCount === 0) {
+      toast.danger('Seleccione um ficheiro CSV com pelo menos um eleitor.');
       return;
     }
 
     try {
       setIsImporting(true);
-      const importResult = await commissionApi.importEligibleVotersCsv(electionId, codesInput);
+      const importResult = await commissionApi.importEligibleVotersCsv(electionId, csvContent);
       setResult({
         importedCount: importResult.count,
         totalCount: importResult.totalCount,
@@ -105,7 +112,7 @@ export function CommissionElectorsRegisterPage() {
           Importar Eleitores Elegíveis
         </h1>
         <p className="text-ui-sm text-[#475569]">
-          Carregue uma lista CSV para vincular estudantes elegíveis a uma eleição.
+          Carregue um ficheiro CSV. Se a eleição for de uma faculdade, só serão importados eleitores dessa faculdade.
         </p>
       </div>
 
@@ -120,35 +127,31 @@ export function CommissionElectorsRegisterPage() {
             <UiSelect
               value={electionId}
               onChange={setElectionId}
-              placeholder="Selecione"
+              placeholder="Seleccione"
               ariaLabel="Eleição"
-              options={elections.map((item) => ({
-                value: item.id,
-                label: item.titulo,
-              }))}
+              options={elections.map((item) => ({ value: item.id, label: item.titulo }))}
             />
           </div>
 
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-              Conteúdo CSV
+              Ficheiro CSV
             </label>
-            <textarea
-              value={codesInput}
-              onChange={(event) => setCodesInput(event.target.value)}
-              className="min-h-[220px] w-full rounded-sm border border-[#d1d9e6] bg-white px-3 py-2 font-mono text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
-              placeholder={'codigo\n2026001\n2026002'}
+            <input
+              type="file"
+              accept=".csv,text/csv,text/plain"
+              onChange={(event) => void handleFileChange(event.target.files?.[0] ?? null)}
+              className="block w-full rounded-sm border border-[#d1d9e6] bg-white px-3 py-2 text-sm text-[#475569] file:mr-4 file:rounded-sm file:border-0 file:bg-[#1A56DB] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
             />
             <p className="mt-1 text-sm text-[#64748b]">
-              Formato aceito: uma coluna <code>codigo</code> com um código por linha.
+              Colunas aceites: <code>codigo,nome,email,faculdade,ano</code>. O nome e email permitem criar o eleitor no primeiro acesso.
             </p>
+            {fileName ? <p className="mt-2 text-sm font-semibold text-[#0f172a]">{fileName}</p> : null}
           </div>
         </div>
 
         <div className="mt-5 flex items-center justify-between gap-3">
-          <p className="text-sm text-[#64748b]">
-            {previewCodes.length} código(s) prontos para importar.
-          </p>
+          <p className="text-sm text-[#64748b]">{csvRowsCount} linha(s) prontas para importar.</p>
           <button
             type="submit"
             disabled={isImporting}

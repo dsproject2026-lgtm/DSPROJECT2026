@@ -21,14 +21,29 @@ export interface PositionListResponse {
 export interface CommissionElectionItem {
   id: string;
   cargoId: string;
+  faculdadeId: string | null;
   titulo: string;
   descricao: string | null;
   estado: BackendElectionState;
+  escopoEleitores: 'TODOS' | 'FACULDADE';
   dataInicioCandidatura: string | null;
   dataFimCandidatura: string | null;
   dataInicioVotacao: string | null;
   dataFimVotacao: string | null;
   cargo: PositionItem;
+  faculdade: FacultyItem | null;
+}
+
+export interface CourseItem {
+  id: string;
+  faculdadeId: string;
+  nome: string;
+}
+
+export interface FacultyItem {
+  id: string;
+  nome: string;
+  cursos: CourseItem[];
 }
 
 export interface CommissionElectionCandidateSummary {
@@ -65,6 +80,9 @@ export interface CandidateUserItem {
   codigo: string;
   nome: string;
   email: string | null;
+  faculdade: FacultyItem | null;
+  curso: CourseItem | null;
+  ano: number | null;
   perfil: 'ELEITOR' | 'CANDIDATO';
   activo: boolean;
 }
@@ -76,9 +94,10 @@ export interface CandidateUserListResponse {
 
 export interface CreateElectionInput {
   cargoId: string;
+  faculdadeId?: string | null;
   titulo: string;
   descricao?: string | null;
-  estado?: BackendElectionState;
+  escopoEleitores?: 'TODOS' | 'FACULDADE';
   dataInicioCandidatura?: string | null;
   dataFimCandidatura?: string | null;
   dataInicioVotacao?: string | null;
@@ -95,9 +114,11 @@ export interface CreateElectionInput {
 
 export interface UpdateElectionInput {
   cargoId?: string;
+  faculdadeId?: string | null;
   titulo?: string;
   descricao?: string | null;
   estado?: BackendElectionState;
+  escopoEleitores?: 'TODOS' | 'FACULDADE';
   dataInicioCandidatura?: string | null;
   dataFimCandidatura?: string | null;
   dataInicioVotacao?: string | null;
@@ -113,11 +134,24 @@ export interface CandidateItem {
   biografia: string | null;
   proposta: string | null;
   estado: CandidateState;
+  eleicao: {
+    id: string;
+    cargoId: string;
+    titulo: string;
+    estado: BackendElectionState;
+    dataInicioCandidatura: string | null;
+    dataFimCandidatura: string | null;
+    dataInicioVotacao: string | null;
+    dataFimVotacao: string | null;
+  };
   utilizador: {
     id: string;
     codigo: string;
     nome: string;
     email: string | null;
+    faculdade: FacultyItem | null;
+    curso: CourseItem | null;
+    ano: number | null;
     perfil: string;
     activo: boolean;
     mustSetPassword: boolean;
@@ -132,7 +166,7 @@ export interface CandidateListResponse {
 
 export interface CreateCandidateInput {
   utilizadorId: string;
-  nome: string;
+  nome?: string;
   fotoUrl?: string | null;
   biografia?: string | null;
   proposta?: string | null;
@@ -158,6 +192,9 @@ export interface EligibleVoterItem {
     codigo: string;
     nome: string;
     email: string | null;
+    faculdade: FacultyItem | null;
+    curso: CourseItem | null;
+    ano: number | null;
     perfil: string;
     activo: boolean;
     mustSetPassword: boolean;
@@ -174,8 +211,56 @@ export interface ImportEligibleVotersResult {
   imported: EligibleVoterItem[];
   skipped: Array<{
     codigo: string;
-    reason: 'INVALID_CODE' | 'USER_NOT_FOUND' | 'ALREADY_REGISTERED';
+    reason:
+      | 'INVALID_CODE'
+      | 'USER_NOT_FOUND'
+      | 'ALREADY_REGISTERED'
+      | 'ELECTION_NOT_PROGRAMMED'
+      | 'FACULTY_MISMATCH'
+      | 'USER_WITHOUT_FACULTY';
   }>;
   count: number;
   totalCount: number;
+}
+
+export interface FacultyListResponse {
+  items: FacultyItem[];
+  count: number;
+}
+
+export interface TeamMemberItem {
+  id: string;
+  utilizadorId: string;
+  nome: string;
+  email: string;
+  perfil: 'GESTOR_ELEITORAL' | 'AUDITOR';
+  codigo: string;
+  activo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamMemberListResponse {
+  items: TeamMemberItem[];
+  count: number;
+}
+
+export interface AuditLogItem {
+  id: string;
+  accao: string;
+  entidade: string | null;
+  entidadeId: string | null;
+  ip: string | null;
+  timestamp: string;
+  utilizador: {
+    id: string;
+    codigo: string;
+    nome: string;
+    perfil: string;
+  } | null;
+}
+
+export interface AuditLogListResponse {
+  items: AuditLogItem[];
+  count: number;
 }

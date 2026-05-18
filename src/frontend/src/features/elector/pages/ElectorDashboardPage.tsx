@@ -9,10 +9,9 @@ import { formatStateLabel, getStateChipColor } from '@/lib/ui/state-chip';
 
 const filters = [
   { key: 'TODAS', label: 'Todas' },
-  { key: 'PENDENTE', label: 'Pendente' },
+  { key: 'PROGRAMADA', label: 'Programada' },
   { key: 'ABERTA', label: 'Aberta' },
   { key: 'CONCLUIDA', label: 'Concluída' },
-  { key: 'CANCELADA', label: 'Cancelada' },
   { key: 'PARTICIPOU', label: 'Participou' },
 ] as const;
 
@@ -22,6 +21,7 @@ interface ElectorElectionCard {
   id: string;
   estado: BackendElectionState;
   hasVoted: boolean;
+  isEligible: boolean;
   title: string;
   desc: string;
   date: string;
@@ -61,10 +61,8 @@ function mapPhase(estado: BackendElectionState) {
       return 'Votação em curso';
     case 'CONCLUIDA':
       return 'Concluída';
-    case 'CANCELADA':
-      return 'Cancelada';
-    case 'PENDENTE':
-      return 'Pendente';
+    case 'PROGRAMADA':
+      return 'Programada';
     default:
       return 'Aguardando início';
   }
@@ -90,10 +88,12 @@ export function ElectorDashboardPage() {
         const cards = await Promise.all(
           response.items.map(async (item) => {
             let hasVoted = false;
+            let isEligible = false;
 
             try {
               const voteStatus = await electionsApi.getMyVoteStatus(item.id);
               hasVoted = voteStatus.hasVoted;
+              isEligible = voteStatus.isEligible;
             } catch (cause) {
               if (!(cause instanceof ApiError) || cause.code === 'AUTH_TOKEN_REQUIRED') {
                 throw cause;
@@ -104,13 +104,14 @@ export function ElectorDashboardPage() {
               id: item.id,
               estado: item.estado,
               hasVoted,
+              isEligible,
               title: item.titulo,
               desc: item.descricao ?? 'Sem descrição disponível para esta eleição.',
               date: formatDateRange(item.dataInicioVotacao, item.dataFimVotacao),
               local: item.cargo.nome,
-              eleitorado: 'Eleitores elegíveis da eleição',
+              eleitorado: isEligible ? 'Eleitor elegivel nesta eleicao' : 'Sem elegibilidade nesta eleicao',
               fase: mapPhase(item.estado),
-              canParticipate: item.estado === 'ABERTA' && !hasVoted,
+              canParticipate: item.estado === 'ABERTA' && isEligible && !hasVoted,
             } satisfies ElectorElectionCard;
           }),
         );
@@ -233,7 +234,7 @@ export function ElectorDashboardPage() {
             Nenhuma eleição encontrada para o filtro selecionado.
           </section>
         ) : (
-          <div className="space-y-5">
+          <div className="grid gap-5 lg:grid-cols-2">
             {filtered.map((election) => (
               <article
                 key={election.id}
@@ -316,3 +317,4 @@ export function ElectorDashboardPage() {
     </div>
   );
 }
+

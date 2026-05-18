@@ -1,10 +1,9 @@
 type StateChipColor = 'default' | 'success' | 'danger' | 'warning' | 'primary';
 
 export const ELECTION_STATE_OPTIONS = [
-  { value: 'PENDENTE', label: 'PENDENTE' },
+  { value: 'PROGRAMADA', label: 'PROGRAMADA' },
   { value: 'ABERTA', label: 'ABERTA' },
   { value: 'CONCLUIDA', label: 'CONCLUIDA' },
-  { value: 'CANCELADA', label: 'CANCELADA' },
 ] as const;
 
 export function getStateChipColor(value: string): StateChipColor {
@@ -22,7 +21,7 @@ export function getStateChipColor(value: string): StateChipColor {
     return 'danger';
   }
 
-  if (['PENDENTE', 'SUSPENSO', 'PLANEADO', 'SEM_ELEICOES'].includes(normalized)) {
+  if (['PROGRAMADA', 'PENDENTE', 'SUSPENSO', 'PLANEADO', 'SEM_ELEICOES'].includes(normalized)) {
     return 'warning';
   }
 

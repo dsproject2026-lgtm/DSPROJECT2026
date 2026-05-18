@@ -7,21 +7,6 @@ type SegmentConfig = {
   viewPath: string;
 };
 
-const SEGMENT_CONFIG: Record<CommissionSegment, SegmentConfig> = {
-  eleicoes: {
-    registerPath: '/comissao/eleicoes/registrar',
-    viewPath: '/comissao/eleicoes/visualizar',
-  },
-  candidatos: {
-    registerPath: '/comissao/candidatos/registrar',
-    viewPath: '/comissao/candidatos/visualizar',
-  },
-  estudantes: {
-    registerPath: '/comissao/estudantes/registrar',
-    viewPath: '/comissao/estudantes/visualizar',
-  },
-};
-
 interface CommissionSegmentTabsProps {
   segment: CommissionSegment;
 }
@@ -29,7 +14,11 @@ interface CommissionSegmentTabsProps {
 export function CommissionSegmentTabs({ segment }: CommissionSegmentTabsProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const config = SEGMENT_CONFIG[segment];
+  const basePath = location.pathname.startsWith('/admin') ? '/admin' : '/comissao';
+  const config: SegmentConfig = {
+    registerPath: `${basePath}/${segment}/registrar`,
+    viewPath: `${basePath}/${segment}/visualizar`,
+  };
 
   const activePath = location.pathname.startsWith(config.registerPath)
     ? config.registerPath

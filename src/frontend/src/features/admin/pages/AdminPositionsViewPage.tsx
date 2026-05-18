@@ -10,7 +10,7 @@ import type { PositionItem } from '@/types/commission';
 function getPositionStatus(position: PositionItem) {
   const states = position.eleicoes?.map((election) => election.estado) ?? [];
   if (states.includes('ABERTA')) return 'EM_USO';
-  if (states.includes('PENDENTE')) return 'PLANEADO';
+  if (states.includes('PROGRAMADA')) return 'PLANEADO';
   if (states.length === 0) return 'SEM_ELEICOES';
   return 'HISTORICO';
 }

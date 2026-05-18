@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { commissionApi } from '@/api/commission.api';
 import { Chip, Spinner, UiPageSkeleton, UiSelect, UiTable, toast } from '@/components/ui';
@@ -24,10 +24,13 @@ function formatDateTime(value: string | null) {
 
 export function CommissionElectionDetailsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { electionId } = useParams<{ electionId: string }>();
+  const isAdminView = location.pathname.startsWith('/admin');
+  const backPath = isAdminView ? '/admin/eleicoes' : '/comissao/eleicoes/visualizar';
 
   const [election, setElection] = useState<CommissionElectionDetailsItem | null>(null);
-  const [nextState, setNextState] = useState<BackendElectionState>('PENDENTE');
+  const [nextState, setNextState] = useState<BackendElectionState>('PROGRAMADA');
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingState, setIsUpdatingState] = useState(false);
 
@@ -102,7 +105,7 @@ export function CommissionElectionDetailsPage() {
         </p>
         <button
           type="button"
-          onClick={() => navigate('/comissao/eleicoes/visualizar')}
+          onClick={() => navigate(backPath)}
           className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-[#d1d5db] px-4 text-ui-sm font-medium text-[#0f172a] transition hover:bg-[#f8fafc]"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -123,7 +126,7 @@ export function CommissionElectionDetailsPage() {
         </div>
         <button
           type="button"
-          onClick={() => navigate('/comissao/eleicoes/visualizar')}
+          onClick={() => navigate(backPath)}
           className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-[#d1d5db] bg-white px-4 text-ui-sm font-medium text-[#0f172a] transition hover:bg-[#f8fafc]"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -161,6 +164,7 @@ export function CommissionElectionDetailsPage() {
         </article>
       </div>
 
+      {!isAdminView ? (
       <div className="rounded-[8px] border border-[#e2e8f0] bg-white p-5">
         <h2 className="text-ui-base font-semibold text-[#0f172a]">Alterar estado</h2>
         <p className="mt-1 text-ui-sm font-medium text-[#64748b]">
@@ -187,6 +191,7 @@ export function CommissionElectionDetailsPage() {
           </button>
         </div>
       </div>
+      ) : null}
 
       <div className="rounded-[8px] border border-[#e2e8f0] bg-white p-5">
         <h2 className="text-ui-base font-semibold text-[#0f172a]">Calendário</h2>

@@ -1,1 +1,1 @@
-export { FiscalResultsPage } from './FiscalPages';
+export { CommissionResultsPage as FiscalResultsPage } from '@/features/commission/pages/CommissionResultsPage';

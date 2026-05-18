@@ -70,6 +70,10 @@ function SidebarIcon({ segment }: { segment: string }) {
 }
 
 function getSidebarSubItems(basePath: string, segment: string): SidebarSubItem[] {
+  if (basePath === 'admin' && segment === 'eleicoes') {
+    return [];
+  }
+
   if (segment === 'candidatos') {
     return [
       { label: 'Registar', path: `/${basePath}/candidatos/registrar` },
@@ -139,7 +143,8 @@ export function BackofficeLayout({
       '',
     [activeSubItems, location.pathname],
   );
-  const showLayoutSubTabs = basePath !== 'comissao';
+  const showLayoutSubTabs =
+    basePath !== 'comissao' && activeItem.segment !== 'candidatos' && activeItem.segment !== 'estudantes';
 
   const userName = session?.user.nome ?? 'Utilizador';
   const userEmail = session?.user.email ?? 'sem-email@up.ac.mz';

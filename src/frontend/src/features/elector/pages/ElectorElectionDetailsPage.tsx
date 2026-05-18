@@ -45,10 +45,8 @@ function phaseLabel(estado: ElectionListItem['estado']) {
       return 'Votação em curso';
     case 'CONCLUIDA':
       return 'Concluída';
-    case 'CANCELADA':
-      return 'Cancelada';
-    case 'PENDENTE':
-      return 'Pendente';
+    case 'PROGRAMADA':
+      return 'Programada';
     default:
       return 'Pendente';
   }
@@ -222,3 +220,4 @@ export function ElectorElectionDetailsPage() {
     </section>
   );
 }
+

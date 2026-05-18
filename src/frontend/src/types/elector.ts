@@ -1,8 +1,7 @@
 export type BackendElectionState =
-  | 'PENDENTE'
+  | 'PROGRAMADA'
   | 'ABERTA'
-  | 'CONCLUIDA'
-  | 'CANCELADA';
+  | 'CONCLUIDA';
 
 export interface ElectionCargo {
   id: string;
@@ -15,9 +14,17 @@ export interface ElectionListItem {
   titulo: string;
   descricao: string | null;
   estado: BackendElectionState;
+  escopoEleitores: 'TODOS' | 'FACULDADE';
+  faculdadeId: string | null;
+  faculdade?: ElectionFaculty | null;
   dataInicioVotacao: string | null;
   dataFimVotacao: string | null;
   cargo: ElectionCargo;
+}
+
+export interface ElectionFaculty {
+  id: string;
+  nome: string;
 }
 
 export interface ElectionListResponse {
@@ -53,6 +60,7 @@ export interface CastVoteResult {
 
 export interface VoteStatusResult {
   electionId: string;
+  isEligible: boolean;
   hasVoted: boolean;
   votedAt: string | null;
   receiptCode: string | null;
