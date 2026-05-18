@@ -9,28 +9,52 @@ datasource db {
 }
 
 model Cargo {
-  id        String   @id @default(uuid())
-  nome      String   @db.VarChar(100)
+  id        String    @id @default(uuid())
+  nome      String    @db.VarChar(100)
   descricao String?
-  eleicoes  Eleicao?
+  eleicoes  Eleicao[]
 
   @@map("cargos")
 }
 
+model Faculdade {
+  id           String       @id @default(uuid())
+  nome         String       @unique @db.VarChar(150)
+  cursos       Curso[]
+  utilizadores Utilizador[]
+  eleicoes     Eleicao[]
+
+  @@map("faculdades")
+}
+
+model Curso {
+  id           String       @id @default(uuid())
+  faculdadeId  String       @map("faculdade_id")
+  nome         String       @db.VarChar(150)
+  faculdade    Faculdade    @relation(fields: [faculdadeId], references: [id])
+  utilizadores Utilizador[]
+
+  @@unique([faculdadeId, nome])
+  @@map("cursos")
+}
+
 model Eleicao {
   id                    String         @id @default(uuid())
-  cargoId               String         @unique(map: "eleicoes_one_active_per_cargo_idx", where: raw("(estado = 'ABERTA'::estado_eleicao)")) @map("cargo_id")
+  cargoId               String         @map("cargo_id")
+  faculdadeId           String?        @map("faculdade_id")
   titulo                String         @db.VarChar(200)
   descricao             String?
+  estado                EstadoEleicao  @default(PROGRAMADA)
+  escopoEleitores       EscopoEleitores @default(TODOS) @map("escopo_eleitores")
   dataInicioCandidatura DateTime?      @map("data_inicio_candidatura") @db.Timestamptz(6)
   dataFimCandidatura    DateTime?      @map("data_fim_candidatura") @db.Timestamptz(6)
   dataInicioVotacao     DateTime?      @map("data_inicio_votacao") @db.Timestamptz(6)
   dataFimVotacao        DateTime?      @map("data_fim_votacao") @db.Timestamptz(6)
-  estado                EstadoEleicao  @default(PENDENTE)
   candidatos            Candidato[]
   comprovativos         Comprovativo[]
   elegiveis             Elegivel[]
   cargo                 Cargo          @relation(fields: [cargoId], references: [id])
+  faculdade             Faculdade?     @relation(fields: [faculdadeId], references: [id])
 
   @@map("eleicoes")
 }
@@ -38,21 +62,27 @@ model Eleicao {
 model Utilizador {
   id                          String         @id @default(uuid())
   codigo                      String         @unique @db.VarChar(50)
+  faculdadeId                 String?        @map("faculdade_id")
+  cursoId                     String?        @map("curso_id")
   nome                        String         @db.VarChar(150)
   senhaHash                   String?        @map("senha_hash")
   perfil                      Perfil
   activo                      Boolean        @default(true)
   createdAt                   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   email                       String?        @unique @db.VarChar(255)
+  ano                         Int?
   mustSetPassword             Boolean        @default(false) @map("must_set_password")
   passwordSetupTokenHash      String?        @map("password_setup_token_hash")
   passwordSetupTokenExpiresAt DateTime?      @map("password_setup_token_expires_at") @db.Timestamptz(6)
+  faculdade                   Faculdade?     @relation(fields: [faculdadeId], references: [id])
+  curso                       Curso?         @relation(fields: [cursoId], references: [id])
   candidatosRegistados        Candidato[]    @relation("RegistadoPor")
   candidaturas                Candidato[]    @relation("CandidaturaDoUtilizador")
   comprovativos               Comprovativo[]
   elegiveis                   Elegivel[]
   logsAuditoria               LogAuditoria[]
   refreshTokens               RefreshToken[]
+  team                         Team?
 
   @@map("utilizadores")
 }
@@ -149,13 +179,34 @@ model AppSetting {
   @@map("app_settings")
 }
 
+model Team {
+  id           String     @id @default(uuid())
+  utilizadorId String     @unique @map("utilizador_id")
+  nome         String     @db.VarChar(150)
+  email        String     @unique @db.VarChar(255)
+  perfil       Perfil
+  codigo       String     @unique @db.VarChar(50)
+  activo       Boolean    @default(true)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  utilizador   Utilizador @relation(fields: [utilizadorId], references: [id], onDelete: Cascade)
+
+  @@map("team")
+}
+
 enum EstadoEleicao {
-  PENDENTE
+  PROGRAMADA
   ABERTA
   CONCLUIDA
-  CANCELADA
 
   @@map("estado_eleicao")
+}
+
+enum EscopoEleitores {
+  TODOS
+  FACULDADE
+
+  @@map("escopo_eleitores")
 }
 
 enum Perfil {

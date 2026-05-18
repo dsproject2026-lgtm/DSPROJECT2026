@@ -3,13 +3,10 @@ import type { EntityId, Nullable, Timestamp } from './common.types.js';
 export const PERFIS = ['ADMIN', 'GESTOR_ELEITORAL', 'AUDITOR', 'ELEITOR', 'CANDIDATO'] as const;
 export type Perfil = (typeof PERFIS)[number];
 
-export const ESTADOS_ELEICAO = [
-  'PENDENTE',
-  'ABERTA',
-  'CONCLUIDA',
-  'CANCELADA',
-] as const;
+export const ESTADOS_ELEICAO = ['PROGRAMADA', 'ABERTA', 'CONCLUIDA'] as const;
 export type EstadoEleicao = (typeof ESTADOS_ELEICAO)[number];
+export const ESCOPOS_ELEITORES = ['TODOS', 'FACULDADE'] as const;
+export type EscopoEleitores = (typeof ESCOPOS_ELEITORES)[number];
 
 export const ESTADOS_CANDIDATO = ['PENDENTE', 'APROVADO', 'REJEITADO', 'SUSPENSO'] as const;
 export type EstadoCandidato = (typeof ESTADOS_CANDIDATO)[number];
@@ -20,12 +17,25 @@ export interface CargoEntity {
   descricao: Nullable<string>;
 }
 
+export interface FaculdadeEntity {
+  id: EntityId;
+  nome: string;
+}
+
+export interface CursoEntity {
+  id: EntityId;
+  faculdadeId: EntityId;
+  nome: string;
+}
+
 export interface EleicaoEntity {
   id: EntityId;
   cargoId: EntityId;
+  faculdadeId: Nullable<EntityId>;
   titulo: string;
   descricao: Nullable<string>;
   estado: EstadoEleicao;
+  escopoEleitores: EscopoEleitores;
   dataInicioCandidatura: Nullable<Timestamp>;
   dataFimCandidatura: Nullable<Timestamp>;
   dataInicioVotacao: Nullable<Timestamp>;
@@ -37,6 +47,9 @@ export interface UtilizadorEntity {
   codigo: string;
   nome: string;
   email: Nullable<string>;
+  faculdadeId: Nullable<EntityId>;
+  cursoId: Nullable<EntityId>;
+  ano: Nullable<number>;
   senhaHash: Nullable<string>;
   perfil: Perfil;
   activo: boolean;
@@ -97,12 +110,15 @@ export interface CargoComRelacoes extends CargoEntity {
 
 export interface EleicaoComRelacoes extends EleicaoEntity {
   cargo: CargoEntity;
+  faculdade: Nullable<FaculdadeEntity>;
   candidatos: CandidatoEntity[];
   elegiveis: ElegivelEntity[];
   comprovativos: ComprovativoEntity[];
 }
 
 export interface UtilizadorComRelacoes extends UtilizadorPublico {
+  faculdade: Nullable<FaculdadeEntity>;
+  curso: Nullable<CursoEntity>;
   elegiveis: ElegivelEntity[];
   comprovativos: ComprovativoEntity[];
   logsAuditoria: LogAuditoriaEntity[];
@@ -144,9 +160,11 @@ export type UpdateCargoInput = Partial<CreateCargoInput>;
 
 export interface CreateEleicaoInput {
   cargoId: EntityId;
+  faculdadeId?: Nullable<EntityId>;
   titulo: string;
   descricao?: Nullable<string>;
   estado?: EstadoEleicao;
+  escopoEleitores?: EscopoEleitores;
   dataInicioCandidatura?: Nullable<Timestamp>;
   dataFimCandidatura?: Nullable<Timestamp>;
   dataInicioVotacao?: Nullable<Timestamp>;
@@ -159,6 +177,9 @@ export interface CreateUtilizadorInput {
   codigo: string;
   nome: string;
   email?: Nullable<string>;
+  faculdadeId?: Nullable<EntityId>;
+  cursoId?: Nullable<EntityId>;
+  ano?: Nullable<number>;
   perfil: Perfil;
   activo?: boolean;
   mustSetPassword?: boolean;

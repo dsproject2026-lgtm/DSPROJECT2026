@@ -6,6 +6,11 @@ const utilizadorPublicSelect = {
   codigo: true,
   nome: true,
   email: true,
+  faculdadeId: true,
+  cursoId: true,
+  ano: true,
+  faculdade: { select: { id: true, nome: true } },
+  curso: { select: { id: true, nome: true, faculdadeId: true } },
   perfil: true,
   activo: true,
   mustSetPassword: true,
@@ -25,6 +30,9 @@ class AuthRepository {
     nome,
     codigo,
     email,
+    faculdadeId,
+    cursoId,
+    ano,
     senhaHash,
     perfil,
     activo,
@@ -35,6 +43,9 @@ class AuthRepository {
         nome,
         codigo,
         ...(email !== undefined ? { email } : {}),
+        ...(faculdadeId !== undefined ? { faculdadeId } : {}),
+        ...(cursoId !== undefined ? { cursoId } : {}),
+        ...(ano !== undefined ? { ano } : {}),
         ...(senhaHash !== undefined ? { senhaHash } : {}),
         perfil,
         ...(activo !== undefined ? { activo } : {}),
@@ -206,7 +217,21 @@ class AuthRepository {
   }
 
   async assignElectorAsEligibleInAllElections(userId: string) {
+    const user = await prisma.utilizador.findUnique({
+      where: { id: userId },
+      select: { faculdadeId: true },
+    });
+
     const elections = await prisma.eleicao.findMany({
+      where: {
+        OR: [
+          { escopoEleitores: 'TODOS' },
+          {
+            escopoEleitores: 'FACULDADE',
+            faculdadeId: user?.faculdadeId ?? '__none__',
+          },
+        ],
+      },
       select: { id: true },
     });
 

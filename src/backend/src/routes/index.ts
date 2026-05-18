@@ -3,11 +3,15 @@ import { Router } from 'express';
 import { env } from '../config/env.js';
 import { buildSuccessResponse } from '../utils/success-response.js';
 import authRouter from './auth.routes.js';
+import auditRouter from './audit.routes.js';
+import candidateSelfRouter from './candidate-self.routes.js';
 import electionsRouter from './elections.routes.js';
 import positionsRouter from './positions.routes.js';
 import eventsRouter from './events.routes.js';
+import facultiesRouter from './faculties.routes.js';
 import healthRouter from './health.routes.js';
 import settingsRouter from './settings.routes.js';
+import teamRouter from './team.routes.js';
 
 const apiRouter = Router();
 
@@ -63,10 +67,14 @@ const apiRouter = Router();
 // });
 
 apiRouter.use('/auth', authRouter);
+apiRouter.use('/audit', auditRouter);
+apiRouter.use('/candidates', candidateSelfRouter);
 apiRouter.use('/elections', electionsRouter);
 apiRouter.use('/positions', positionsRouter);
 apiRouter.use('/settings', settingsRouter);
 apiRouter.use('/health', healthRouter);
 apiRouter.use('/events', eventsRouter);
+apiRouter.use('/faculties', facultiesRouter);
+apiRouter.use('/team', teamRouter);
 
 export default apiRouter;

@@ -19,6 +19,14 @@ const eligibleVoterSelect = {
       dataFimCandidatura: true,
       dataInicioVotacao: true,
       dataFimVotacao: true,
+      escopoEleitores: true,
+      faculdadeId: true,
+      faculdade: {
+        select: {
+          id: true,
+          nome: true,
+        },
+      },
     },
   },
   utilizador: {
@@ -27,10 +35,15 @@ const eligibleVoterSelect = {
       codigo: true,
       nome: true,
       email: true,
+      faculdadeId: true,
+      cursoId: true,
       perfil: true,
       activo: true,
       mustSetPassword: true,
       createdAt: true,
+      faculdade: { select: { id: true, nome: true } },
+      curso: { select: { id: true, nome: true, faculdadeId: true } },
+      ano: true,
     },
   },
 } as const;
@@ -43,6 +56,14 @@ class EligibleVotersRepository {
         id: true,
         estado: true,
         titulo: true,
+        escopoEleitores: true,
+        faculdadeId: true,
+        faculdade: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
       },
     });
   }
@@ -90,6 +111,11 @@ class EligibleVotersRepository {
         activo: true,
         mustSetPassword: true,
         createdAt: true,
+        faculdadeId: true,
+        cursoId: true,
+        ano: true,
+        faculdade: { select: { id: true, nome: true } },
+        curso: { select: { id: true, nome: true, faculdadeId: true } },
       },
     });
   }

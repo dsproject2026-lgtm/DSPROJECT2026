@@ -2,7 +2,9 @@ import type { RequestHandler } from 'express';
 import { z } from 'zod';
 
 import { votingService } from '../services/voting.service.js';
+import { auditService } from '../services/audit.service.js';
 import { AppError } from '../utils/app-error.js';
+import { getClientIp } from '../utils/get-client-ip.js';
 import { buildSuccessResponse } from '../utils/success-response.js';
 
 const electionIdParamSchema = z.object({
@@ -42,6 +44,13 @@ export const castVote: RequestHandler = async (request, response) => {
   const body = castVoteSchema.parse(request.body);
   const userId = getAuthenticatedUserId(request);
   const result = await votingService.castVote(params.electionId, userId, body);
+  await auditService.record({
+    utilizadorId: userId,
+    accao: 'VOTO_REGISTADO',
+    entidade: 'VOTO',
+    entidadeId: params.electionId,
+    ip: getClientIp(request),
+  });
 
   response.status(201).json(
     buildSuccessResponse({

@@ -11,23 +11,29 @@ import { AppError } from '../utils/app-error.js';
 class CandidatesService {
     async createCandidate(electionId: string, data: CreateCandidateApiInput, registadoPor?: string) {
         const utilizadorId = data.utilizadorId;
-
         const election = await candidatesRepository.findElectionById(electionId);
 
         if (!election) {
-            throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
+            throw new AppError('Eleicao nao encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
+        }
+
+        if (election.estado !== 'PROGRAMADA') {
+            throw new AppError(
+                'Candidatos so podem ser associados quando a eleicao esta programada.',
+                409,
+                'CANDIDATE_ELECTION_NOT_PROGRAMMED',
+                { electionId, estado: election.estado },
+            );
         }
 
         const user = await candidatesRepository.findUserById(utilizadorId);
 
         if (!user) {
-            throw new AppError('Utilizador não encontrado.', 404, 'USER_NOT_FOUND', {
-                utilizadorId,
-            });
+            throw new AppError('Utilizador nao encontrado.', 404, 'USER_NOT_FOUND', { utilizadorId });
         }
 
         if (!user.activo) {
-            throw new AppError('A conta do utilizador está inativa.', 403, 'USER_ACCOUNT_INACTIVE', {
+            throw new AppError('A conta do utilizador esta inativa.', 403, 'USER_ACCOUNT_INACTIVE', {
                 utilizadorId,
             });
         }
@@ -41,20 +47,24 @@ class CandidatesService {
             );
         }
 
-        const existingCandidate = await candidatesRepository.findByElectionAndUser(
-            electionId,
-            utilizadorId,
-        );
+        const eligibleVoter = await candidatesRepository.findEligibleVoter(electionId, utilizadorId);
+        if (!eligibleVoter) {
+            throw new AppError(
+                'O candidato deve estar registado como eleitor elegivel nesta eleicao.',
+                400,
+                'CANDIDATE_MUST_BE_ELIGIBLE_VOTER',
+                { electionId, utilizadorId },
+            );
+        }
+
+        const existingCandidate = await candidatesRepository.findByElectionAndUser(electionId, utilizadorId);
 
         if (existingCandidate) {
             throw new AppError(
-                'Este utilizador já está registado como candidato nesta eleição.',
+                'Este utilizador ja esta registado como candidato nesta eleicao.',
                 409,
                 'CANDIDATE_ALREADY_REGISTERED',
-                {
-                    electionId,
-                    utilizadorId,
-                },
+                { electionId, utilizadorId },
             );
         }
 
@@ -66,14 +76,17 @@ class CandidatesService {
             electionId,
             {
                 ...data,
-                utilizadorId,
-                estado: 'APROVADO',
+                nome: data.nome?.trim() || user.nome,
+                fotoUrl: null,
+                biografia: null,
+                proposta: null,
+                estado: 'PENDENTE',
             },
             registadoPor,
         );
 
         return {
-            message: 'Candidato registado com sucesso.',
+            message: 'Candidato associado com sucesso.',
             data: candidate,
         };
     }
@@ -82,17 +95,12 @@ class CandidatesService {
         const candidate = await candidatesRepository.findByIdForElection(id, electionId);
 
         if (!candidate) {
-            throw new AppError('Candidato não encontrado.', 404, 'CANDIDATE_NOT_FOUND', {
-                id,
-                electionId,
-            });
+            throw new AppError('Candidato nao encontrado.', 404, 'CANDIDATE_NOT_FOUND', { id, electionId });
         }
-
-        const publicCandidate = this.toPublicCandidate(candidate);
 
         return {
             message: 'Candidato encontrado com sucesso.',
-            data: publicCandidate,
+            data: this.toPublicCandidate(candidate),
         };
     }
 
@@ -100,7 +108,7 @@ class CandidatesService {
         const election = await candidatesRepository.findElectionById(electionId);
 
         if (!election) {
-            throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
+            throw new AppError('Eleicao nao encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
         }
 
         const candidates = await candidatesRepository.findAllByElection(electionId, filters);
@@ -113,62 +121,60 @@ class CandidatesService {
         };
     }
 
-    async updateCandidate(electionId: string, id: string, partialData: UpdateCandidateApiInput) {
+    async listMyCandidacies(userId: string) {
+        const candidates = await candidatesRepository.findCandidateByUser(userId);
+
+        return {
+            message: 'Candidaturas do candidato listadas com sucesso.',
+            data: candidates.map((candidate) => this.toPublicCandidate(candidate)),
+            count: candidates.length,
+        };
+    }
+
+    async updateCandidate(electionId: string, id: string, partialData: UpdateCandidateApiInput, actorUserId?: string) {
         const existingCandidate = await candidatesRepository.findByIdForElection(id, electionId);
 
         if (!existingCandidate) {
-            throw new AppError('Candidato não encontrado.', 404, 'CANDIDATE_NOT_FOUND', {
-                id,
-                electionId,
-            });
+            throw new AppError('Candidato nao encontrado.', 404, 'CANDIDATE_NOT_FOUND', { id, electionId });
+        }
+
+        const isSelfUpdate = actorUserId === existingCandidate.utilizadorId;
+        if (existingCandidate.eleicao.estado === 'ABERTA' && !isSelfUpdate) {
+            throw new AppError(
+                'Eleicoes abertas nao permitem gerir candidatos pela comissao.',
+                409,
+                'ELECTION_OPEN_READ_ONLY',
+                { electionId },
+            );
+        }
+
+        if (isSelfUpdate) {
+            const allowedKeys = new Set(['fotoUrl', 'biografia', 'proposta']);
+            const hasForbiddenKey = Object.keys(partialData).some((key) => !allowedKeys.has(key));
+            if (hasForbiddenKey) {
+                throw new AppError(
+                    'O candidato so pode atualizar foto, biografia e proposta. O nome completo vem do registo oficial.',
+                    403,
+                    'CANDIDATE_SELF_UPDATE_FORBIDDEN_FIELD',
+                );
+            }
+
+            if (!this.isCandidacyWindowOpen(existingCandidate.eleicao)) {
+                throw new AppError(
+                    'A edicao da candidatura esta bloqueada fora do periodo de candidatura.',
+                    409,
+                    'CANDIDATE_SELF_UPDATE_CLOSED',
+                    { electionId },
+                );
+            }
         }
 
         if (partialData.utilizadorId !== undefined) {
-            const user = await candidatesRepository.findUserById(partialData.utilizadorId);
-
-            if (!user) {
-                throw new AppError('Utilizador não encontrado.', 404, 'USER_NOT_FOUND', {
-                    utilizadorId: partialData.utilizadorId,
-                });
-            }
-
-            if (!user.activo) {
-                throw new AppError('A conta do utilizador está inativa.', 403, 'USER_ACCOUNT_INACTIVE', {
-                    utilizadorId: partialData.utilizadorId,
-                });
-            }
-
-            if (user.perfil !== 'ELEITOR' && user.perfil !== 'CANDIDATO') {
-                throw new AppError(
-                    'Apenas eleitores podem ser promovidos a candidatos.',
-                    400,
-                    'CANDIDATE_PROFILE_INVALID',
-                    { utilizadorId: partialData.utilizadorId },
-                );
-            }
-
-            if (partialData.utilizadorId !== existingCandidate.utilizadorId) {
-                const existingForUser = await candidatesRepository.findByElectionAndUser(
-                    electionId,
-                    partialData.utilizadorId,
-                );
-
-                if (existingForUser) {
-                    throw new AppError(
-                        'Este utilizador já está registado como candidato nesta eleição.',
-                        409,
-                        'CANDIDATE_ALREADY_REGISTERED',
-                        {
-                            electionId,
-                            utilizadorId: partialData.utilizadorId,
-                        },
-                    );
-                }
-            }
-
-            if (user.perfil === 'ELEITOR') {
-                await candidatesRepository.promoteUserToCandidate(partialData.utilizadorId);
-            }
+            throw new AppError(
+                'Nao e permitido trocar o utilizador de uma candidatura existente.',
+                400,
+                'CANDIDATE_USER_CHANGE_NOT_ALLOWED',
+            );
         }
 
         const updatedCandidate = await candidatesRepository.update(id, partialData);
@@ -183,10 +189,16 @@ class CandidatesService {
         const existingCandidate = await candidatesRepository.findByIdForElection(id, electionId);
 
         if (!existingCandidate) {
-            throw new AppError('Candidato não encontrado.', 404, 'CANDIDATE_NOT_FOUND', {
-                id,
-                electionId,
-            });
+            throw new AppError('Candidato nao encontrado.', 404, 'CANDIDATE_NOT_FOUND', { id, electionId });
+        }
+
+        if (existingCandidate.eleicao.estado !== 'PROGRAMADA') {
+            throw new AppError(
+                'Candidatos so podem ser removidos quando a eleicao esta programada.',
+                409,
+                'CANDIDATE_ELECTION_NOT_PROGRAMMED',
+                { electionId, estado: existingCandidate.eleicao.estado },
+            );
         }
 
         await candidatesRepository.delete(id);
@@ -218,10 +230,16 @@ class CandidatesService {
         const existingCandidate = await candidatesRepository.findByIdForElection(id, electionId);
 
         if (!existingCandidate) {
-            throw new AppError('Candidato não encontrado.', 404, 'CANDIDATE_NOT_FOUND', {
-                id,
-                electionId,
-            });
+            throw new AppError('Candidato nao encontrado.', 404, 'CANDIDATE_NOT_FOUND', { id, electionId });
+        }
+
+        if (existingCandidate.eleicao.estado === 'ABERTA') {
+            throw new AppError(
+                'Eleicoes abertas nao permitem gerir candidatos pela comissao.',
+                409,
+                'ELECTION_OPEN_READ_ONLY',
+                { electionId },
+            );
         }
 
         const updatedCandidate = await candidatesRepository.update(id, { estado });
@@ -238,6 +256,21 @@ class CandidatesService {
     } & Record<string, unknown>): CandidateResponse {
         const { registadoPor: _registadoPor, registador: _registador, ...publicCandidate } = candidate;
         return publicCandidate as CandidateResponse;
+    }
+
+    private isCandidacyWindowOpen(election: {
+        dataInicioCandidatura?: Date | string | null;
+        dataFimCandidatura?: Date | string | null;
+    }) {
+        const now = new Date();
+        const start = election.dataInicioCandidatura ? new Date(election.dataInicioCandidatura) : null;
+        const end = election.dataFimCandidatura ? new Date(election.dataFimCandidatura) : null;
+
+        if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+            return false;
+        }
+
+        return start <= now && now <= end;
     }
 }
 

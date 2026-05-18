@@ -32,6 +32,7 @@ export interface CastVoteResponse {
 
 export interface VoteStatusResponse {
   electionId: string;
+  isEligible: boolean;
   hasVoted: boolean;
   votedAt: Date | null;
   receiptCode: string | null;

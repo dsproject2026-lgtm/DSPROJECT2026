@@ -10,107 +10,33 @@ import { AppError } from '../utils/app-error.js';
 const ACTIVE_ELECTION_STATES = new Set(['ABERTA']);
 
 class ElectionsService {
-  async concludeExpiredOpenElections() {
+  async syncElectionStates() {
     const { settings } = await settingsService.getSystemSettings();
 
     if (!settings.autoCloseElection) {
       return 0;
     }
 
-    return electionsRepository.concludeExpiredOpenElections();
+    return electionsRepository.syncElectionStates();
   }
 
   async createElection(data: CreateElectionApiInput, registadoPor?: string) {
     const cargo = await electionsRepository.findCargoById(data.cargoId);
 
     if (!cargo) {
-      throw new AppError(
-        `Cargo com ID ${data.cargoId} não encontrado.`,
-        404,
-        'ELECTION_CARGO_NOT_FOUND',
-        { cargoId: data.cargoId },
-      );
+      throw new AppError(`Cargo com ID ${data.cargoId} nao encontrado.`, 404, 'ELECTION_CARGO_NOT_FOUND', {
+        cargoId: data.cargoId,
+      });
     }
 
-    const requestedState = data.estado ?? 'PENDENTE';
-
-    if (ACTIVE_ELECTION_STATES.has(requestedState)) {
-      const activeElection = await electionsRepository.findActiveElectionByCargo(data.cargoId);
-
-      if (activeElection) {
-        throw new AppError(
-          'Já existe uma eleição em andamento para este cargo.',
-          409,
-          'ELECTION_ACTIVE_CONFLICT',
-          {
-            cargoId: data.cargoId,
-            electionId: activeElection.id,
-            estado: activeElection.estado,
-          },
-        );
-      }
-    }
-
-    if (data.candidatos && data.candidatos.length > 0) {
-      const seen = new Set<string>();
-      const duplicatedUserId = data.candidatos.find((candidate) => {
-        if (seen.has(candidate.utilizadorId)) return true;
-        seen.add(candidate.utilizadorId);
-        return false;
-      })?.utilizadorId;
-
-      if (duplicatedUserId) {
-        throw new AppError(
-          'Não é permitido vincular o mesmo utilizador mais de uma vez na mesma eleição.',
-          400,
-          'ELECTION_CANDIDATE_DUPLICATED_USER',
-          { utilizadorId: duplicatedUserId },
-        );
-      }
-
-      const requestedUserIds = [...seen];
-      const users = await electionsRepository.findUsersByIds(requestedUserIds);
-      const existingUserIds = new Set(users.map((user) => user.id));
-      const missingUserId = requestedUserIds.find((id) => !existingUserIds.has(id));
-
-      if (missingUserId) {
-        throw new AppError(
-          'Utilizador não encontrado para vincular candidatura.',
-          404,
-          'USER_NOT_FOUND',
-          { utilizadorId: missingUserId },
-        );
-      }
-
-      const inactiveUserId = users.find((user) => !user.activo)?.id;
-      if (inactiveUserId) {
-        throw new AppError(
-          'A conta do utilizador está inativa.',
-          403,
-          'USER_ACCOUNT_INACTIVE',
-          { utilizadorId: inactiveUserId },
-        );
-      }
-
-      const invalidProfileUserId = users.find(
-        (user) => user.perfil !== 'ELEITOR' && user.perfil !== 'CANDIDATO',
-      )?.id;
-      if (invalidProfileUserId) {
-        throw new AppError(
-          'Apenas eleitores podem ser promovidos a candidatos.',
-          400,
-          'ELECTION_CANDIDATE_PROFILE_INVALID',
-          { utilizadorId: invalidProfileUserId },
-        );
-      }
-
-      await electionsRepository.promoteUsersToCandidate(
-        users.filter((user) => user.perfil === 'ELEITOR').map((user) => user.id),
-      );
-    }
+    await this.validateVotingScope(data.escopoEleitores ?? 'TODOS', data.faculdadeId ?? null);
+    this.validateElectionDates(data);
 
     const election = await electionsRepository.create(data, registadoPor);
-    await electionsRepository.assignAllActiveElectorsAsEligible(election.id);
+    await electionsRepository.assignEligibleElectorsForElection(election.id, {
+      escopoEleitores: data.escopoEleitores ?? 'TODOS',
+      faculdadeId: data.faculdadeId ?? null,
+    });
 
     return {
       message: 'Eleição criada com sucesso.',
@@ -119,27 +45,27 @@ class ElectionsService {
   }
 
   async getElectionById(id: string) {
-    await this.concludeExpiredOpenElections();
+    await this.syncElectionStates();
 
     const election = await electionsRepository.findById(id);
 
     if (!election) {
-      throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { id });
+      throw new AppError('Eleicao nao encontrada.', 404, 'ELECTION_NOT_FOUND', { id });
     }
 
     return {
-      message: 'Eleição encontrada com sucesso.',
+      message: 'Eleicao encontrada com sucesso.',
       data: election,
     };
   }
 
   async listElections(filters?: ListElectionsFilters) {
-    await this.concludeExpiredOpenElections();
+    await this.syncElectionStates();
 
     const elections = await electionsRepository.findAll(filters);
 
     return {
-      message: 'Eleições listadas com sucesso.',
+      message: 'Eleicoes listadas com sucesso.',
       data: elections,
       count: elections.length,
     };
@@ -149,7 +75,7 @@ class ElectionsService {
     const users = await electionsRepository.findCandidateUsers(search);
 
     return {
-      message: 'Candidatos disponíveis listados com sucesso.',
+      message: 'Candidatos disponiveis listados com sucesso.',
       data: users,
       count: users.length,
     };
@@ -159,7 +85,17 @@ class ElectionsService {
     const existingElection = await electionsRepository.findById(id);
 
     if (!existingElection) {
-      throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { id });
+      throw new AppError('Eleicao nao encontrada.', 404, 'ELECTION_NOT_FOUND', { id });
+    }
+
+    const isOnlyStateChange = Object.keys(partialData).every((key) => key === 'estado');
+    if (existingElection.estado === 'ABERTA' && !isOnlyStateChange) {
+      throw new AppError(
+        'Eleicoes abertas nao podem ser editadas. Apenas consulta e resultados ficam disponiveis.',
+        409,
+        'ELECTION_OPEN_READ_ONLY',
+        { id },
+      );
     }
 
     if (partialData.cargoId && partialData.cargoId !== existingElection.cargoId) {
@@ -167,13 +103,36 @@ class ElectionsService {
 
       if (!cargo) {
         throw new AppError(
-          `Cargo com ID ${partialData.cargoId} não encontrado.`,
+          `Cargo com ID ${partialData.cargoId} nao encontrado.`,
           404,
           'ELECTION_CARGO_NOT_FOUND',
           { cargoId: partialData.cargoId },
         );
       }
     }
+
+    const targetScope = partialData.escopoEleitores ?? existingElection.escopoEleitores;
+    const targetFacultyId =
+      partialData.faculdadeId !== undefined ? partialData.faculdadeId : existingElection.faculdadeId;
+    await this.validateVotingScope(targetScope, targetFacultyId);
+    this.validateElectionDates({
+      dataInicioCandidatura:
+        partialData.dataInicioCandidatura !== undefined
+          ? partialData.dataInicioCandidatura
+          : existingElection.dataInicioCandidatura?.toISOString(),
+      dataFimCandidatura:
+        partialData.dataFimCandidatura !== undefined
+          ? partialData.dataFimCandidatura
+          : existingElection.dataFimCandidatura?.toISOString(),
+      dataInicioVotacao:
+        partialData.dataInicioVotacao !== undefined
+          ? partialData.dataInicioVotacao
+          : existingElection.dataInicioVotacao?.toISOString(),
+      dataFimVotacao:
+        partialData.dataFimVotacao !== undefined
+          ? partialData.dataFimVotacao
+          : existingElection.dataFimVotacao?.toISOString(),
+    });
 
     const targetCargoId = partialData.cargoId ?? existingElection.cargoId;
     const targetState = partialData.estado ?? existingElection.estado;
@@ -183,7 +142,7 @@ class ElectionsService {
 
       if (conflictingElection) {
         throw new AppError(
-          'Já existe uma eleição em andamento para este cargo.',
+          'Ja existe uma eleicao em andamento para este cargo.',
           409,
           'ELECTION_ACTIVE_CONFLICT',
           {
@@ -198,7 +157,7 @@ class ElectionsService {
     const updatedElection = await electionsRepository.update(id, partialData);
 
     return {
-      message: 'Eleição atualizada com sucesso.',
+      message: 'Eleicao atualizada com sucesso.',
       data: updatedElection,
     };
   }
@@ -207,23 +166,14 @@ class ElectionsService {
     const existingElection = await electionsRepository.findById(id);
 
     if (!existingElection) {
-      throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { id });
+      throw new AppError('Eleicao nao encontrada.', 404, 'ELECTION_NOT_FOUND', { id });
     }
 
-    if (existingElection.candidatos.length > 0) {
+    if (existingElection.estado === 'ABERTA') {
       throw new AppError(
-        'Não é possível eliminar uma eleição que já tem candidatos registados.',
-        400,
-        'ELECTION_HAS_CANDIDATOS',
-        { id },
-      );
-    }
-
-    if (existingElection.elegiveis.length > 0) {
-      throw new AppError(
-        'Não é possível eliminar uma eleição que já tem eleitores elegíveis registados.',
-        400,
-        'ELECTION_HAS_ELEIGIVEIS',
+        'Eleicoes abertas nao podem ser eliminadas.',
+        409,
+        'ELECTION_OPEN_READ_ONLY',
         { id },
       );
     }
@@ -231,9 +181,94 @@ class ElectionsService {
     await electionsRepository.delete(id);
 
     return {
-      message: 'Eleição eliminada com sucesso.',
+      message: 'Eleicao eliminada com sucesso.',
       data: { id, deleted: true },
     };
+  }
+
+  private async validateVotingScope(escopoEleitores: string, faculdadeId: string | null) {
+    if (escopoEleitores === 'FACULDADE' && !faculdadeId) {
+      throw new AppError(
+        'Selecione uma faculdade para eleicoes restritas a uma faculdade.',
+        400,
+        'ELECTION_FACULTY_REQUIRED',
+      );
+    }
+
+    if (escopoEleitores === 'TODOS' && faculdadeId) {
+      throw new AppError(
+        'Eleicoes abertas a todos nao devem ter faculdade selecionada.',
+        400,
+        'ELECTION_FACULTY_NOT_ALLOWED',
+      );
+    }
+
+    if (faculdadeId) {
+      const faculdade = await electionsRepository.findFaculdadeById(faculdadeId);
+      if (!faculdade) {
+        throw new AppError('Faculdade nao encontrada.', 404, 'FACULTY_NOT_FOUND', { faculdadeId });
+      }
+    }
+  }
+
+  private validateElectionDates(data: Pick<
+    CreateElectionApiInput,
+    | 'dataInicioCandidatura'
+    | 'dataFimCandidatura'
+    | 'dataInicioVotacao'
+    | 'dataFimVotacao'
+  >) {
+    const candidaturaInicio = this.parseOptionalDate(data.dataInicioCandidatura, 'dataInicioCandidatura');
+    const candidaturaFim = this.parseOptionalDate(data.dataFimCandidatura, 'dataFimCandidatura');
+    const votacaoInicio = this.parseOptionalDate(data.dataInicioVotacao, 'dataInicioVotacao');
+    const votacaoFim = this.parseOptionalDate(data.dataFimVotacao, 'dataFimVotacao');
+
+    if (!votacaoInicio || !votacaoFim) {
+      throw new AppError(
+        'Informe o inicio e o fim da votacao.',
+        400,
+        'ELECTION_VOTING_PERIOD_REQUIRED',
+      );
+    }
+
+    if (candidaturaInicio && candidaturaFim && candidaturaInicio >= candidaturaFim) {
+      throw new AppError(
+        'O inicio da candidatura deve ser anterior ao fim da candidatura.',
+        400,
+        'ELECTION_CANDIDACY_PERIOD_INVALID',
+      );
+    }
+
+    if (votacaoInicio >= votacaoFim) {
+      throw new AppError(
+        'O inicio da votacao deve ser anterior ao fim da votacao.',
+        400,
+        'ELECTION_VOTING_PERIOD_INVALID',
+      );
+    }
+
+    if (candidaturaFim && candidaturaFim > votacaoInicio) {
+      throw new AppError(
+        'O periodo de candidatura deve terminar antes do inicio da votacao.',
+        400,
+        'ELECTION_CANDIDACY_OVERLAPS_VOTING',
+      );
+    }
+  }
+
+  private parseOptionalDate(value: string | null | undefined, field: string) {
+    if (!value) {
+      return null;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      throw new AppError(`O campo ${field} deve conter uma data valida.`, 400, 'ELECTION_DATE_INVALID', {
+        field,
+      });
+    }
+
+    return date;
   }
 }
 

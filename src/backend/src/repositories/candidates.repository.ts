@@ -22,6 +22,10 @@ const candidateWithRelationsSelect = {
             cargoId: true,
             titulo: true,
             estado: true,
+            dataInicioCandidatura: true,
+            dataFimCandidatura: true,
+            dataInicioVotacao: true,
+            dataFimVotacao: true,
         },
     },
     utilizador: {
@@ -34,6 +38,9 @@ const candidateWithRelationsSelect = {
             activo: true,
             mustSetPassword: true,
             createdAt: true,
+            faculdade: { select: { id: true, nome: true } },
+            curso: { select: { id: true, nome: true, faculdadeId: true } },
+            ano: true,
         },
     },
     registador: {
@@ -42,12 +49,15 @@ const candidateWithRelationsSelect = {
             codigo: true,
             nome: true,
             email: true,
-            perfil: true,
-            activo: true,
-            mustSetPassword: true,
-            createdAt: true,
+                perfil: true,
+                activo: true,
+                mustSetPassword: true,
+                createdAt: true,
+                faculdade: { select: { id: true, nome: true } },
+                curso: { select: { id: true, nome: true, faculdadeId: true } },
+                ano: true,
+            },
         },
-    },
     votos: {
         select: {
             id: true,
@@ -65,7 +75,7 @@ class CandidatesRepository {
                 eleicaoId: electionId,
                 utilizadorId: data.utilizadorId!,
                 ...(registadoPor !== undefined ? { registadoPor } : {}),
-                nome: data.nome,
+                nome: data.nome ?? '',
                 ...(data.fotoUrl !== undefined ? { fotoUrl: data.fotoUrl } : {}),
                 ...(data.biografia !== undefined ? { biografia: data.biografia } : {}),
                 ...(data.proposta !== undefined ? { proposta: data.proposta } : {}),
@@ -132,6 +142,8 @@ class CandidatesRepository {
             select: {
                 id: true,
                 estado: true,
+                dataInicioCandidatura: true,
+                dataFimCandidatura: true,
             },
         });
     }
@@ -141,8 +153,38 @@ class CandidatesRepository {
             where: { id: userId },
             select: {
                 id: true,
+                nome: true,
+                codigo: true,
                 perfil: true,
                 activo: true,
+                faculdadeId: true,
+            },
+        });
+    }
+
+    async findEligibleVoter(electionId: EntityId, userId: EntityId) {
+        return prisma.elegivel.findFirst({
+            where: {
+                eleicaoId: electionId,
+                utilizadorId: userId,
+            },
+            select: {
+                id: true,
+                jaVotou: true,
+            },
+        });
+    }
+
+    async findCandidateByUser(userId: EntityId) {
+        return prisma.candidato.findMany({
+            where: {
+                utilizadorId: userId,
+            },
+            select: candidateWithRelationsSelect,
+            orderBy: {
+                eleicao: {
+                    titulo: 'asc',
+                },
             },
         });
     }

@@ -2,7 +2,7 @@ import type { CandidatoComRelacoes, EstadoCandidato } from './model.types.js';
 
 export interface CreateCandidateApiInput {
     utilizadorId: string;
-    nome: string;
+    nome?: string | undefined;
     fotoUrl?: string | null | undefined;
     biografia?: string | null | undefined;
     proposta?: string | null | undefined;

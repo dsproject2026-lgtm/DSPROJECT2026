@@ -12,44 +12,38 @@ import type {
 import { AppError } from '../utils/app-error.js';
 
 class VotingService {
-  private async resolveOrCreateEligibleVoter(electionId: string, userId: string) {
-    const existingEligibleVoter = await votingRepository.findEligibleVoter(electionId, userId);
+  private async resolveEligibleVoter(electionId: string, userId: string) {
+    const eligibleVoter = await votingRepository.findEligibleVoter(electionId, userId);
 
-    if (existingEligibleVoter) {
-      return existingEligibleVoter;
-    }
-
-    const user = await votingRepository.findUserById(userId);
-
-    if (!user || !user.activo || user.perfil !== 'ELEITOR') {
+    if (!eligibleVoter) {
       throw new AppError(
-        'Utilizador não elegível para votar nesta eleição.',
+        'Utilizador nao elegivel para votar nesta eleicao.',
         403,
         'VOTER_NOT_ELIGIBLE',
         { electionId, userId },
       );
     }
 
-    return votingRepository.ensureEligibleVoter(electionId, userId);
+    return eligibleVoter;
   }
 
   async getBallot(electionId: string, userId: string) {
     const election = await votingRepository.findElectionById(electionId);
 
     if (!election) {
-      throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
+      throw new AppError('Eleicao nao encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
     }
 
     if (election.estado !== 'ABERTA') {
       throw new AppError(
-        'A votação desta eleição não está aberta.',
+        'A votacao desta eleicao nao esta aberta.',
         409,
         'ELECTION_VOTING_NOT_OPEN',
         { electionId, estado: election.estado },
       );
     }
 
-    await this.resolveOrCreateEligibleVoter(electionId, userId);
+    await this.resolveEligibleVoter(electionId, userId);
 
     const candidates = await votingRepository.findApprovedCandidatesByElection(electionId);
 
@@ -74,23 +68,23 @@ class VotingService {
     const election = await votingRepository.findElectionById(electionId);
 
     if (!election) {
-      throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
+      throw new AppError('Eleicao nao encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
     }
 
     if (election.estado !== 'ABERTA') {
       throw new AppError(
-        'A votação desta eleição não está aberta.',
+        'A votacao desta eleicao nao esta aberta.',
         409,
         'ELECTION_VOTING_NOT_OPEN',
         { electionId, estado: election.estado },
       );
     }
 
-    const eligibleVoter = await this.resolveOrCreateEligibleVoter(electionId, userId);
+    const eligibleVoter = await this.resolveEligibleVoter(electionId, userId);
 
     if (eligibleVoter.jaVotou) {
       throw new AppError(
-        'Este utilizador já votou nesta eleição.',
+        'Este utilizador ja votou nesta eleicao.',
         409,
         'VOTER_ALREADY_VOTED',
         { electionId, userId },
@@ -101,7 +95,7 @@ class VotingService {
 
     if (!candidate) {
       throw new AppError(
-        'Candidato não encontrado nesta eleição.',
+        'Candidato nao encontrado nesta eleicao.',
         404,
         'VOTE_CANDIDATE_NOT_FOUND',
         { electionId, candidatoId: input.candidatoId },
@@ -110,7 +104,7 @@ class VotingService {
 
     if (candidate.estado !== 'APROVADO') {
       throw new AppError(
-        'Só é permitido votar em candidatos aprovados.',
+        'So e permitido votar em candidatos aprovados.',
         409,
         'VOTE_CANDIDATE_NOT_APPROVED',
         { electionId, candidatoId: input.candidatoId, estado: candidate.estado },
@@ -148,15 +142,31 @@ class VotingService {
     const election = await votingRepository.findElectionById(electionId);
 
     if (!election) {
-      throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
+      throw new AppError('Eleicao nao encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
     }
 
-    const eligibleVoter = await this.resolveOrCreateEligibleVoter(electionId, userId);
+    const eligibleVoter = await votingRepository.findEligibleVoter(electionId, userId);
+
+    if (!eligibleVoter) {
+      const data: VoteStatusResponse = {
+        electionId,
+        isEligible: false,
+        hasVoted: false,
+        votedAt: null,
+        receiptCode: null,
+      };
+
+      return {
+        message: 'Estado de voto carregado com sucesso.',
+        data,
+      };
+    }
 
     const receipt = await votingRepository.findReceiptByElectionAndUser(electionId, userId);
 
     const data: VoteStatusResponse = {
       electionId,
+      isEligible: true,
       hasVoted: eligibleVoter.jaVotou,
       votedAt: receipt?.emitidoEm ?? null,
       receiptCode: receipt?.codigoVerificacao ?? null,
@@ -169,19 +179,19 @@ class VotingService {
   }
 
   async getElectionResults(electionId: string) {
-    await electionsService.concludeExpiredOpenElections();
+    await electionsService.syncElectionStates();
 
     const election = await votingRepository.findElectionById(electionId);
 
     if (!election) {
-      throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
+      throw new AppError('Eleicao nao encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
     }
 
     const { settings } = await settingsService.getSystemSettings();
 
     if (!settings.allowImmediateResults && election.estado !== 'CONCLUIDA') {
       throw new AppError(
-        'Os resultados desta eleição ainda não estão disponíveis.',
+        'Os resultados desta eleicao ainda nao estao disponiveis.',
         409,
         'ELECTION_RESULTS_NOT_AVAILABLE',
         { electionId, estado: election.estado },
@@ -237,9 +247,7 @@ class VotingService {
           };
 
     const turnoutPercentage =
-      totalEligibleVoters === 0
-        ? 0
-        : Number(((totalVotes / totalEligibleVoters) * 100).toFixed(2));
+      totalEligibleVoters === 0 ? 0 : Number(((totalVotes / totalEligibleVoters) * 100).toFixed(2));
 
     const data: ElectionResultsResponse = {
       election: {
@@ -257,7 +265,7 @@ class VotingService {
     };
 
     return {
-      message: 'Resultados da eleição carregados com sucesso.',
+      message: 'Resultados da eleicao carregados com sucesso.',
       data,
     };
   }

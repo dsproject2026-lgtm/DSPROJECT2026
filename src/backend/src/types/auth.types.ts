@@ -45,6 +45,9 @@ export interface RegisterInput {
   codigo: string;
   nome: string;
   email?: string;
+  faculdadeId?: string | null;
+  cursoId?: string | null;
+  ano?: number | null;
   senha?: string;
   perfil: Perfil;
   activo?: boolean;

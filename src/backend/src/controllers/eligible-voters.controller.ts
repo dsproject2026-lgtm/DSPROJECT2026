@@ -2,7 +2,9 @@ import type { RequestHandler } from 'express';
 import { z } from 'zod';
 
 import { eligibleVotersService } from '../services/eligible-voters.service.js';
+import { auditService } from '../services/audit.service.js';
 import { AppError } from '../utils/app-error.js';
+import { getClientIp } from '../utils/get-client-ip.js';
 import { buildSuccessResponse } from '../utils/success-response.js';
 
 const electionIdParamSchema = z.object({
@@ -43,6 +45,13 @@ export const importEligibleVoters: RequestHandler = async (request, response) =>
   const params = electionIdParamSchema.parse(request.params);
   const csvContent = csvBodySchema.parse(request.body);
   const result = await eligibleVotersService.importEligibleVoters(params.electionId, csvContent);
+  await auditService.record({
+    utilizadorId: request.auth?.sub,
+    accao: 'ELEITORES_IMPORTADOS',
+    entidade: 'ELEITOR_ELEGIVEL',
+    entidadeId: params.electionId,
+    ip: getClientIp(request),
+  });
 
   response.status(201).json(
     buildSuccessResponse({

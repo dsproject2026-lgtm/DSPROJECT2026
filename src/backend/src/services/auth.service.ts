@@ -35,7 +35,18 @@ type AuthUserRecord = NonNullable<Awaited<ReturnType<typeof authRepository.findU
 const REFRESH_TOKEN_EXPIRES_IN_SECONDS = env.REFRESH_TOKEN_EXPIRES_IN_DAYS * 24 * 60 * 60;
 
 class AuthService {
-  async createUser({ nome, codigo, email, senha, perfil, activo, mustSetPassword }: RegisterInput) {
+  async createUser({
+    nome,
+    codigo,
+    email,
+    faculdadeId,
+    cursoId,
+    ano,
+    senha,
+    perfil,
+    activo,
+    mustSetPassword,
+  }: RegisterInput) {
     const existingUser = await authRepository.findUserByCodigo(codigo);
 
     if (existingUser) {
@@ -62,6 +73,9 @@ class AuthService {
       nome,
       codigo,
       ...(email !== undefined ? { email } : {}),
+      ...(faculdadeId !== undefined ? { faculdadeId } : {}),
+      ...(cursoId !== undefined ? { cursoId } : {}),
+      ...(ano !== undefined ? { ano } : {}),
       ...(senhaHash !== null ? { senhaHash } : {}),
       perfil,
       ...(activo !== undefined ? { activo } : {}),
@@ -498,6 +512,11 @@ class AuthService {
       codigo: user.codigo,
       nome: user.nome,
       email: user.email,
+      faculdadeId: user.faculdadeId,
+      cursoId: user.cursoId,
+      ano: user.ano,
+      faculdade: user.faculdade,
+      curso: user.curso,
       perfil: user.perfil,
       activo: user.activo,
       mustSetPassword: user.mustSetPassword,

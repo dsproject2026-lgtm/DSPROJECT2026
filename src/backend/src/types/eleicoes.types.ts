@@ -16,9 +16,10 @@ export interface CreateElectionCandidateApiInput {
 
 export interface CreateElectionApiInput {
   cargoId: string;
+  faculdadeId?: string | null | undefined;
   titulo: string;
   descricao?: string | null | undefined;
-  estado?: EstadoEleicao | undefined;
+  escopoEleitores?: 'TODOS' | 'FACULDADE' | undefined;
   dataInicioCandidatura?: string | null | undefined; // ISO 8601 datetime
   dataFimCandidatura?: string | null | undefined;
   dataInicioVotacao?: string | null | undefined;
@@ -28,9 +29,11 @@ export interface CreateElectionApiInput {
 
 export interface UpdateElectionApiInput {
   cargoId?: string | undefined;
+  faculdadeId?: string | null | undefined;
   titulo?: string | undefined;
   descricao?: string | null | undefined;
   estado?: EstadoEleicao | undefined;
+  escopoEleitores?: 'TODOS' | 'FACULDADE' | undefined;
   dataInicioCandidatura?: string | null | undefined;
   dataFimCandidatura?: string | null | undefined;
   dataInicioVotacao?: string | null | undefined;
@@ -45,4 +48,5 @@ export type ElectionResponse = EleicaoComRelacoes;
 export interface ListElectionsFilters {
   estado?: EstadoEleicao | undefined;
   cargoId?: string | undefined;
+  faculdadeId?: string | undefined;
 }

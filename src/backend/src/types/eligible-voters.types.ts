@@ -10,7 +10,13 @@ export interface ListEligibleVotersFilters {
 
 export interface ImportEligibleVotersSkippedItem {
   codigo: string;
-  reason: 'INVALID_CODE' | 'USER_NOT_FOUND' | 'ALREADY_REGISTERED';
+  reason:
+    | 'INVALID_CODE'
+    | 'USER_NOT_FOUND'
+    | 'ALREADY_REGISTERED'
+    | 'ELECTION_NOT_PROGRAMMED'
+    | 'FACULTY_MISMATCH'
+    | 'USER_WITHOUT_FACULTY';
 }
 
 export interface ImportEligibleVotersResult {

@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 import { z } from 'zod';
 
 import { authService } from '../services/auth.service.js';
+import { auditService } from '../services/audit.service.js';
 import type {
   FirstAccessFinishInput,
   FirstAccessStartInput,
@@ -26,6 +27,9 @@ const registerUserSchema = z.object({
   nome: z.string().trim().min(3).max(150),
   codigo: z.string().trim().min(1).max(50),
   email: z.string().trim().email().max(255).optional(),
+  faculdadeId: z.string().uuid().optional().nullable(),
+  cursoId: z.string().uuid().optional().nullable(),
+  ano: z.number().int().min(1).max(10).optional().nullable(),
   senha: z.string().min(8).max(255).optional(),
   perfil: z.enum(PERFIS),
   activo: z.boolean().optional(),
@@ -72,13 +76,16 @@ const changePasswordSchema = z.object({
 });
 
 export const registerUser: RequestHandler = async (request, response) => {
-  const { nome, codigo, email, senha, perfil, activo, mustSetPassword } = registerUserSchema.parse(
+  const { nome, codigo, email, faculdadeId, cursoId, ano, senha, perfil, activo, mustSetPassword } = registerUserSchema.parse(
     request.body,
   );
   const input: RegisterInput = {
     nome,
     codigo,
     ...(email !== undefined ? { email } : {}),
+    ...(faculdadeId !== undefined ? { faculdadeId } : {}),
+    ...(cursoId !== undefined ? { cursoId } : {}),
+    ...(ano !== undefined ? { ano } : {}),
     ...(senha !== undefined ? { senha } : {}),
     perfil,
     ...(activo !== undefined ? { activo } : {}),
@@ -146,6 +153,13 @@ export const finishFirstAccess: RequestHandler = async (request, response) => {
     ip: getClientIp(request),
     ...(userAgent !== undefined ? { userAgent } : {}),
   });
+  await auditService.record({
+    utilizadorId: result.user.id,
+    accao: 'PRIMEIRO_ACESSO_CONCLUIDO',
+    entidade: 'AUTH',
+    entidadeId: result.user.id,
+    ip: getClientIp(request),
+  });
 
   response.status(200).json(
     buildSuccessResponse({
@@ -187,6 +201,13 @@ export const finishPasswordRecovery: RequestHandler = async (request, response) 
     ip: getClientIp(request),
     ...(userAgent !== undefined ? { userAgent } : {}),
   });
+  await auditService.record({
+    utilizadorId: result.user.id,
+    accao: 'SENHA_REDEFINIDA',
+    entidade: 'AUTH',
+    entidadeId: result.user.id,
+    ip: getClientIp(request),
+  });
 
   response.status(200).json(
     buildSuccessResponse({
@@ -211,6 +232,13 @@ export const finishLogin: RequestHandler = async (request, response) => {
   const result: LoginResult = await authService.finishLogin(input, {
     ip: getClientIp(request),
     ...(userAgent !== undefined ? { userAgent } : {}),
+  });
+  await auditService.record({
+    utilizadorId: result.user.id,
+    accao: 'LOGIN_CONCLUIDO',
+    entidade: 'AUTH',
+    entidadeId: result.user.id,
+    ip: getClientIp(request),
   });
 
   response.status(200).json(
@@ -285,6 +313,13 @@ export const changePassword: RequestHandler = async (request, response) => {
   const body = changePasswordSchema.parse(request.body);
   const input: ChangePasswordInput = body;
   const result = await authService.changePassword(request.auth.sub, input);
+  await auditService.record({
+    utilizadorId: request.auth.sub,
+    accao: 'SENHA_ALTERADA',
+    entidade: 'AUTH',
+    entidadeId: request.auth.sub,
+    ip: getClientIp(request),
+  });
 
   response.status(200).json(
     buildSuccessResponse({

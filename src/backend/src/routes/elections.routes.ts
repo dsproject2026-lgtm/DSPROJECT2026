@@ -24,7 +24,7 @@ electionsRouter.get('/', listElections);
 electionsRouter.get(
   '/candidate-users',
   authenticateAccessToken,
-  requirePerfis('GESTOR_ELEITORAL'),
+  requirePerfis('ADMIN', 'GESTOR_ELEITORAL'),
   listCandidateUsers,
 );
 
@@ -32,8 +32,7 @@ electionsRouter.use('/:electionId/candidates', candidatesRouter);
 electionsRouter.use('/:electionId/eligible-voters', eligibleVotersRouter);
 electionsRouter.use('/:electionId', votingRouter);
 
-electionsRouter.patch('/:id', updateElection,
-);
+electionsRouter.patch('/:id', authenticateAccessToken, requirePerfis('GESTOR_ELEITORAL'), updateElection);
 electionsRouter.get('/:id', getElectionById);
 
 electionsRouter.post('/', authenticateAccessToken, requirePerfis('GESTOR_ELEITORAL'), createElection,);
