@@ -40,7 +40,14 @@ export const endpoints = {
     },
     eligibleVoters: {
       list: (electionId: string) => `/elections/${electionId}/eligible-voters`,
+      previewCsv: (electionId: string) => `/elections/${electionId}/eligible-voters/preview-csv`,
       importCsv: (electionId: string) => `/elections/${electionId}/eligible-voters/import-csv`,
+      update: (electionId: string, eligibleVoterId: string) =>
+        `/elections/${electionId}/eligible-voters/${eligibleVoterId}`,
+      updateStatus: (electionId: string, eligibleVoterId: string) =>
+        `/elections/${electionId}/eligible-voters/${eligibleVoterId}/status`,
+      remove: (electionId: string, eligibleVoterId: string) =>
+        `/elections/${electionId}/eligible-voters/${eligibleVoterId}`,
     },
   },
   candidates: {

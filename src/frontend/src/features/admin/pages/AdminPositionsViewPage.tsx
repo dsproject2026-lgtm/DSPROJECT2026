@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Search, Trash2 } from 'lucide-react';
 
 import { positionsApi } from '@/api/positions.api';
-import { Chip, Spinner, UiPageSkeleton, UiTable, toast } from '@/components/ui';
+import { Chip, ConfirmDialog, Spinner, UiPageSkeleton, UiTable, toast } from '@/components/ui';
 import { ApiError } from '@/lib/http/api-error';
 import { formatStateLabel, getStateChipColor } from '@/lib/ui/state-chip';
 import type { PositionItem } from '@/types/commission';
@@ -21,6 +21,7 @@ export function AdminPositionsViewPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [positionToDelete, setPositionToDelete] = useState<PositionItem | null>(null);
 
   const load = async (query?: string) => {
     const response = await positionsApi.list(query);
@@ -73,14 +74,14 @@ export function AdminPositionsViewPage() {
     }
   };
 
-  const removePosition = async (id: string) => {
-    const confirmed = window.confirm('Pretende remover este cargo?');
-    if (!confirmed) return;
+  const removePosition = async () => {
+    if (!positionToDelete) return;
 
     try {
-      setBusyId(id);
-      await positionsApi.delete(id);
+      setBusyId(positionToDelete.id);
+      await positionsApi.delete(positionToDelete.id);
       await load(search);
+      setPositionToDelete(null);
       toast.success('Cargo removido com sucesso.');
     } catch (cause) {
       const message =
@@ -167,7 +168,7 @@ export function AdminPositionsViewPage() {
                 <div key={`${row.id}:acoes`} className="flex justify-end">
                   <button
                     type="button"
-                    onClick={() => void removePosition(row.id)}
+                    onClick={() => setPositionToDelete(row)}
                     disabled={busyId === row.id}
                     className="inline-flex rounded p-1 text-[#b91c1c] transition hover:bg-[#fef2f2] disabled:opacity-60"
                     aria-label={`Remover cargo ${row.nome}`}
@@ -181,6 +182,17 @@ export function AdminPositionsViewPage() {
           emptyMessage="Nenhum cargo encontrado."
         />
       </div>
+
+      <ConfirmDialog
+        open={Boolean(positionToDelete)}
+        title="Eliminar cargo"
+        description={`Pretende eliminar o cargo "${positionToDelete?.nome ?? ''}"?`}
+        confirmLabel="Eliminar"
+        tone="danger"
+        isLoading={positionToDelete ? busyId === positionToDelete.id : false}
+        onCancel={() => setPositionToDelete(null)}
+        onConfirm={() => void removePosition()}
+      />
     </section>
   );
 }

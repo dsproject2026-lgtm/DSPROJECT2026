@@ -50,11 +50,26 @@ class TeamService {
       codigo,
     });
 
-    await authService.startFirstAccess({ codigo });
+    let firstAccessEmailSent = true;
+    try {
+      await authService.startFirstAccess({ codigo });
+    } catch (error) {
+      firstAccessEmailSent = false;
+      console.warn('Falha ao enviar e-mail de primeiro acesso para membro da equipa.', {
+        codigo,
+        email: data.email,
+        error,
+      });
+    }
 
     return {
-      message: 'Membro da equipa registado com sucesso. Foi enviado um email de primeiro acesso.',
-      data: member,
+      message: firstAccessEmailSent
+        ? 'Membro da equipa registado com sucesso. Foi enviado um email de primeiro acesso.'
+        : 'Membro da equipa registado com sucesso. O email de primeiro acesso não pôde ser enviado.',
+      data: {
+        ...member,
+        firstAccessEmailSent,
+      },
     };
   }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "candidatos" ALTER COLUMN "estado" SET DEFAULT 'APROVADO';

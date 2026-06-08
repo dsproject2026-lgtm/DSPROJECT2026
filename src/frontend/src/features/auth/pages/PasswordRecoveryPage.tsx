@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { authApi } from '@/api/auth.api';
 import { getRoleHomeRoute } from '@/config/role-navigation';
-import { toast } from '@/components/ui';
+import { PasswordInput, toast } from '@/components/ui';
 import { AuthBrand } from '@/features/auth/components/AuthBrand';
 import { ApiError } from '@/lib/http/api-error';
 import { sessionStorageService } from '@/lib/storage/session-storage';
@@ -124,7 +124,7 @@ export function PasswordRecoveryPage() {
               <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">
                 Número de estudante ou username
               </span>
-              <input
+              <PasswordInput
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
                 value={codigo}
                 onChange={(event) => setCodigo(event.target.value)}
@@ -162,7 +162,6 @@ export function PasswordRecoveryPage() {
               <input
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
                 placeholder="Mínimo 8 caracteres"
-                type="password"
                 value={novaSenha}
                 onChange={(event) => setNovaSenha(event.target.value)}
               />
@@ -172,10 +171,9 @@ export function PasswordRecoveryPage() {
               <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">
                 Confirmar palavra-passe
               </span>
-              <input
+              <PasswordInput
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
                 placeholder="Repita a nova palavra-passe"
-                type="password"
                 value={confirmarSenha}
                 onChange={(event) => setConfirmarSenha(event.target.value)}
               />

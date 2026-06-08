@@ -4,6 +4,7 @@ import type {
   EligibleVoterResponse,
   ImportEligibleVotersResult,
   ListEligibleVotersFilters,
+  UpdateEligibleVoterInput,
 } from '../types/eligible-voters.types.js';
 import { AppError } from '../utils/app-error.js';
 
@@ -20,15 +21,27 @@ class EligibleVotersService {
     const election = await eligibleVotersRepository.findElectionById(electionId);
 
     if (!election) {
-      throw new AppError('Eleicao nao encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
+      throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
     }
 
     const eligibleVoters = await eligibleVotersRepository.findAllByElection(electionId, filters);
 
     return {
-      message: 'Eleitores elegiveis listados com sucesso.',
+      message: 'Eleitores elegíveis listados com sucesso.',
       data: eligibleVoters,
       count: eligibleVoters.length,
+    };
+  }
+
+  async previewEligibleVoters(electionId: string, csvContent: string): Promise<{
+    message: string;
+    data: ImportEligibleVotersResult;
+  }> {
+    const result = await this.processCsvRows(electionId, csvContent, true);
+
+    return {
+      message: 'Pré-visualização de eleitores concluída com sucesso.',
+      data: result,
     };
   }
 
@@ -36,15 +49,93 @@ class EligibleVotersService {
     message: string;
     data: ImportEligibleVotersResult;
   }> {
+    const result = await this.processCsvRows(electionId, csvContent, false);
+
+    return {
+      message: 'Eleitores elegíveis importados com sucesso.',
+      data: result,
+    };
+  }
+
+  async updateEligibleVoter(electionId: string, id: string, data: UpdateEligibleVoterInput) {
+    const eligibleVoter = await eligibleVotersRepository.findByIdForElection(id, electionId);
+
+    if (!eligibleVoter) {
+      throw new AppError('Eleitor elegível não encontrado.', 404, 'ELIGIBLE_VOTER_NOT_FOUND', {
+        electionId,
+        id,
+      });
+    }
+
+    await eligibleVotersRepository.updateUser(eligibleVoter.utilizadorId, data);
+    const updated = await eligibleVotersRepository.findByIdForElection(id, electionId);
+
+    return {
+      message: 'Eleitor actualizado com sucesso.',
+      data: updated,
+    };
+  }
+
+  async updateEligibleVoterStatus(electionId: string, id: string, activo: boolean) {
+    const eligibleVoter = await eligibleVotersRepository.findByIdForElection(id, electionId);
+
+    if (!eligibleVoter) {
+      throw new AppError('Eleitor elegível não encontrado.', 404, 'ELIGIBLE_VOTER_NOT_FOUND', {
+        electionId,
+        id,
+      });
+    }
+
+    await eligibleVotersRepository.updateUserStatus(eligibleVoter.utilizadorId, activo);
+    const updated = await eligibleVotersRepository.findByIdForElection(id, electionId);
+
+    return {
+      message: activo ? 'Eleitor reactivado com sucesso.' : 'Eleitor suspenso com sucesso.',
+      data: updated,
+    };
+  }
+
+  async deleteEligibleVoter(electionId: string, id: string) {
+    const eligibleVoter = await eligibleVotersRepository.findByIdForElection(id, electionId);
+
+    if (!eligibleVoter) {
+      throw new AppError('Eleitor elegível não encontrado.', 404, 'ELIGIBLE_VOTER_NOT_FOUND', {
+        electionId,
+        id,
+      });
+    }
+
+    if (eligibleVoter.jaVotou) {
+      throw new AppError(
+        'Eleitores que já votaram não podem ser eliminados da eleição.',
+        409,
+        'ELIGIBLE_VOTER_ALREADY_VOTED',
+        { electionId, id },
+      );
+    }
+
+    await eligibleVotersRepository.delete(id);
+
+    return {
+      message: 'Eleitor eliminado da eleição com sucesso.',
+      data: { id, deleted: true },
+    };
+  }
+
+  private async processCsvRows(
+    electionId: string,
+    csvContent: string,
+    previewOnly: boolean,
+  ): Promise<ImportEligibleVotersResult> {
     const election = await eligibleVotersRepository.findElectionById(electionId);
 
     if (!election) {
-      throw new AppError('Eleicao nao encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
+      throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { electionId });
     }
 
     if (election.estado !== 'PROGRAMADA') {
       throw new AppError(
-        'Eleitores so podem ser importados quando a eleicao esta programada.',
+        'Eleitores só podem ser importados quando a eleição está programada.',
         409,
         'ELECTION_NOT_PROGRAMMED',
         { electionId, estado: election.estado },
@@ -54,17 +145,31 @@ class EligibleVotersService {
     const rows = this.parseCsvRows(csvContent);
 
     if (rows.length === 0) {
-      throw new AppError('O ficheiro CSV nao contem codigos validos.', 400, 'ELEGIVEIS_CSV_EMPTY');
+      throw new AppError('O ficheiro CSV não contém códigos válidos.', 400, 'ELEGIVEIS_CSV_EMPTY');
     }
 
     const imported: EligibleVoterResponse[] = [];
+    const preview: ImportEligibleVotersResult['preview'] = [];
     const skipped: ImportEligibleVotersResult['skipped'] = [];
+    const seenCodes = new Set<string>();
 
     for (const row of rows) {
       const codigo = row.codigo.trim();
 
       if (!codigo) {
         skipped.push({ codigo: row.codigo, reason: 'INVALID_CODE' });
+        continue;
+      }
+
+      const normalizedCode = codigo.toLowerCase();
+      if (seenCodes.has(normalizedCode)) {
+        skipped.push({ codigo, reason: 'DUPLICATE_IN_FILE' });
+        continue;
+      }
+      seenCodes.add(normalizedCode);
+
+      if (row.email && !this.isValidEmail(row.email)) {
+        skipped.push({ codigo, reason: 'INVALID_EMAIL' });
         continue;
       }
 
@@ -78,6 +183,26 @@ class EligibleVotersService {
 
         if (election.escopoEleitores === 'FACULDADE' && !election.faculdadeId) {
           skipped.push({ codigo, reason: 'FACULTY_MISMATCH' });
+          continue;
+        }
+
+        if (
+          election.escopoEleitores === 'FACULDADE' &&
+          row.faculdade &&
+          election.faculdade?.nome &&
+          this.normalizeName(row.faculdade) !== this.normalizeName(election.faculdade.nome)
+        ) {
+          skipped.push({ codigo, reason: 'FACULTY_MISMATCH' });
+          continue;
+        }
+
+        if (previewOnly) {
+          preview.push({
+            codigo,
+            nome: row.nome,
+            email: row.email,
+            faculdade: election.faculdade?.nome ?? row.faculdade ?? null,
+          });
           continue;
         }
 
@@ -129,20 +254,25 @@ class EligibleVotersService {
         continue;
       }
 
-      const createdEligibleVoter = await eligibleVotersRepository.create(electionId, user.id);
-      imported.push(createdEligibleVoter);
+      preview.push({
+        codigo,
+        nome: user.nome,
+        email: user.email,
+        faculdade: user.faculdade?.nome ?? null,
+      });
+
+      if (!previewOnly) {
+        const createdEligibleVoter = await eligibleVotersRepository.create(electionId, user.id);
+        imported.push(createdEligibleVoter);
+      }
     }
 
-    const result: ImportEligibleVotersResult = {
-      imported,
-      skipped,
-      count: imported.length,
-      totalCount: rows.length,
-    };
-
     return {
-      message: 'Eleitores elegiveis importados com sucesso.',
-      data: result,
+      imported,
+      preview,
+      skipped,
+      count: previewOnly ? preview.length : imported.length,
+      totalCount: rows.length,
     };
   }
 
@@ -198,6 +328,10 @@ class EligibleVotersService {
       .trim()
       .replace(/\s+/g, ' ')
       .toLowerCase();
+  }
+
+  private isValidEmail(value: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
   }
 }
 

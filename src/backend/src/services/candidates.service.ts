@@ -80,7 +80,7 @@ class CandidatesService {
                 fotoUrl: null,
                 biografia: null,
                 proposta: null,
-                estado: 'PENDENTE',
+                estado: 'APROVADO',
             },
             registadoPor,
         );

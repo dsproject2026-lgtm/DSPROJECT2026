@@ -3,7 +3,7 @@ import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { commissionApi } from '@/api/commission.api';
-import { Chip, UiPageSkeleton, UiTable, toast } from '@/components/ui';
+import { Chip, ConfirmDialog, UiPageSkeleton, UiTable, toast } from '@/components/ui';
 import { CommissionSegmentTabs } from '@/features/commission/components/CommissionSegmentTabs';
 import { ApiError } from '@/lib/http/api-error';
 import { formatStateLabel, getStateChipColor } from '@/lib/ui/state-chip';
@@ -14,6 +14,7 @@ export function CommissionElectionsListPage() {
   const [elections, setElections] = useState<CommissionElectionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [busyElectionId, setBusyElectionId] = useState<string | null>(null);
+  const [electionToDelete, setElectionToDelete] = useState<CommissionElectionItem | null>(null);
 
   const load = async () => {
     const response = await commissionApi.listElections();
@@ -41,18 +42,18 @@ export function CommissionElectionsListPage() {
     };
   }, []);
 
-  const deleteElection = async (election: CommissionElectionItem) => {
-    if (election.estado === 'ABERTA') {
+  const deleteElection = async () => {
+    if (!electionToDelete) return;
+    if (electionToDelete.estado === 'ABERTA') {
       toast.warning('Eleições abertas não podem ser eliminadas.');
       return;
     }
 
-    if (!window.confirm(`Pretende eliminar a eleição "${election.titulo}"?`)) return;
-
     try {
-      setBusyElectionId(election.id);
-      await commissionApi.deleteElection(election.id);
+      setBusyElectionId(electionToDelete.id);
+      await commissionApi.deleteElection(electionToDelete.id);
       await load();
+      setElectionToDelete(null);
       toast.success('Eleição eliminada com sucesso.');
     } catch (cause) {
       toast.danger(cause instanceof ApiError ? cause.message : 'Não foi possível eliminar a eleição.');
@@ -79,7 +80,7 @@ export function CommissionElectionsListPage() {
             { id: 'titulo', label: 'Título', className: 'font-semibold' },
             { id: 'cargo', label: 'Cargo', className: 'font-semibold' },
             { id: 'estado', label: 'Estado', className: 'font-semibold' },
-            { id: 'acoes', label: 'Acções', className: 'font-semibold text-right' },
+            { id: 'acoes', label: 'Ações', className: 'font-semibold text-right' },
           ]}
           rows={elections.map((item) => ({
             id: item.id,
@@ -99,7 +100,7 @@ export function CommissionElectionsListPage() {
                 <button type="button" onClick={() => navigate(`/comissao/eleicoes/registrar?edit=${encodeURIComponent(item.id)}`)} disabled={item.estado === 'ABERTA'} className="rounded-[8px] p-1.5 text-[#64748b] transition hover:bg-[#f1f5f9] hover:text-[#0f172a] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Editar">
                   <Pencil className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => void deleteElection(item)} disabled={item.estado === 'ABERTA' || busyElectionId === item.id} className="rounded-[8px] p-1.5 text-[#b91c1c] transition hover:bg-[#fef2f2] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Eliminar">
+                <button type="button" onClick={() => setElectionToDelete(item)} disabled={item.estado === 'ABERTA' || busyElectionId === item.id} className="rounded-[8px] p-1.5 text-[#b91c1c] transition hover:bg-[#fef2f2] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Eliminar">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>,
@@ -108,6 +109,17 @@ export function CommissionElectionsListPage() {
           emptyMessage="Nenhuma eleição disponível."
         />
       </div>
+
+      <ConfirmDialog
+        open={Boolean(electionToDelete)}
+        title="Eliminar eleição"
+        description={`Pretende eliminar a eleição "${electionToDelete?.titulo ?? ''}"?`}
+        confirmLabel="Eliminar"
+        tone="danger"
+        isLoading={electionToDelete ? busyElectionId === electionToDelete.id : false}
+        onCancel={() => setElectionToDelete(null)}
+        onConfirm={() => void deleteElection()}
+      />
     </section>
   );
 }

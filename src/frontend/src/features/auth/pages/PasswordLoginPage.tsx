@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { authApi } from '@/api/auth.api';
 import { getRoleHomeRoute } from '@/config/role-navigation';
-import { toast } from '@/components/ui';
+import { PasswordInput, toast } from '@/components/ui';
 import { AuthBrand } from '@/features/auth/components/AuthBrand';
 import { ApiError } from '@/lib/http/api-error';
 import { sessionStorageService } from '@/lib/storage/session-storage';
@@ -69,10 +69,9 @@ export function PasswordLoginPage() {
         <form className="space-y-8 sm:space-y-9" onSubmit={handleSubmit}>
           <label className="space-y-3.5">
             <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">Palavra-passe</span>
-            <input
+            <PasswordInput
               className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
               placeholder="Digite a sua palavra-passe"
-              type="password"
               value={senha}
               onChange={(event) => setSenha(event.target.value)}
             />

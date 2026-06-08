@@ -30,19 +30,14 @@ export function CommissionCandidatesRegisterPage() {
     const load = async () => {
       setIsBootLoading(true);
       try {
-        const [electionsResponse, usersResponse] = await Promise.all([
-          commissionApi.listElections(),
-          commissionApi.listCandidateUsers(),
-        ]);
+        const electionsResponse = await commissionApi.listElections();
         if (!isActive) return;
         const available = electionsResponse.items.filter((item) => item.estado === 'PROGRAMADA');
         setElections(electionsResponse.items);
         setSelectedElectionId(available[0]?.id ?? '');
-        setCandidateUsers(usersResponse.items);
       } catch (cause) {
         if (!isActive) return;
-        const message = cause instanceof ApiError ? cause.message : 'Não foi possível carregar os dados.';
-        toast.danger(message);
+        toast.danger(cause instanceof ApiError ? cause.message : 'Não foi possível carregar os dados.');
       } finally {
         if (isActive) setIsBootLoading(false);
       }
@@ -53,6 +48,30 @@ export function CommissionCandidatesRegisterPage() {
       isActive = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedElectionId) {
+      setCandidateUsers([]);
+      return;
+    }
+
+    let isActive = true;
+    const loadCandidateUsers = async () => {
+      try {
+        const response = await commissionApi.listCandidateUsers(undefined, selectedElectionId);
+        if (!isActive) return;
+        setCandidateUsers(response.items);
+      } catch (cause) {
+        if (!isActive) return;
+        toast.danger(cause instanceof ApiError ? cause.message : 'Não foi possível carregar eleitores elegíveis.');
+      }
+    };
+
+    void loadCandidateUsers();
+    return () => {
+      isActive = false;
+    };
+  }, [selectedElectionId]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -71,7 +90,7 @@ export function CommissionCandidatesRegisterPage() {
         utilizadorId: selectedCandidateUserId,
       });
       toast.success('Candidato associado com sucesso.', {
-        description: 'O candidato deverá preencher a fotografia e a proposta no seu próprio ecrã.',
+        description: 'O candidato fica aprovado por defeito e poderá preencher fotografia e proposta no seu ecrã.',
       });
       setSelectedCandidateUserId('');
     } catch (cause) {
@@ -96,7 +115,7 @@ export function CommissionCandidatesRegisterPage() {
       <div>
         <h1 className="text-ui-2xl font-semibold leading-tight text-[#0f172a]">Associar Candidato</h1>
         <p className="text-ui-sm text-[#475569]">
-          Apenas a uma eleição no estado programada.
+          Associe um eleitor elegível a uma eleição programada.
         </p>
       </div>
 
@@ -124,7 +143,7 @@ export function CommissionCandidatesRegisterPage() {
             />
             {selectedElection ? (
               <p className="mt-2 text-xs text-[#64748b]">
-                Candidatos e eleitores só podem ser geridos enquanto a eleição estiver PROGRAMADA.
+                Candidatos e eleitores só podem ser geridos enquanto a eleição estiver programada.
               </p>
             ) : null}
           </div>

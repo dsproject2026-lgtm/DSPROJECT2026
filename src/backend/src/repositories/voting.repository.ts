@@ -26,6 +26,11 @@ class VotingRepository {
         eleicaoId: true,
         utilizadorId: true,
         jaVotou: true,
+        utilizador: {
+          select: {
+            activo: true,
+          },
+        },
       },
     });
   }
@@ -69,6 +74,9 @@ class VotingRepository {
       where: {
         eleicaoId: electionId,
         estado: 'APROVADO',
+        utilizador: {
+          activo: true,
+        },
       },
       select: {
         id: true,
@@ -92,6 +100,11 @@ class VotingRepository {
       select: {
         id: true,
         estado: true,
+        utilizador: {
+          select: {
+            activo: true,
+          },
+        },
       },
     });
   }
@@ -185,6 +198,9 @@ class VotingRepository {
     return prisma.elegivel.count({
       where: {
         eleicaoId: electionId,
+        utilizador: {
+          activo: true,
+        },
       },
     });
   }

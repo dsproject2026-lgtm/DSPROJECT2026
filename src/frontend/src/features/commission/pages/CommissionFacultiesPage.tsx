@@ -9,7 +9,6 @@ import type { FacultyItem } from '@/types/commission';
 export function CommissionFacultiesPage() {
   const [faculties, setFaculties] = useState<FacultyItem[]>([]);
   const [facultyName, setFacultyName] = useState('');
-  const [coursesText, setCoursesText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -39,11 +38,6 @@ export function CommissionFacultiesPage() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const cursos = coursesText
-      .split('\n')
-      .map((course) => course.trim())
-      .filter(Boolean);
-
     if (!facultyName.trim()) {
       toast.danger('Informe o nome da faculdade.');
       return;
@@ -51,10 +45,9 @@ export function CommissionFacultiesPage() {
 
     try {
       setIsSaving(true);
-      await commissionApi.createFaculty({ nome: facultyName.trim(), cursos });
+      await commissionApi.createFaculty({ nome: facultyName.trim(), cursos: [] });
       toast.success('Faculdade registada com sucesso.');
       setFacultyName('');
-      setCoursesText('');
       await load();
     } catch (cause) {
       const message =
@@ -76,9 +69,9 @@ export function CommissionFacultiesPage() {
   return (
     <section className="space-y-6">
       <div>
-        <h1 className="text-ui-2xl font-semibold leading-tight text-[#0f172a]">Faculdades e Cursos</h1>
+        <h1 className="text-ui-2xl font-semibold leading-tight text-[#0f172a]">Faculdades</h1>
         <p className="text-ui-sm text-[#475569]">
-          Registe faculdades e os cursos que depois serao associados aos estudantes.
+          Registe as faculdades que serão associadas aos estudantes e às eleições.
         </p>
       </div>
 
@@ -93,18 +86,6 @@ export function CommissionFacultiesPage() {
               onChange={(event) => setFacultyName(event.target.value)}
               className="h-11 w-full rounded-sm border border-[#d1d9e6] bg-white px-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
               placeholder="Ex.: Engenharia e Tecnologia"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-              Cursos
-            </label>
-            <textarea
-              value={coursesText}
-              onChange={(event) => setCoursesText(event.target.value)}
-              className="min-h-[116px] w-full rounded-sm border border-[#d1d9e6] bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
-              placeholder={'Um curso por linha\nEngenharia Informatica\nEngenharia Electronica'}
             />
           </div>
         </div>
@@ -123,10 +104,9 @@ export function CommissionFacultiesPage() {
 
       <div className="overflow-hidden rounded-sm border border-[#e2e8f0] bg-white shadow-none">
         <UiTable
-          ariaLabel="Faculdades e cursos"
+          ariaLabel="Faculdades"
           columns={[
             { id: 'faculdade', label: 'Faculdade', className: 'font-semibold' },
-            { id: 'cursos', label: 'Cursos', className: 'font-semibold' },
           ]}
           rows={faculties.map((faculty) => ({
             id: faculty.id,
@@ -135,9 +115,6 @@ export function CommissionFacultiesPage() {
                 <Building2 className="h-4 w-4 text-[#1A56DB]" />
                 {faculty.nome}
               </div>,
-              <span key={`${faculty.id}:courses`} className="text-sm text-[#475569]">
-                {faculty.cursos.map((course) => course.nome).join(', ') || '-'}
-              </span>,
             ],
           }))}
           emptyMessage="Nenhuma faculdade registada."

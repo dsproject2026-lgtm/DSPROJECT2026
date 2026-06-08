@@ -28,6 +28,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  PasswordInput,
   Spinner,
   UiPageSkeleton,
   toast,
@@ -426,8 +427,7 @@ export function BackofficeLayout({
                 </p>
 
                 <div className="mt-5 space-y-4">
-                  <input
-                    type="password"
+                  <PasswordInput
                     value={passwordForm.senhaAtual}
                     onChange={(event) =>
                       setPasswordForm((current) => ({ ...current, senhaAtual: event.target.value }))
@@ -437,8 +437,7 @@ export function BackofficeLayout({
                     minLength={8}
                     required
                   />
-                  <input
-                    type="password"
+                  <PasswordInput
                     value={passwordForm.novaSenha}
                     onChange={(event) =>
                       setPasswordForm((current) => ({ ...current, novaSenha: event.target.value }))
@@ -448,8 +447,7 @@ export function BackofficeLayout({
                     minLength={8}
                     required
                   />
-                  <input
-                    type="password"
+                  <PasswordInput
                     value={passwordForm.confirmarSenha}
                     onChange={(event) =>
                       setPasswordForm((current) => ({ ...current, confirmarSenha: event.target.value }))

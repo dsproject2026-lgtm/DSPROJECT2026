@@ -320,6 +320,10 @@ class AuthService {
     const user = await authRepository.findUserById(userId);
 
     if (!user) {
+      throw new AppError('Sessão inválida. Inicie sessão novamente.', 401, 'AUTH_USER_NOT_FOUND');
+    }
+
+    if (!user) {
       throw new AppError('Utilizador autenticado não encontrado.', 404, 'AUTH_USER_NOT_FOUND');
     }
 

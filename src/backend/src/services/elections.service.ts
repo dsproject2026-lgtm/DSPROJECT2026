@@ -71,8 +71,10 @@ class ElectionsService {
     };
   }
 
-  async listCandidateUsers(search?: string) {
-    const users = await electionsRepository.findCandidateUsers(search);
+  async listCandidateUsers(search?: string, electionId?: string) {
+    const users = electionId
+      ? await electionsRepository.findEligibleCandidateUsers(electionId, search)
+      : await electionsRepository.findCandidateUsers(search);
 
     return {
       message: 'Candidatos disponiveis listados com sucesso.',
@@ -149,6 +151,24 @@ class ElectionsService {
             cargoId: targetCargoId,
             electionId: conflictingElection.id,
             estado: conflictingElection.estado,
+          },
+        );
+      }
+
+      const [approvedCandidatesCount, activeEligibleVotersCount] = await Promise.all([
+        electionsRepository.countApprovedActiveCandidates(id),
+        electionsRepository.countActiveEligibleVoters(id),
+      ]);
+
+      if (approvedCandidatesCount === 0 || activeEligibleVotersCount === 0) {
+        throw new AppError(
+          'A eleição não pode ser aberta sem candidatos aprovados e eleitores activos.',
+          409,
+          'ELECTION_INCOMPLETE',
+          {
+            id,
+            approvedCandidatesCount,
+            activeEligibleVotersCount,
           },
         );
       }

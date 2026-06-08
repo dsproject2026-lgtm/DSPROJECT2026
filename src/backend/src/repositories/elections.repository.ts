@@ -150,6 +150,21 @@ class ElectionsRepository {
             lte: now,
           },
           OR: [{ dataFimVotacao: null }, { dataFimVotacao: { gt: now } }],
+          candidatos: {
+            some: {
+              estado: 'APROVADO',
+              utilizador: {
+                activo: true,
+              },
+            },
+          },
+          elegiveis: {
+            some: {
+              utilizador: {
+                activo: true,
+              },
+            },
+          },
         },
         data: {
           estado: 'ABERTA',
@@ -338,6 +353,58 @@ class ElectionsRepository {
     });
   }
 
+  async findEligibleCandidateUsers(electionId: EntityId, search?: string) {
+    return prisma.utilizador.findMany({
+      where: {
+        activo: true,
+        elegiveis: {
+          some: {
+            eleicaoId: electionId,
+          },
+        },
+        candidaturas: {
+          none: {
+            eleicaoId: electionId,
+          },
+        },
+        ...(search && search.trim() !== ''
+          ? {
+              OR: [
+                { nome: { contains: search.trim(), mode: 'insensitive' } },
+                { codigo: { contains: search.trim(), mode: 'insensitive' } },
+                { email: { contains: search.trim(), mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        codigo: true,
+        nome: true,
+        email: true,
+        perfil: true,
+        activo: true,
+        faculdade: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
+        curso: {
+          select: {
+            id: true,
+            nome: true,
+            faculdadeId: true,
+          },
+        },
+        ano: true,
+      },
+      orderBy: {
+        nome: 'asc',
+      },
+    });
+  }
+
   async findActiveElectionByCargo(cargoId: EntityId, excludeElectionId?: EntityId) {
     return prisma.eleicao.findFirst({
       where: {
@@ -352,6 +419,29 @@ class ElectionsRepository {
         cargoId: true,
         titulo: true,
         estado: true,
+      },
+    });
+  }
+
+  async countApprovedActiveCandidates(electionId: EntityId) {
+    return prisma.candidato.count({
+      where: {
+        eleicaoId: electionId,
+        estado: 'APROVADO',
+        utilizador: {
+          activo: true,
+        },
+      },
+    });
+  }
+
+  async countActiveEligibleVoters(electionId: EntityId) {
+    return prisma.elegivel.count({
+      where: {
+        eleicaoId: electionId,
+        utilizador: {
+          activo: true,
+        },
       },
     });
   }

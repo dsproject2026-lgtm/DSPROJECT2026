@@ -42,6 +42,7 @@ const listElectionsQuerySchema = z.object({
 
 const listCandidateUsersQuerySchema = z.object({
   search: z.string().trim().optional(),
+  electionId: z.string().uuid().optional(),
 });
 
 export const createElection: RequestHandler = async (request, response) => {
@@ -100,7 +101,7 @@ export const listElections: RequestHandler = async (request, response) => {
 
 export const listCandidateUsers: RequestHandler = async (request, response) => {
   const query = listCandidateUsersQuerySchema.parse(request.query);
-  const result = await electionsService.listCandidateUsers(query.search);
+  const result = await electionsService.listCandidateUsers(query.search, query.electionId);
 
   response.status(200).json(
     buildSuccessResponse({

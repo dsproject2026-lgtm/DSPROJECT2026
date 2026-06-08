@@ -112,7 +112,7 @@ model Candidato {
   fotoUrl      String?         @map("foto_url")
   biografia    String?
   proposta     String?
-  estado       EstadoCandidato @default(PENDENTE)
+  estado       EstadoCandidato @default(APROVADO)
   utilizadorId String          @map("utilizador_id")
   eleicao      Eleicao         @relation(fields: [eleicaoId], references: [id])
   registador   Utilizador?     @relation("RegistadoPor", fields: [registadoPor], references: [id])

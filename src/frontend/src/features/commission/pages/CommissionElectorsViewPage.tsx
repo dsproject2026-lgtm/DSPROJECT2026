@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Eye, Search, X } from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Eye, Pencil, RotateCcw, Search, Slash, Trash2, X } from 'lucide-react';
 
 import { commissionApi } from '@/api/commission.api';
 import { CommissionSegmentTabs } from '@/features/commission/components/CommissionSegmentTabs';
-import { Chip, Spinner, UiSelect, UiTable, toast } from '@/components/ui';
+import { Chip, ConfirmDialog, Spinner, UiSelect, UiTable, toast } from '@/components/ui';
 import { ApiError } from '@/lib/http/api-error';
 import { getStateChipColor } from '@/lib/ui/state-chip';
 import type { CommissionElectionItem, EligibleVoterItem } from '@/types/commission';
@@ -27,10 +27,24 @@ export function CommissionElectorsViewPage() {
   const [selectedElectionId, setSelectedElectionId] = useState('');
   const [rows, setRows] = useState<EligibleVoterItem[]>([]);
   const [detailElector, setDetailElector] = useState<EligibleVoterItem | null>(null);
+  const [editElector, setEditElector] = useState<EligibleVoterItem | null>(null);
+  const [editForm, setEditForm] = useState({ nome: '', email: '', ano: '' });
+  const [confirmAction, setConfirmAction] = useState<null | {
+    elector: EligibleVoterItem;
+    action: 'suspend' | 'reactivate' | 'delete';
+  }>(null);
   const [search, setSearch] = useState('');
   const [voteFilter, setVoteFilter] = useState<VoteFilter>('TODOS');
   const [bootLoading, setBootLoading] = useState(true);
   const [rowsLoading, setRowsLoading] = useState(false);
+  const [busyElectorId, setBusyElectorId] = useState<string | null>(null);
+
+  const refreshRows = async () => {
+    if (!selectedElectionId) return;
+    const response = await commissionApi.listEligibleVoters(selectedElectionId);
+    setRows(response.items);
+    return response.items;
+  };
 
   useEffect(() => {
     let isActive = true;
@@ -43,9 +57,7 @@ export function CommissionElectorsViewPage() {
         setSelectedElectionId((current) => current || response.items[0]?.id || '');
       } catch (cause) {
         if (!isActive) return;
-        const message =
-          cause instanceof ApiError ? cause.message : 'Não foi possível carregar eleições.';
-        toast.danger(message);
+        toast.danger(cause instanceof ApiError ? cause.message : 'Não foi possível carregar eleições.');
       } finally {
         if (isActive) setBootLoading(false);
       }
@@ -71,9 +83,7 @@ export function CommissionElectorsViewPage() {
         setRows(response.items);
       } catch (cause) {
         if (!isActive) return;
-        const message =
-          cause instanceof ApiError ? cause.message : 'Não foi possível carregar elegíveis.';
-        toast.danger(message);
+        toast.danger(cause instanceof ApiError ? cause.message : 'Não foi possível carregar eleitores elegíveis.');
       } finally {
         if (isActive) setRowsLoading(false);
       }
@@ -100,12 +110,76 @@ export function CommissionElectorsViewPage() {
     });
   }, [rows, search, voteFilter]);
 
+  const openEdit = (elector: EligibleVoterItem) => {
+    setEditElector(elector);
+    setEditForm({
+      nome: elector.utilizador.nome,
+      email: elector.utilizador.email ?? '',
+      ano: elector.utilizador.ano?.toString() ?? '',
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!selectedElectionId || !editElector) return;
+
+    try {
+      setBusyElectorId(editElector.id);
+      await commissionApi.updateEligibleVoter(selectedElectionId, editElector.id, {
+        nome: editForm.nome.trim(),
+        email: editForm.email.trim() || null,
+        ano: editForm.ano.trim() ? Number(editForm.ano) : null,
+      });
+      await refreshRows();
+      setEditElector(null);
+      toast.success('Eleitor actualizado com sucesso.');
+    } catch (cause) {
+      const message =
+        cause instanceof ApiError
+          ? cause.message
+          : cause instanceof Error
+            ? cause.message
+            : 'Não foi possível actualizar o eleitor.';
+      toast.danger(message);
+    } finally {
+      setBusyElectorId(null);
+    }
+  };
+
+  const runAction = async () => {
+    if (!selectedElectionId || !confirmAction) return;
+    const { elector, action } = confirmAction;
+
+    try {
+      setBusyElectorId(elector.id);
+      if (action === 'delete') {
+        await commissionApi.deleteEligibleVoter(selectedElectionId, elector.id);
+        toast.success('Eleitor eliminado da eleição.');
+      } else {
+        await commissionApi.updateEligibleVoterStatus(selectedElectionId, elector.id, action === 'reactivate');
+        toast.success(action === 'reactivate' ? 'Eleitor reactivado.' : 'Eleitor suspenso.');
+      }
+      await refreshRows();
+      setConfirmAction(null);
+      if (detailElector?.id === elector.id) setDetailElector(null);
+    } catch (cause) {
+      const message =
+        cause instanceof ApiError
+          ? cause.message
+          : cause instanceof Error
+            ? cause.message
+            : 'Não foi possível executar a ação.';
+      toast.danger(message);
+    } finally {
+      setBusyElectorId(null);
+    }
+  };
+
   if (bootLoading) {
     return (
       <div className="flex min-h-[240px] items-center justify-center">
         <div className="flex items-center gap-3 text-[#334155]">
           <Spinner color="accent" />
-          <span className="text-sm font-semibold">A carregar elegíveis...</span>
+          <span className="text-sm font-semibold">A carregar eleitores...</span>
         </div>
       </div>
     );
@@ -131,10 +205,7 @@ export function CommissionElectorsViewPage() {
             onChange={setSelectedElectionId}
             placeholder="Seleccione a eleição"
             ariaLabel="Eleição"
-            options={elections.map((item) => ({
-              value: item.id,
-              label: item.titulo,
-            }))}
+            options={elections.map((item) => ({ value: item.id, label: item.titulo }))}
           />
 
           <div className="relative">
@@ -167,8 +238,8 @@ export function CommissionElectorsViewPage() {
             { id: 'codigo', label: 'Código', className: 'font-semibold' },
             { id: 'utilizador', label: 'Utilizador', className: 'font-semibold' },
             { id: 'activo', label: 'Activo', className: 'font-semibold' },
-            { id: 'voto', label: 'jáVotou', className: 'font-semibold' },
-            { id: 'accoes', label: 'Acções', className: 'text-right font-semibold' },
+            { id: 'voto', label: 'Voto', className: 'font-semibold' },
+            { id: 'accoes', label: 'Ações', className: 'text-right font-semibold' },
           ]}
           rows={
             !selectedElectionId || rowsLoading
@@ -190,7 +261,7 @@ export function CommissionElectorsViewPage() {
                       color={getStateChipColor(row.utilizador.activo ? 'ATIVO' : 'INATIVO')}
                       className="font-semibold"
                     >
-                      {row.utilizador.activo ? 'ACTIVO' : 'INACTIVO'}
+                      {row.utilizador.activo ? 'ACTIVO' : 'SUSPENSO'}
                     </Chip>,
                     <Chip
                       key={`${row.id}:voted`}
@@ -201,22 +272,38 @@ export function CommissionElectorsViewPage() {
                     >
                       {row.jaVotou ? 'JÁ VOTOU' : 'NÃO VOTOU'}
                     </Chip>,
-                    <div key={`${row.id}:actions`} className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => setDetailElector(row)}
-                        className="inline-flex rounded p-1 text-[#64748b] transition hover:bg-[#f1f5f9] hover:text-[#0f172a]"
-                        aria-label="Visualizar"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
+                    <div key={`${row.id}:actions`} className="flex justify-end gap-1 text-[#64748b]">
+                      <IconButton label="Visualizar" onClick={() => setDetailElector(row)} icon={<Eye className="h-4 w-4" />} />
+                      <IconButton label="Editar" onClick={() => openEdit(row)} icon={<Pencil className="h-4 w-4" />} />
+                      {row.utilizador.activo ? (
+                        <IconButton
+                          label="Suspender"
+                          disabled={busyElectorId === row.id}
+                          onClick={() => setConfirmAction({ elector: row, action: 'suspend' })}
+                          icon={<Slash className="h-4 w-4" />}
+                        />
+                      ) : (
+                        <IconButton
+                          label="Reactivar"
+                          disabled={busyElectorId === row.id}
+                          onClick={() => setConfirmAction({ elector: row, action: 'reactivate' })}
+                          icon={<RotateCcw className="h-4 w-4" />}
+                        />
+                      )}
+                      <IconButton
+                        label="Eliminar"
+                        danger
+                        disabled={busyElectorId === row.id}
+                        onClick={() => setConfirmAction({ elector: row, action: 'delete' })}
+                        icon={<Trash2 className="h-4 w-4" />}
+                      />
                     </div>,
                   ],
                 }))
           }
           emptyMessage={
             !selectedElectionId
-              ? 'Seleccione uma eleição para visualizar os elegíveis.'
+              ? 'Seleccione uma eleição para visualizar os eleitores.'
               : rowsLoading
                 ? 'A carregar eleitores elegíveis...'
                 : 'Nenhum eleitor elegível encontrado.'
@@ -224,57 +311,170 @@ export function CommissionElectorsViewPage() {
         />
       </div>
 
-      {detailElector ? (
+      {detailElector ? <ElectorDetailsModal elector={detailElector} onClose={() => setDetailElector(null)} /> : null}
+
+      {editElector ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/45 px-4 py-6">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-md border border-[#d1d9e6] bg-white shadow-2xl">
+          <div className="w-full max-w-xl rounded-md border border-[#d1d9e6] bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
-              <h3 className="text-lg font-semibold text-[#0f172a]">Detalhes do Eleitor</h3>
+              <h3 className="text-lg font-semibold text-[#0f172a]">Editar Eleitor</h3>
               <button
                 type="button"
-                onClick={() => setDetailElector(null)}
+                onClick={() => setEditElector(null)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#d1d9e6] text-[#64748b] transition hover:bg-[#f8fafc]"
                 aria-label="Fechar"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="max-h-[calc(90vh-74px)] overflow-y-auto px-5 py-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">id</p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailElector.utilizador.id}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">código</p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailElector.utilizador.codigo}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">nome</p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailElector.utilizador.nome}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">e-mail</p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailElector.utilizador.email ?? '-'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">perfil</p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailElector.utilizador.perfil}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">jaVotou</p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailElector.jaVotou ? 'TRUE' : 'FALSE'}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                    Importado em
-                  </p>
-                  <p className="mt-1 text-[14px] text-slate-700">{formatDateTime(detailElector.importadoEm)}</p>
-                </div>
+            <div className="space-y-4 px-5 py-5">
+              <TextField label="Nome" value={editForm.nome} onChange={(nome) => setEditForm((current) => ({ ...current, nome }))} />
+              <TextField label="E-mail" value={editForm.email} onChange={(email) => setEditForm((current) => ({ ...current, email }))} />
+              <TextField label="Ano" type="number" value={editForm.ano} onChange={(ano) => setEditForm((current) => ({ ...current, ano }))} />
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditElector(null)}
+                  className="inline-flex h-10 items-center rounded-[8px] border border-[#d1d9e6] px-4 text-ui-sm font-medium text-[#0f172a] transition hover:bg-[#f8fafc]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void saveEdit()}
+                  disabled={busyElectorId === editElector.id}
+                  className="inline-flex h-10 items-center rounded-[8px] bg-[#1a56db] px-4 text-ui-sm font-medium text-white transition hover:bg-[#1647c0] disabled:opacity-60"
+                >
+                  {busyElectorId === editElector.id ? <Spinner size="sm" className="mr-2 text-white" /> : null}
+                  Guardar
+                </button>
               </div>
             </div>
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={Boolean(confirmAction)}
+        title={
+          confirmAction?.action === 'delete'
+            ? 'Eliminar eleitor'
+            : confirmAction?.action === 'reactivate'
+              ? 'Reactivar eleitor'
+              : 'Suspender eleitor'
+        }
+        description={
+          confirmAction?.action === 'delete'
+            ? `Pretende eliminar "${confirmAction.elector.utilizador.nome}" desta eleição?`
+            : confirmAction?.action === 'reactivate'
+              ? `Pretende reactivar "${confirmAction.elector.utilizador.nome}"?`
+              : `Pretende suspender "${confirmAction?.elector.utilizador.nome}"? Eleitores suspensos não poderão votar.`
+        }
+        confirmLabel={
+          confirmAction?.action === 'delete'
+            ? 'Eliminar'
+            : confirmAction?.action === 'reactivate'
+              ? 'Reactivar'
+              : 'Suspender'
+        }
+        tone={confirmAction?.action === 'delete' ? 'danger' : 'warning'}
+        isLoading={confirmAction ? busyElectorId === confirmAction.elector.id : false}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={() => void runAction()}
+      />
     </section>
+  );
+}
+
+function IconButton({
+  label,
+  icon,
+  danger = false,
+  disabled = false,
+  onClick,
+}: {
+  label: string;
+  icon: ReactNode;
+  danger?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`rounded p-1 transition disabled:opacity-50 ${
+        danger ? 'hover:bg-[#fef2f2] hover:text-[#dc2626]' : 'hover:bg-[#f1f5f9] hover:text-[#0f172a]'
+      }`}
+      aria-label={label}
+      title={label}
+    >
+      {icon}
+    </button>
+  );
+}
+
+function ElectorDetailsModal({ elector, onClose }: { elector: EligibleVoterItem; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/45 px-4 py-6">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-md border border-[#d1d9e6] bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
+          <h3 className="text-lg font-semibold text-[#0f172a]">Detalhes do Eleitor</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#d1d9e6] text-[#64748b] transition hover:bg-[#f8fafc]"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="max-h-[calc(90vh-74px)] overflow-y-auto px-5 py-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Detail label="ID" value={elector.utilizador.id} />
+            <Detail label="Código" value={elector.utilizador.codigo} />
+            <Detail label="Nome" value={elector.utilizador.nome} />
+            <Detail label="E-mail" value={elector.utilizador.email ?? '-'} />
+            <Detail label="Perfil" value={elector.utilizador.perfil} />
+            <Detail label="Voto" value={elector.jaVotou ? 'Já votou' : 'Não votou'} />
+            <Detail label="Importado em" value={formatDateTime(elector.importadoEm)} wide />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Detail({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+  return (
+    <div className={wide ? 'md:col-span-2' : undefined}>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#64748b]">{label}</p>
+      <p className="mt-1 text-sm text-[#0f172a]">{value}</p>
+    </div>
+  );
+}
+
+function TextField({
+  label,
+  value,
+  type = 'text',
+  onChange,
+}: {
+  label: string;
+  value: string;
+  type?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-11 w-full rounded-sm border border-[#d1d9e6] bg-white px-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
+      />
+    </label>
   );
 }

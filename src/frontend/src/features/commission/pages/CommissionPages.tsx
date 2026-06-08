@@ -21,7 +21,7 @@ import {
   Vote,
   X,
 } from 'lucide-react';
-import { UiDateTimePicker, UiSelect, toast } from '@/components/ui';
+import { PasswordInput, UiDateTimePicker, UiSelect, toast } from '@/components/ui';
 
 type ElectionStatus = 'rascunho' | 'pendente' | 'aberta' | 'concluida';
 
@@ -400,7 +400,12 @@ function FormField({ label, error, children }: { label: string; error?: string; 
 }
 
 function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[14px] outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${props.className ?? ''}`} />;
+  const className = `h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[14px] outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${props.className ?? ''}`;
+  if (props.type === 'password') {
+    const { type: _type, ...passwordProps } = props;
+    return <PasswordInput {...passwordProps} className={className} />;
+  }
+  return <input {...props} className={className} />;
 }
 
 function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {

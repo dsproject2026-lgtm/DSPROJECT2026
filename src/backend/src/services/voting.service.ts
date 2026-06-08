@@ -17,9 +17,18 @@ class VotingService {
 
     if (!eligibleVoter) {
       throw new AppError(
-        'Utilizador nao elegivel para votar nesta eleicao.',
+        'Utilizador não elegível para votar nesta eleição.',
         403,
         'VOTER_NOT_ELIGIBLE',
+        { electionId, userId },
+      );
+    }
+
+    if (!eligibleVoter.utilizador.activo) {
+      throw new AppError(
+        'Utilizador suspenso não pode votar nesta eleição.',
+        403,
+        'VOTER_SUSPENDED',
         { electionId, userId },
       );
     }
@@ -104,10 +113,19 @@ class VotingService {
 
     if (candidate.estado !== 'APROVADO') {
       throw new AppError(
-        'So e permitido votar em candidatos aprovados.',
+        'Só é permitido votar em candidatos aprovados.',
         409,
         'VOTE_CANDIDATE_NOT_APPROVED',
         { electionId, candidatoId: input.candidatoId, estado: candidate.estado },
+      );
+    }
+
+    if (!candidate.utilizador.activo) {
+      throw new AppError(
+        'Candidato suspenso não pode receber votos.',
+        409,
+        'VOTE_CANDIDATE_SUSPENDED',
+        { electionId, candidatoId: input.candidatoId },
       );
     }
 
