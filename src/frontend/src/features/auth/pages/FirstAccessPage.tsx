@@ -110,7 +110,7 @@ export function FirstAccessPage() {
           <div className="flex items-start gap-3 sm:items-center sm:gap-5">
             <span className="h-10 w-[4px] shrink-0 rounded-full bg-[#2D8AE8]" />
             <div>
-              <h2 className="text-[1.45rem] font-bold leading-tight text-[#1F57D6] sm:text-[1.95rem]">Acesso à Urna</h2>
+              <h2 className="text-[1.45rem] font-bold leading-tight text-[#1F57D6] sm:text-[1.95rem]">Entrar</h2>
               <p className="mt-2 text-[0.94rem] text-[#5F6776] sm:text-[1.06rem]">
                 {isResetStep ? 'Defina a sua nova palavra-passe.' : 'Receba um link por e-mail para redefinir a sua palavra-passe.'}
               </p>
