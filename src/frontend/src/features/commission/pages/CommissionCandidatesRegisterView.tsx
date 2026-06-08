@@ -41,7 +41,7 @@ export function CommissionCandidatesRegisterPage() {
         setCandidateUsers(usersResponse.items);
       } catch (cause) {
         if (!isActive) return;
-        const message = cause instanceof ApiError ? cause.message : 'Nao foi possivel carregar dados.';
+        const message = cause instanceof ApiError ? cause.message : 'Não foi possível carregar os dados.';
         toast.danger(message);
       } finally {
         if (isActive) setIsBootLoading(false);
@@ -57,11 +57,11 @@ export function CommissionCandidatesRegisterPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!selectedElectionId) {
-      toast.danger('Selecione uma eleicao programada.');
+      toast.danger('Seleccione uma eleição programada.');
       return;
     }
     if (!selectedCandidateUserId) {
-      toast.danger('Selecione o eleitor a associar.');
+      toast.danger('Seleccione o eleitor a associar.');
       return;
     }
 
@@ -71,7 +71,7 @@ export function CommissionCandidatesRegisterPage() {
         utilizadorId: selectedCandidateUserId,
       });
       toast.success('Candidato associado com sucesso.', {
-        description: 'O candidato devera preencher foto e proposta na sua propria tela.',
+        description: 'O candidato deverá preencher a fotografia e a proposta no seu próprio ecrã.',
       });
       setSelectedCandidateUserId('');
     } catch (cause) {
@@ -96,7 +96,7 @@ export function CommissionCandidatesRegisterPage() {
       <div>
         <h1 className="text-ui-2xl font-semibold leading-tight text-[#0f172a]">Associar Candidato</h1>
         <p className="text-ui-sm text-[#475569]">
-          A comissao apenas associa um eleitor elegivel a uma eleicao programada.
+          Apenas a uma eleição no estado programada.
         </p>
       </div>
 
@@ -106,7 +106,7 @@ export function CommissionCandidatesRegisterPage() {
         <div className="grid gap-4">
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-              Eleicao
+              Eleição
             </label>
             <UiSelect
               value={selectedElectionId}
@@ -114,8 +114,8 @@ export function CommissionCandidatesRegisterPage() {
                 setSelectedElectionId(value);
                 setSelectedCandidateUserId('');
               }}
-              placeholder="Selecione a eleicao"
-              ariaLabel="Eleicao"
+              placeholder="Seleccione a eleição"
+              ariaLabel="Eleição"
               options={programmedElections.map((election) => ({
                 value: election.id,
                 label: `${election.titulo} (${election.estado})`,
@@ -124,20 +124,20 @@ export function CommissionCandidatesRegisterPage() {
             />
             {selectedElection ? (
               <p className="mt-2 text-xs text-[#64748b]">
-                Candidatos e eleitores so podem ser geridos enquanto a eleicao estiver PROGRAMADA.
+                Candidatos e eleitores só podem ser geridos enquanto a eleição estiver PROGRAMADA.
               </p>
             ) : null}
           </div>
 
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-              Eleitor elegivel
+              Promover Candidato
             </label>
             <UiSelect
               value={selectedCandidateUserId}
               onChange={setSelectedCandidateUserId}
-              placeholder="Pesquisar por nome, codigo ou email"
-              ariaLabel="Eleitor elegivel"
+              placeholder="Pesquisar por nome, código ou e-mail"
+              ariaLabel="Promover Candidato"
               isDisabled={!selectedElectionId}
               options={candidateUsers.map((user) => ({
                 value: user.id,

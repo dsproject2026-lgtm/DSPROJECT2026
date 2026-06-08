@@ -29,13 +29,13 @@ export const BACKOFFICE_CONFIGS: Record<BackofficeRole, BackofficeRoleConfig> = 
         segment: 'dashboard',
         label: 'Visão Geral',
         title: 'Painel Administrativo',
-        description: 'Base pronta para indicadores, ações rápidas e gestão geral do sistema.',
+        description: 'Base pronta para indicadores, acções rápidas e gestão geral do sistema.',
       },
       {
         segment: 'candidatos',
         label: 'Candidatos',
         title: 'Gestão de Candidatos',
-        description: 'Base pronta para cadastro, validação e ciclo de vida dos candidatos.',
+        description: 'Base pronta para registo, validação e ciclo de vida dos candidatos.',
       },
       {
         segment: 'cargos',
@@ -65,7 +65,7 @@ export const BACKOFFICE_CONFIGS: Record<BackofficeRole, BackofficeRoleConfig> = 
         segment: 'faculdades',
         label: 'Faculdades',
         title: 'Faculdades e Cursos',
-        description: 'Registo de faculdades e cursos usados nos estudantes e eleicoes.',
+        description: 'Registo de faculdades e cursos usados nos estudantes e eleições.',
       },
       {
         segment: 'comissao',
@@ -97,13 +97,13 @@ export const BACKOFFICE_CONFIGS: Record<BackofficeRole, BackofficeRoleConfig> = 
         segment: 'dashboard',
         label: 'Visão Geral',
         title: 'Painel da Comissão Eleitoral',
-        description: 'Base pronta para monitorar eleições ativas, progresso e pendências.',
+        description: 'Base pronta para acompanhar eleições activas, progresso e pendências.',
       },
       {
         segment: 'eleicoes',
         label: 'Eleições',
         title: 'Gestão de Eleições',
-        description: 'Base pronta para criar, configurar e acompanhar eleições.',
+        description: 'Base pronta para criar, parametrizar e acompanhar eleições.',
       },
       {
         segment: 'resultados',

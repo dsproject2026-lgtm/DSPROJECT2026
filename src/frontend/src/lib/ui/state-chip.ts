@@ -3,7 +3,7 @@ type StateChipColor = 'default' | 'success' | 'danger' | 'warning' | 'primary';
 export const ELECTION_STATE_OPTIONS = [
   { value: 'PROGRAMADA', label: 'PROGRAMADA' },
   { value: 'ABERTA', label: 'ABERTA' },
-  { value: 'CONCLUIDA', label: 'CONCLUIDA' },
+  { value: 'CONCLUIDA', label: 'CONCLUÍDA' },
 ] as const;
 
 export function getStateChipColor(value: string): StateChipColor {
@@ -29,5 +29,15 @@ export function getStateChipColor(value: string): StateChipColor {
 }
 
 export function formatStateLabel(value: string) {
-  return value.replaceAll('_', ' ');
+  const labels: Record<string, string> = {
+    ATIVO: 'ACTIVO',
+    INATIVO: 'INACTIVO',
+    CONCLUIDA: 'CONCLUÍDA',
+    JA_VOTOU: 'JÁ VOTOU',
+    SEM_ELEICOES: 'SEM ELEIÇÕES',
+    EM_USO: 'EM USO',
+    HISTORICO: 'HISTÓRICO',
+  };
+
+  return labels[value] ?? value.replaceAll('_', ' ');
 }

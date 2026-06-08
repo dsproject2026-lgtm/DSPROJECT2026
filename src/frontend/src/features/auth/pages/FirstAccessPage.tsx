@@ -69,17 +69,17 @@ export function FirstAccessPage() {
     }
 
     if (!codeToUse) {
-      toast.warning('Código não identificado no link. Informe seu código.');
+      toast.warning('Código não identificado no link. Informe o seu código.');
       return;
     }
 
     if (!novaSenha.trim() || !confirmarSenha.trim()) {
-      toast.warning('Preencha a nova senha e a confirmação.');
+      toast.warning('Preencha a nova palavra-passe e a confirmação.');
       return;
     }
 
     if (novaSenha !== confirmarSenha) {
-      toast.warning('A confirmação da senha não corresponde.');
+      toast.warning('A confirmação da palavra-passe não corresponde.');
       return;
     }
 
@@ -88,13 +88,13 @@ export function FirstAccessPage() {
     try {
       const session = await authApi.finishFirstAccess(codeToUse, tokenFromLink, novaSenha);
       sessionStorageService.saveSession(session);
-      toast.success('Senha definida com sucesso.');
+      toast.success('Palavra-passe definida com sucesso.');
       navigate(getRoleHomeRoute(session.user.perfil), { replace: true });
     } catch (cause) {
       if (cause instanceof ApiError) {
         toast.danger(cause.message);
       } else {
-        toast.danger('Falha ao concluir definição de senha.');
+        toast.danger('Falha ao concluir a definição da palavra-passe.');
       }
     } finally {
       setIsFinishing(false);
@@ -110,9 +110,9 @@ export function FirstAccessPage() {
           <div className="flex items-start gap-3 sm:items-center sm:gap-5">
             <span className="h-10 w-[4px] shrink-0 rounded-full bg-[#2D8AE8]" />
             <div>
-              <h2 className="text-[1.45rem] font-bold leading-tight text-[#1F57D6] sm:text-[1.95rem]">Acesso a Urna</h2>
+              <h2 className="text-[1.45rem] font-bold leading-tight text-[#1F57D6] sm:text-[1.95rem]">Acesso à Urna</h2>
               <p className="mt-2 text-[0.94rem] text-[#5F6776] sm:text-[1.06rem]">
-                {isResetStep ? 'Defina sua nova senha.' : 'Receba link por e-mail para redefinir sua senha.'}
+                {isResetStep ? 'Defina a sua nova palavra-passe.' : 'Receba um link por e-mail para redefinir a sua palavra-passe.'}
               </p>
             </div>
           </div>
@@ -122,7 +122,7 @@ export function FirstAccessPage() {
           <form className="space-y-8 sm:space-y-9" onSubmit={handleSendLink}>
             <label className="space-y-3.5">
               <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">
-                Numero de estudante ou username
+                Número de estudante ou nome de utilizador
               </span>
               <input
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
@@ -136,18 +136,18 @@ export function FirstAccessPage() {
               disabled={isSendingLink}
               type="submit"
             >
-              {isSendingLink ? 'Enviando...' : 'Enviar link por email'}
+              {isSendingLink ? 'A enviar...' : 'Enviar link por e-mail'}
             </button>
 
             <Link className="block pt-4 text-[1rem] text-[#1F57D6] hover:text-[#1647C0]" to="/login">
-              Voltar para login
+              Voltar ao início de sessão
             </Link>
           </form>
         ) : (
           <form className="space-y-8 sm:space-y-9" onSubmit={handleFinish}>
             <label className="space-y-3.5">
               <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">
-                Numero de estudante ou username
+                Número de estudante ou nome de utilizador
               </span>
               <input
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
@@ -158,7 +158,7 @@ export function FirstAccessPage() {
             </label>
 
             <label className="space-y-3.5">
-              <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">Senha</span>
+              <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">Palavra-passe</span>
               <input
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
                 placeholder="Mínimo 8 caracteres"
@@ -170,11 +170,11 @@ export function FirstAccessPage() {
 
             <label className="space-y-3.5">
               <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">
-                Confirme a senha
+                Confirme a palavra-passe
               </span>
               <input
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
-                placeholder="Repita a nova senha"
+                placeholder="Repita a nova palavra-passe"
                 type="password"
                 value={confirmarSenha}
                 onChange={(event) => setConfirmarSenha(event.target.value)}
@@ -186,11 +186,11 @@ export function FirstAccessPage() {
               disabled={isFinishing}
               type="submit"
             >
-              {isFinishing ? 'Concluindo...' : 'Definir senha \u21AA'}
+              {isFinishing ? 'A concluir...' : 'Definir palavra-passe \u21AA'}
             </button>
 
             <Link className="block pt-4 text-[1rem] text-[#1F57D6] hover:text-[#1647C0]" to="/login">
-              Voltar para login
+              Voltar ao início de sessão
             </Link>
           </form>
         )}

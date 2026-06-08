@@ -195,7 +195,7 @@ export function ElectorElectionsPage() {
     }
 
     if (!isUuid(electionId)) {
-      setError('ID de eleição inválido. Atualize a página de eleições e selecione uma eleição válida.');
+      setError('ID de eleição inválido. Actualize a página de eleições e seleccione uma eleição válida.');
       setIsLoading(false);
       return;
     }
@@ -361,7 +361,7 @@ export function ElectorElectionsPage() {
         </header>
 
         <div className="mt-6 border-t border-[#eef0f4] pt-5">
-          <h2 className="text-lg font-bold capitalize text-[#1f2937]">Selecione um Candidato</h2>
+          <h2 className="text-lg font-bold capitalize text-[#1f2937]">Seleccione um Candidato</h2>
           <p className="mt-1 text-sm text-[#6b7280]">Escolha um candidato aprovado para registar o seu voto.</p>
 
           <div className="mt-5 space-y-4">

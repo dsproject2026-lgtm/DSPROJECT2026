@@ -385,7 +385,7 @@ export function ElectorResultsPage() {
     }
 
     if (!isUuid(selectedElectionId)) {
-      setError('ID de eleição inválido. Volte ao dashboard do eleitor e selecione uma eleição válida.');
+      setError('ID de eleição inválido. Volte ao painel do eleitor e seleccione uma eleição válida.');
       return;
     }
 

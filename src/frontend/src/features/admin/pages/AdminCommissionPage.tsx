@@ -51,7 +51,7 @@ export function AdminCommissionPage() {
     event.preventDefault();
 
     if (!form.nome.trim() || !form.email.trim()) {
-      toast.danger('Preencha o nome e o email.');
+      toast.danger('Preencha o nome e o e-mail.');
       return;
     }
 
@@ -62,7 +62,7 @@ export function AdminCommissionPage() {
         email: form.email.trim(),
         perfil: form.perfil,
       });
-      toast.success('Membro registado. O email de primeiro acesso foi enviado.');
+      toast.success('Membro registado. O e-mail de primeiro acesso foi enviado.');
       setForm({ nome: '', email: '', perfil: 'GESTOR_ELEITORAL' });
       setShowForm(false);
       await load();
@@ -103,7 +103,7 @@ export function AdminCommissionPage() {
         <div>
           <h1 className="text-ui-2xl font-semibold leading-tight text-[#0f172a]">Gestão da Equipa</h1>
           <p className="text-ui-sm text-[#475569]">
-            Registe gestores eleitorais e fiscais. O código é gerado automaticamente e o primeiro acesso é enviado por email.
+            Registe gestores eleitorais e fiscais. O código é gerado automaticamente e o primeiro acesso é enviado por e-mail.
           </p>
         </div>
         <button
@@ -128,7 +128,7 @@ export function AdminCommissionPage() {
               />
             </div>
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">Email</label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">E-mail</label>
               <input
                 type="email"
                 value={form.email}
@@ -169,7 +169,7 @@ export function AdminCommissionPage() {
           columns={[
             { id: 'codigo', label: 'Código', className: 'font-semibold' },
             { id: 'nome', label: 'Nome', className: 'font-semibold' },
-            { id: 'email', label: 'Email', className: 'font-semibold' },
+            { id: 'email', label: 'E-mail', className: 'font-semibold' },
             { id: 'perfil', label: 'Perfil', className: 'font-semibold' },
             { id: 'estado', label: 'Estado', className: 'font-semibold' },
             { id: 'accoes', label: 'Acções', className: 'text-right font-semibold' },

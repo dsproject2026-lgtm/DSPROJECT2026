@@ -55,7 +55,7 @@ export function UiSelect({
   value,
   onChange,
   options,
-  placeholder = 'Selecione',
+  placeholder = 'Seleccione',
   label,
   isDisabled,
   ariaLabel,

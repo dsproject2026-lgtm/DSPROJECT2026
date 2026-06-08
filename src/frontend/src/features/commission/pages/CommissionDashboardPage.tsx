@@ -34,7 +34,7 @@ export function CommissionDashboardPage() {
         setElections(response.items);
       } catch (cause) {
         if (!isActive) return;
-        toast.danger(cause instanceof ApiError ? cause.message : 'Nao foi possivel carregar o dashboard.');
+        toast.danger(cause instanceof ApiError ? cause.message : 'Não foi possível carregar o painel.');
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -71,7 +71,7 @@ export function CommissionDashboardPage() {
           Visão Geral
         </h1>
         <p className="text-ui-sm text-[#475569]">
-          Acompanhe o estado das eleicoes e os principais indicadores da comissao.
+          Acompanhe o estado das eleições e os principais indicadores da comissão.
         </p>
       </div>
 
@@ -79,15 +79,15 @@ export function CommissionDashboardPage() {
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Total" value={stats.total} icon={<ListChecks className="h-6 w-6 text-[#0b73c9]" />} onClick={() => navigate('/comissao/eleicoes/visualizar')} />
-        <MetricCard label="Votacao aberta" value={stats.emVotacao} icon={<Clock3 className="h-6 w-6 text-[#0b73c9]" />} onClick={() => navigate('/comissao/eleicoes/visualizar')} />
-        <MetricCard label="Concluidas" value={stats.concluidas} icon={<CheckCircle2 className="h-6 w-6 text-[#0b73c9]" />} onClick={() => navigate('/comissao/resultados')} />
+        <MetricCard label="Votação aberta" value={stats.emVotacao} icon={<Clock3 className="h-6 w-6 text-[#0b73c9]" />} onClick={() => navigate('/comissao/eleicoes/visualizar')} />
+        <MetricCard label="Concluídas" value={stats.concluidas} icon={<CheckCircle2 className="h-6 w-6 text-[#0b73c9]" />} onClick={() => navigate('/comissao/resultados')} />
         <MetricCard label="Programadas" value={stats.pendente} icon={<CalendarDays className="h-6 w-6 text-[#0b73c9]" />} onClick={() => navigate('/comissao/eleicoes/visualizar')} />
       </div>
 
       <div className="overflow-hidden rounded-sm border border-[#e2e8f0] bg-white shadow-none">
         <div className="flex items-center justify-between gap-3 border-b border-[#e2e8f0] px-5 py-4">
           <h2 className="text-ui-lg font-semibold text-[#0f172a]">
-            {isAllElectionsView ? 'Todas as eleicoes' : 'Eleicoes recentes'}
+            {isAllElectionsView ? 'Todas as eleições' : 'Eleições recentes'}
           </h2>
           {!isAllElectionsView ? (
             <button
@@ -101,9 +101,9 @@ export function CommissionDashboardPage() {
         </div>
 
         <UiTable
-          ariaLabel="Eleicoes"
+          ariaLabel="Eleições"
           columns={[
-            { id: 'titulo', label: 'Titulo', className: 'font-semibold' },
+            { id: 'titulo', label: 'Título', className: 'font-semibold' },
             { id: 'cargo', label: 'Cargo', className: 'font-semibold' },
             { id: 'estado', label: 'Estado', className: 'font-semibold' },
           ]}
@@ -120,7 +120,7 @@ export function CommissionDashboardPage() {
               </Chip>,
             ],
           }))}
-          emptyMessage="Nenhuma eleicao disponivel."
+          emptyMessage="Nenhuma eleição disponível."
         />
       </div>
     </section>

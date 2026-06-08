@@ -63,10 +63,10 @@ export function AdminPositionsViewPage() {
     try {
       setIsRefreshing(true);
       await load();
-      toast.success('Lista de cargos atualizada.');
+      toast.success('Lista de cargos actualizada.');
     } catch (cause) {
       const message =
-        cause instanceof ApiError ? cause.message : 'Não foi possível atualizar os cargos.';
+        cause instanceof ApiError ? cause.message : 'Não foi possível actualizar os cargos.';
       toast.danger(message);
     } finally {
       setIsRefreshing(false);
@@ -102,7 +102,7 @@ export function AdminPositionsViewPage() {
           Visualizar Cargos
         </h1>
         <p className="text-ui-sm text-[#475569]">
-          Consulte os cargos registados e respetiva utilização nas eleições.
+          Consulte os cargos registados e respectiva utilização nas eleições.
         </p>
       </div>
 
@@ -124,7 +124,7 @@ export function AdminPositionsViewPage() {
             className="inline-flex h-11 items-center justify-center rounded-md border border-[#d1d9e6] bg-white px-4 text-sm font-medium text-[#111827] transition hover:bg-[#f8fafc] disabled:opacity-60"
           >
             {isRefreshing ? <Spinner size="sm" className="mr-2" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Atualizar
+            Actualizar
           </button>
         </div>
       </div>
@@ -137,7 +137,7 @@ export function AdminPositionsViewPage() {
             { id: 'descricao', label: 'Descrição', className: 'font-semibold' },
             { id: 'eleicoes', label: 'Eleições', className: 'font-semibold' },
             { id: 'estado', label: 'Estado', className: 'font-semibold' },
-            { id: 'acoes', label: 'Ações', className: 'font-semibold text-right' },
+            { id: 'accoes', label: 'Acções', className: 'font-semibold text-right' },
           ]}
           rows={filteredRows.map((row) => {
             const status = getPositionStatus(row);

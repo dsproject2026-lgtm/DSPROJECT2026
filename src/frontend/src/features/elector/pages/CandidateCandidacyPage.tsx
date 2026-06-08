@@ -67,14 +67,14 @@ export function CandidateCandidacyPage() {
         biografia: form.biografia.trim() || null,
         proposta: form.proposta.trim() || null,
       });
-      toast.success('Candidatura atualizada com sucesso.');
+      toast.success('Candidatura actualizada com sucesso.');
     } catch (cause) {
       const message =
         cause instanceof ApiError
           ? cause.message
           : cause instanceof Error
             ? cause.message
-            : 'Falha ao atualizar candidatura.';
+            : 'Falha ao actualizar candidatura.';
       toast.danger(message);
     } finally {
       setIsSaving(false);
@@ -105,7 +105,7 @@ export function CandidateCandidacyPage() {
     <section className="space-y-6">
       <div>
         <h1 className="text-ui-2xl font-semibold leading-tight text-[#0f172a]">Minha Candidatura</h1>
-        <p className="text-ui-sm text-[#475569]">Atualize os dados que os eleitores verao no boletim.</p>
+        <p className="text-ui-sm text-[#475569]">Actualize os dados que os eleitores verão no boletim.</p>
       </div>
 
       {candidacies.length === 0 ? (
@@ -133,7 +133,7 @@ export function CandidateCandidacyPage() {
             <TextField label="Nome completo" value={form.nome} disabled onChange={(nome) => setForm((current) => ({ ...current, nome }))} />
             {selected && !canEditSelected ? (
               <div className="rounded-sm border border-[#fed7aa] bg-[#fff7ed] px-3 py-2 text-sm text-[#9a3412]">
-                A alteracao dos dados esta bloqueada porque o periodo de candidatura nao esta aberto.
+                A alteração dos dados está bloqueada porque o período de candidatura não está aberto.
               </div>
             ) : null}
             <div className="lg:row-span-2">

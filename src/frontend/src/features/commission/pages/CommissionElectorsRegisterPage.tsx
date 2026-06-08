@@ -144,7 +144,7 @@ export function CommissionElectorsRegisterPage() {
               className="block w-full rounded-sm border border-[#d1d9e6] bg-white px-3 py-2 text-sm text-[#475569] file:mr-4 file:rounded-sm file:border-0 file:bg-[#1A56DB] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
             />
             <p className="mt-1 text-sm text-[#64748b]">
-              Colunas aceites: <code>codigo,nome,email,faculdade,ano</code>. O nome e email permitem criar o eleitor no primeiro acesso.
+              Colunas aceites: <code>codigo,nome,email,faculdade,ano</code>. O nome e o e-mail permitem criar o eleitor no primeiro acesso.
             </p>
             {fileName ? <p className="mt-2 text-sm font-semibold text-[#0f172a]">{fileName}</p> : null}
           </div>

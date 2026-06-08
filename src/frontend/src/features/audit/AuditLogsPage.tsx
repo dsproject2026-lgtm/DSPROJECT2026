@@ -51,7 +51,7 @@ export function AuditLogsPage() {
         setElections(electionsResponse.items);
       } catch (cause) {
         if (!isActive) return;
-        toast.danger(cause instanceof ApiError ? cause.message : 'Nao foi possivel carregar a auditoria.');
+        toast.danger(cause instanceof ApiError ? cause.message : 'Não foi possível carregar a auditoria.');
       } finally {
         if (isActive) setIsLoading(false);
       }

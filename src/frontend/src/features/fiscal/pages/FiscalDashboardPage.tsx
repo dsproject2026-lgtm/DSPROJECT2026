@@ -43,7 +43,7 @@ export function FiscalDashboardPage() {
         );
       } catch (cause) {
         if (!isActive) return;
-        toast.danger(cause instanceof ApiError ? cause.message : 'Nao foi possivel carregar o painel de fiscalizacao.');
+        toast.danger(cause instanceof ApiError ? cause.message : 'Não foi possível carregar o painel de fiscalização.');
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -76,7 +76,7 @@ export function FiscalDashboardPage() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Metric title="Eleicoes" value={metrics.elections} icon={<Vote className="h-5 w-5" />} />
+        <Metric title="Eleições" value={metrics.elections} icon={<Vote className="h-5 w-5" />} />
         <Metric title="Em curso" value={metrics.open} icon={<ShieldCheck className="h-5 w-5" />} />
         <Metric title="Votos registados" value={metrics.votes} icon={<FileText className="h-5 w-5" />} />
         <Metric title="Registos de auditoria" value={metrics.logs} icon={<AlertTriangle className="h-5 w-5" />} />
@@ -85,13 +85,13 @@ export function FiscalDashboardPage() {
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
         <div className="overflow-hidden rounded-sm border border-[#e2e8f0] bg-white shadow-none">
           <div className="flex items-center justify-between gap-3 border-b border-[#e2e8f0] px-5 py-4">
-            <h2 className="text-ui-lg font-semibold text-[#0f172a]">Eleicoes</h2>
+            <h2 className="text-ui-lg font-semibold text-[#0f172a]">Eleições</h2>
             <button type="button" onClick={() => navigate('/fiscal/resultados')} className="text-ui-sm font-semibold text-[#1A56DB]">
               Ver resultados
             </button>
           </div>
           <UiTable
-            ariaLabel="Eleicoes fiscalizadas"
+            ariaLabel="Eleições fiscalizadas"
             columns={[
               { id: 'titulo', label: 'Titulo', className: 'font-semibold' },
               { id: 'estado', label: 'Estado', className: 'font-semibold' },

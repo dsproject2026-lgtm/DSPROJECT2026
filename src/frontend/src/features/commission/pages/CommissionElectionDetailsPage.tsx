@@ -82,10 +82,10 @@ export function CommissionElectionDetailsPage() {
       const refreshed = await commissionApi.getElectionById(electionId);
       setElection(refreshed);
       setNextState(refreshed.estado);
-      toast.success('Estado da eleição atualizado com sucesso.');
+      toast.success('Estado da eleição actualizado com sucesso.');
     } catch (cause) {
       const message =
-        cause instanceof ApiError ? cause.message : 'Não foi possível atualizar o estado da eleição.';
+        cause instanceof ApiError ? cause.message : 'Não foi possível actualizar o estado da eleição.';
       toast.danger(message);
     } finally {
       setIsUpdatingState(false);
@@ -168,7 +168,7 @@ export function CommissionElectionDetailsPage() {
       <div className="rounded-[8px] border border-[#e2e8f0] bg-white p-5">
         <h2 className="text-ui-base font-semibold text-[#0f172a]">Alterar estado</h2>
         <p className="mt-1 text-ui-sm font-medium text-[#64748b]">
-          Selecione o novo estado da eleição e guarde a alteração.
+          Seleccione o novo estado da eleição e guarde a alteração.
         </p>
         <div className="mt-4 flex flex-col gap-3 md:flex-row">
           <div className="w-full md:max-w-[260px]">

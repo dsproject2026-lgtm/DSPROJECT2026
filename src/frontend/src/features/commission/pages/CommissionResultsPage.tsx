@@ -147,7 +147,7 @@ export function CommissionResultsPage() {
         <UiSelect
           value={selectedElectionId}
           onChange={setSelectedElectionId}
-          placeholder="Selecione"
+          placeholder="Seleccione"
           ariaLabel="Eleição"
           options={elections.map((item) => ({
             value: item.id,
@@ -158,7 +158,7 @@ export function CommissionResultsPage() {
 
       {!selectedElectionId ? (
         <section className="rounded-sm border border-[#e2e8f0] bg-white p-6 text-center text-sm text-[#64748b]">
-          Selecione uma eleição para ver os resultados.
+          Seleccione uma eleição para ver os resultados.
         </section>
       ) : isResultsLoading ? (
         <section className="rounded-sm border border-[#e2e8f0] bg-white p-6 text-center text-sm text-[#64748b]">

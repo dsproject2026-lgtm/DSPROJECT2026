@@ -231,7 +231,7 @@ export function ElectorDashboardPage() {
 
         {filtered.length === 0 ? (
           <section className="rounded-lg border border-[#e5e7eb] bg-white p-6 text-center text-base capitalize text-[#64748b]">
-            Nenhuma eleição encontrada para o filtro selecionado.
+            Nenhuma eleição encontrada para o filtro seleccionado.
           </section>
         ) : (
           <div className="grid gap-5 lg:grid-cols-2">

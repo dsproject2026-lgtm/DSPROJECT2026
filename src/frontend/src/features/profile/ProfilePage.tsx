@@ -43,7 +43,7 @@ export function ProfilePage() {
       }
 
       if (showToast) {
-        toast.success('Perfil atualizado.');
+        toast.success('Perfil actualizado.');
       }
     } catch (cause) {
       const message =
@@ -88,7 +88,7 @@ export function ProfilePage() {
           className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-[#d1d5db] bg-white px-4 text-ui-sm font-semibold text-[#111827] transition hover:bg-[#f8fafc] disabled:opacity-60 sm:w-auto"
         >
           {isRefreshing ? <Spinner size="sm" /> : <RefreshCw className="h-4 w-4" />}
-          Atualizar
+          Actualizar
         </button>
       </header>
 
@@ -114,7 +114,7 @@ export function ProfilePage() {
 
           <div className="mt-5 flex flex-wrap gap-2">
             <Chip color={user?.activo ? 'success' : 'danger'} variant="soft" size="sm">
-              {user?.activo ? 'ATIVO' : 'INATIVO'}
+              {user?.activo ? 'ACTIVO' : 'INACTIVO'}
             </Chip>
             <Chip color="primary" variant="soft" size="sm">
               {formatProfile(user?.perfil ?? 'UTILIZADOR')}
@@ -128,7 +128,7 @@ export function ProfilePage() {
             <div className="rounded-md border border-[#e5e7eb] p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-[#64748b]">
                 <Mail className="h-4 w-4" />
-                Email
+                E-mail
               </div>
               <p className="mt-2 break-words text-sm text-[#0f172a]">{user?.email ?? '-'}</p>
             </div>

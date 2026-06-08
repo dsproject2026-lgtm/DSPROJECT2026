@@ -129,7 +129,7 @@ export function CommissionElectorsViewPage() {
           <UiSelect
             value={selectedElectionId}
             onChange={setSelectedElectionId}
-            placeholder="Selecione a eleição"
+            placeholder="Seleccione a eleição"
             ariaLabel="Eleição"
             options={elections.map((item) => ({
               value: item.id,
@@ -142,7 +142,7 @@ export function CommissionElectorsViewPage() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Pesquisar por nome, código, email ou utilizadorId"
+              placeholder="Pesquisar por nome, código, e-mail ou utilizadorId"
               className="h-11 w-full rounded-sm border border-[#d1d9e6] bg-white pl-10 pr-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
             />
           </div>
@@ -168,7 +168,7 @@ export function CommissionElectorsViewPage() {
             { id: 'utilizador', label: 'Utilizador', className: 'font-semibold' },
             { id: 'activo', label: 'Activo', className: 'font-semibold' },
             { id: 'voto', label: 'jáVotou', className: 'font-semibold' },
-            { id: 'acoes', label: 'Ações', className: 'text-right font-semibold' },
+            { id: 'accoes', label: 'Acções', className: 'text-right font-semibold' },
           ]}
           rows={
             !selectedElectionId || rowsLoading
@@ -190,7 +190,7 @@ export function CommissionElectorsViewPage() {
                       color={getStateChipColor(row.utilizador.activo ? 'ATIVO' : 'INATIVO')}
                       className="font-semibold"
                     >
-                      {row.utilizador.activo ? 'ATIVO' : 'INATIVO'}
+                      {row.utilizador.activo ? 'ACTIVO' : 'INACTIVO'}
                     </Chip>,
                     <Chip
                       key={`${row.id}:voted`}
@@ -216,7 +216,7 @@ export function CommissionElectorsViewPage() {
           }
           emptyMessage={
             !selectedElectionId
-              ? 'Selecione uma eleição para visualizar os elegíveis.'
+              ? 'Seleccione uma eleição para visualizar os elegíveis.'
               : rowsLoading
                 ? 'A carregar eleitores elegíveis...'
                 : 'Nenhum eleitor elegível encontrado.'
@@ -245,7 +245,7 @@ export function CommissionElectorsViewPage() {
                   <p className="mt-1 text-[14px] text-slate-700">{detailElector.utilizador.id}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">codigo</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">código</p>
                   <p className="mt-1 text-[14px] text-slate-700">{detailElector.utilizador.codigo}</p>
                 </div>
                 <div>
@@ -253,7 +253,7 @@ export function CommissionElectorsViewPage() {
                   <p className="mt-1 text-[14px] text-slate-700">{detailElector.utilizador.nome}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">email</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">e-mail</p>
                   <p className="mt-1 text-[14px] text-slate-700">{detailElector.utilizador.email ?? '-'}</p>
                 </div>
                 <div>

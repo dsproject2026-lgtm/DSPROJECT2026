@@ -18,7 +18,7 @@ export function RoleSectionPage({ title, description }: RoleSectionPageProps) {
           <CardContent className="p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">Header</p>
           <p className="mt-2 text-sm text-[#334155]">
-            Área reservada para ações rápidas, filtros e estado da secção.
+            Área reservada para acções rápidas, filtros e estado da secção.
           </p>
           </CardContent>
         </Card>
@@ -34,7 +34,7 @@ export function RoleSectionPage({ title, description }: RoleSectionPageProps) {
           <CardContent className="p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">Detalhe</p>
           <p className="mt-2 text-sm text-[#334155]">
-            Área reservada para resumo, métricas e ações complementares.
+            Área reservada para resumo, métricas e acções complementares.
           </p>
           </CardContent>
         </Card>

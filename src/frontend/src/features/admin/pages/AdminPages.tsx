@@ -499,7 +499,7 @@ export function AdminDashboardPage() {
               { id: 'inicio', label: 'Início', className: 'font-semibold' },
               { id: 'fim', label: 'Fim', className: 'font-semibold' },
               { id: 'votos', label: 'Votos registados', className: 'font-semibold' },
-              { id: 'acoes', label: 'Ações', className: 'text-right font-semibold' },
+              { id: 'accoes', label: 'Acções', className: 'text-right font-semibold' },
             ]}
             rows={rows.map((row) => ({
               id: row.id,
@@ -703,7 +703,7 @@ export function AdminStudentsPage() {
               { id: 'numero', label: 'Nº Estudante', className: 'font-semibold' },
               { id: 'curso', label: 'Curso', className: 'font-semibold' },
               { id: 'elegibilidade', label: 'Elegibilidade', className: 'font-semibold' },
-              { id: 'acoes', label: 'Ações', className: 'text-right font-semibold' },
+              { id: 'accoes', label: 'Acções', className: 'text-right font-semibold' },
             ]}
             rows={pageRows.map((row) => ({
               id: row.id,
@@ -757,7 +757,7 @@ export function AdminStudentsPage() {
               <p className="text-base font-semibold text-[#0f172a]">{selectedStudent.nome}</p>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">Email</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">E-mail</p>
               <p className="text-base text-[#334155]">{selectedStudent.email}</p>
             </div>
             <div>
@@ -913,7 +913,7 @@ export function AdminCandidatesPage() {
               />
             </div>
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">Email</label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">E-mail</label>
               <input
                 value={form.email}
                 onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))}
@@ -1037,10 +1037,10 @@ export function AdminCandidatesPage() {
             minWidthClassName="min-w-[1040px]"
             columns={[
               { id: 'nome', label: 'Nome', className: 'font-semibold' },
-              { id: 'email', label: 'Email', className: 'font-semibold' },
+              { id: 'email', label: 'E-mail', className: 'font-semibold' },
               { id: 'cargo', label: 'Cargo', className: 'font-semibold' },
               { id: 'eleicao', label: 'Eleição', className: 'font-semibold' },
-              { id: 'acoes', label: 'Ações', className: 'text-right font-semibold' },
+              { id: 'accoes', label: 'Acções', className: 'text-right font-semibold' },
             ]}
             rows={rows.map((row) => ({
               id: row.id,
@@ -1086,7 +1086,7 @@ export function AdminCandidatesPage() {
                 <p className="text-lg font-semibold text-[#0f172a]">{selectedCandidate.nome}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">Email</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">E-mail</p>
                 <p className="text-base text-[#334155]">{selectedCandidate.email}</p>
               </div>
               <div>
@@ -1131,7 +1131,7 @@ export function AdminCommissionPage() {
 
   function addMember() {
     if (!form.nome.trim() || !form.email.trim()) {
-      setError('Preenche nome e email antes de adicionar o membro.');
+      setError('Preenche nome e e-mail antes de adicionar o membro.');
       return;
     }
 
@@ -1199,7 +1199,7 @@ export function AdminCommissionPage() {
               />
             </div>
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">Email</label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">E-mail</label>
               <input
                 value={form.email}
                 onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))}
@@ -1238,10 +1238,10 @@ export function AdminCommissionPage() {
             minWidthClassName="min-w-[820px]"
             columns={[
               { id: 'nome', label: 'Nome', className: 'font-semibold' },
-              { id: 'email', label: 'Email', className: 'font-semibold' },
+              { id: 'email', label: 'E-mail', className: 'font-semibold' },
               { id: 'funcao', label: 'Função', className: 'font-semibold' },
               { id: 'estado', label: 'Estado', className: 'font-semibold' },
-              { id: 'acoes', label: 'Ações', className: 'text-right font-semibold' },
+              { id: 'accoes', label: 'Acções', className: 'text-right font-semibold' },
             ]}
             rows={members.map((member) => ({
               id: member.id,

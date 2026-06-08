@@ -35,7 +35,7 @@ export function AdminDashboardPage() {
         setLogs(auditResponse.items);
       } catch (cause) {
         if (!isActive) return;
-        toast.danger(cause instanceof ApiError ? cause.message : 'Nao foi possivel carregar o painel administrativo.');
+        toast.danger(cause instanceof ApiError ? cause.message : 'Não foi possível carregar o painel administrativo.');
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -72,7 +72,7 @@ export function AdminDashboardPage() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Metric title="Eleicoes" value={metrics.totalElections} icon={<Vote className="h-5 w-5" />} />
+        <Metric title="Eleições" value={metrics.totalElections} icon={<Vote className="h-5 w-5" />} />
         <Metric title="Abertas" value={metrics.abertas} icon={<CheckCircle2 className="h-5 w-5" />} />
         <Metric title="Equipa activa" value={metrics.teamActive} icon={<Users className="h-5 w-5" />} />
         <Metric title="Registos de auditoria" value={metrics.auditCount} icon={<ShieldCheck className="h-5 w-5" />} />
@@ -80,15 +80,15 @@ export function AdminDashboardPage() {
 
       <div className="overflow-hidden rounded-sm border border-[#e2e8f0] bg-white shadow-none">
         <div className="flex items-center justify-between gap-3 border-b border-[#e2e8f0] px-5 py-4">
-          <h2 className="text-ui-lg font-semibold text-[#0f172a]">Eleicoes recentes</h2>
+          <h2 className="text-ui-lg font-semibold text-[#0f172a]">Eleições recentes</h2>
           <button type="button" onClick={() => navigate('/admin/eleicoes')} className="text-ui-sm font-semibold text-[#1A56DB]">
             Ver todas
           </button>
         </div>
         <UiTable
-          ariaLabel="Eleicoes recentes"
+          ariaLabel="Eleições recentes"
           columns={[
-            { id: 'titulo', label: 'Titulo', className: 'font-semibold' },
+            { id: 'titulo', label: 'Título', className: 'font-semibold' },
             { id: 'cargo', label: 'Cargo', className: 'font-semibold' },
             { id: 'estado', label: 'Estado', className: 'font-semibold' },
             { id: 'accao', label: 'Accao', className: 'text-right font-semibold' },
@@ -108,7 +108,7 @@ export function AdminDashboardPage() {
               </div>,
             ],
           }))}
-          emptyMessage="Nenhuma eleicao registada."
+          emptyMessage="Nenhuma eleição registada."
         />
       </div>
     </section>

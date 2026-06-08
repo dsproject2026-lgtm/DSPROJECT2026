@@ -109,15 +109,15 @@ export function CommissionElectionsPage() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.cargoId.trim()) {
-      toast.danger('Selecione um cargo.');
+      toast.danger('Seleccione um cargo.');
       return;
     }
     if (!form.titulo.trim()) {
-      toast.danger('O titulo e obrigatorio.');
+      toast.danger('O título é obrigatório.');
       return;
     }
     if (form.escopoEleitores === 'FACULDADE' && !form.faculdadeId) {
-      toast.danger('Selecione a faculdade autorizada a votar.');
+      toast.danger('Seleccione a faculdade autorizada a votar.');
       return;
     }
 
@@ -137,13 +137,13 @@ export function CommissionElectionsPage() {
       setIsSaving(true);
       if (editElectionId) {
         await commissionApi.updateElection(editElectionId, payload);
-        toast.success('Eleicao atualizada com sucesso.');
+        toast.success('Eleição actualizada com sucesso.');
         navigate(`/comissao/eleicoes/detalhes/${editElectionId}`);
         return;
       }
 
       await commissionApi.createElection(payload);
-      toast.success('Eleicao criada com sucesso.', {
+      toast.success('Eleição criada com sucesso.', {
         description: 'O estado inicial foi definido automaticamente como PROGRAMADA.',
       });
       await loadData();
@@ -155,9 +155,9 @@ export function CommissionElectionsPage() {
           : cause instanceof Error
             ? cause.message
             : isEditMode
-              ? 'Nao foi possivel atualizar a eleicao.'
-              : 'Nao foi possivel criar a eleicao.';
-      toast.danger(isEditMode ? 'Falha ao atualizar eleicao.' : 'Falha ao criar eleicao.', {
+              ? 'Não foi possível actualizar a eleição.'
+              : 'Não foi possível criar a eleição.';
+      toast.danger(isEditMode ? 'Falha ao actualizar a eleição.' : 'Falha ao criar a eleição.', {
         description: message,
         indicator: <AlertTriangle className="h-4 w-4" />,
       });
@@ -174,10 +174,10 @@ export function CommissionElectionsPage() {
     <section className="space-y-6">
       <div>
         <h1 className="text-ui-2xl font-semibold leading-tight text-[#0f172a]">
-          {isEditMode ? 'Editar Eleicao' : 'Gerir Eleicoes'}
+          {isEditMode ? 'Editar Eleição' : 'Gerir Eleições'}
         </h1>
         <p className="text-ui-sm text-[#475569]">
-          Crie a eleicao, defina quem pode votar e configure as datas principais.
+          Crie a eleição, defina quem pode votar e parametrize as datas principais.
         </p>
       </div>
 
@@ -192,7 +192,7 @@ export function CommissionElectionsPage() {
             <UiSelect
               value={form.cargoId}
               onChange={(cargoId) => setForm((current) => ({ ...current, cargoId }))}
-              placeholder="Selecione"
+              placeholder="Seleccione"
               ariaLabel="Cargo"
               options={positions.map((position) => ({ value: position.id, label: position.nome }))}
             />
@@ -214,7 +214,7 @@ export function CommissionElectionsPage() {
               ariaLabel="Quem pode votar"
               options={[
                 { value: 'TODOS', label: 'Todos os estudantes' },
-                { value: 'FACULDADE', label: 'Uma faculdade especifica' },
+                { value: 'FACULDADE', label: 'Uma faculdade específica' },
               ]}
             />
           </div>
@@ -227,7 +227,7 @@ export function CommissionElectionsPage() {
               <UiSelect
                 value={form.faculdadeId}
                 onChange={(faculdadeId) => setForm((current) => ({ ...current, faculdadeId }))}
-                placeholder="Selecione a faculdade"
+                placeholder="Seleccione a faculdade"
                 ariaLabel="Faculdade"
                 options={faculties.map((faculty) => ({ value: faculty.id, label: faculty.nome }))}
                 isSearchable
@@ -237,19 +237,19 @@ export function CommissionElectionsPage() {
 
           <div className="md:col-span-2">
             <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-              Titulo
+              Título
             </label>
             <input
               value={form.titulo}
               onChange={(event) => setForm((current) => ({ ...current, titulo: event.target.value }))}
               className="h-11 w-full rounded-sm border border-[#d1d9e6] bg-white px-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
-              placeholder="Titulo da eleicao"
+              placeholder="Título da eleição"
             />
           </div>
 
           <div className="md:col-span-2">
             <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">
-              Descricao
+              Descrição
             </label>
             <textarea
               value={form.descricao}
@@ -259,7 +259,7 @@ export function CommissionElectionsPage() {
           </div>
 
           <UiDateField
-            label="Inicio candidaturas"
+            label="Início das candidaturas"
             value={form.dataInicioCandidatura}
             onChange={(dataInicioCandidatura) => setForm((current) => ({ ...current, dataInicioCandidatura }))}
           />
@@ -269,12 +269,12 @@ export function CommissionElectionsPage() {
             onChange={(dataFimCandidatura) => setForm((current) => ({ ...current, dataFimCandidatura }))}
           />
           <UiDateField
-            label="Inicio votacao"
+            label="Início da votação"
             value={form.dataInicioVotacao}
             onChange={(dataInicioVotacao) => setForm((current) => ({ ...current, dataInicioVotacao }))}
           />
           <UiDateField
-            label="Fim votacao"
+            label="Fim da votação"
             value={form.dataFimVotacao}
             onChange={(dataFimVotacao) => setForm((current) => ({ ...current, dataFimVotacao }))}
           />
@@ -287,7 +287,7 @@ export function CommissionElectionsPage() {
             className="inline-flex h-10 items-center rounded-md bg-[#1A56DB] px-4 text-sm font-medium text-white transition hover:bg-[#1647C0] disabled:opacity-60"
           >
             {isSaving ? <Spinner size="sm" className="mr-2 text-white" /> : <Plus className="mr-2 h-4 w-4" />}
-            {isEditMode ? 'Guardar Alteracoes' : 'Criar Eleicao'}
+            {isEditMode ? 'Guardar alterações' : 'Criar eleição'}
           </button>
         </div>
       </form>

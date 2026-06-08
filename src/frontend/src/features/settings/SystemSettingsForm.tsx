@@ -14,29 +14,19 @@ const FALLBACK_SETTINGS: SystemSettings = {
 };
 
 const BOOLEAN_ITEMS: Array<{
-  key: keyof Omit<SystemSettings, 'institutionName'>;
+  key: 'autoCloseElection' | 'allowImmediateResults';
   title: string;
   description: string;
 }> = [
   {
     key: 'autoCloseElection',
-    title: 'Apuramento automático',
+    title: 'Fecho automático',
     description: 'Conclui automaticamente eleições abertas quando o período de votação termina.',
   },
   {
     key: 'allowImmediateResults',
-    title: 'Resultados em tempo real',
-    description: 'Permite consultar resultados durante a votação e atualizar em tempo real.',
-  },
-  {
-    key: 'requireEligibilityValidation',
-    title: 'Exigir elegibilidade',
-    description: 'Mantém a validação de elegibilidade antes de permitir o voto.',
-  },
-  {
-    key: 'maintenanceMode',
-    title: 'Modo de manutenção',
-    description: 'Marca o sistema como em manutenção para operação administrativa.',
+    title: 'Resultados imediatos',
+    description: 'Permite consultar resultados durante a votação e actualizar em tempo real.',
   },
 ];
 
@@ -65,7 +55,7 @@ export function SystemSettingsForm({
       } catch (cause) {
         if (!isActive) return;
         const message =
-          cause instanceof ApiError ? cause.message : 'Não foi possível carregar configurações.';
+          cause instanceof ApiError ? cause.message : 'Não foi possível carregar as configurações.';
         toast.danger(message);
       } finally {
         if (isActive) setIsLoading(false);
@@ -94,7 +84,7 @@ export function SystemSettingsForm({
     }
   };
 
-  const toggleSetting = (key: keyof Omit<SystemSettings, 'institutionName'>) => {
+  const toggleSetting = (key: 'autoCloseElection' | 'allowImmediateResults') => {
     setSettings((current) => ({ ...current, [key]: !current[key] }));
   };
 
@@ -116,7 +106,7 @@ export function SystemSettingsForm({
           <p className="text-ui-sm text-[#475569]">{description}</p>
           {updatedAt ? (
             <p className="mt-1 text-xs text-[#64748b]">
-              Última atualização: {new Date(updatedAt).toLocaleString('pt-PT')}
+              Última actualização: {new Date(updatedAt).toLocaleString('pt-PT')}
             </p>
           ) : null}
         </div>
@@ -133,7 +123,7 @@ export function SystemSettingsForm({
 
       <div className="rounded-sm border border-[#e2e8f0] bg-white shadow-none">
         <div className="border-b border-[#e2e8f0] px-4 py-4 sm:px-5">
-          <h2 className="text-[20px] font-semibold text-[#0f172a]">Políticas do sistema</h2>
+          <h2 className="text-[20px] font-semibold text-[#0f172a]">Políticas em utilização</h2>
         </div>
         <div className="space-y-4 p-4 sm:p-5">
           {BOOLEAN_ITEMS.map((item) => (

@@ -128,7 +128,7 @@ const INITIAL_LOGS: AuditLog[] = [
     action: 'VERIFICAÇÃO MANUAL',
     election: 'Reitoria 2024',
     ip: '192.168.10.58',
-    details: 'Foi realizada conferência manual da apuração parcial.',
+    details: 'Foi realizada conferência manual do apuramento parcial.',
     severity: 'info',
   },
   {
@@ -456,9 +456,9 @@ function AuditCenter({ title }: { title: string }) {
   const [message, setMessage] = useState('');
   const [draftDate, setDraftDate] = useState('');
   const [draftUser, setDraftUser] = useState('Todos os utilizadores');
-  const [draftAction, setDraftAction] = useState('Todas as ações');
+  const [draftAction, setDraftAction] = useState('Todas as acções');
   const [draftElection, setDraftElection] = useState('Todas as eleições');
-  const [filters, setFilters] = useState({ date: '', user: 'Todos os utilizadores', action: 'Todas as ações', election: 'Todas as eleições' });
+  const [filters, setFilters] = useState({ date: '', user: 'Todos os utilizadores', action: 'Todas as acções', election: 'Todas as eleições' });
   const pageSize = 5;
   const [page, setPage] = useState(1);
 
@@ -467,14 +467,14 @@ function AuditCenter({ title }: { title: string }) {
   }, [message]);
 
   const users = ['Todos os utilizadores', ...Array.from(new Set(logs.map((log) => log.user)))];
-  const actions = ['Todas as ações', ...Array.from(new Set(logs.map((log) => log.action)))];
+  const actions = ['Todas as acções', ...Array.from(new Set(logs.map((log) => log.action)))];
   const elections = ['Todas as eleições', ...Array.from(new Set(logs.map((log) => log.election)))];
 
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
       const matchesDate = !filters.date || log.timestamp.includes(filters.date);
       const matchesUser = filters.user === 'Todos os utilizadores' || log.user === filters.user;
-      const matchesAction = filters.action === 'Todas as ações' || log.action === filters.action;
+      const matchesAction = filters.action === 'Todas as acções' || log.action === filters.action;
       const matchesElection = filters.election === 'Todas as eleições' || log.election === filters.election;
       return matchesDate && matchesUser && matchesAction && matchesElection;
     });
@@ -653,7 +653,7 @@ export function FiscalResultsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <PageSection title={`Conferência — ${selectedElection.election}`} description="Validação visual da apuração com base nos resultados registados.">
+        <PageSection title={`Conferência — ${selectedElection.election}`} description="Validação visual do apuramento com base nos resultados registados.">
           <div className="space-y-5">
             {selectedElection.candidates.map((candidate) => {
               const percentage = maxVotes ? (candidate.votes / maxVotes) * 100 : 0;
@@ -765,7 +765,7 @@ export function FiscalReportsPage() {
                 <th className="px-4 py-3">Eleição</th>
                 <th className="px-4 py-3">Gerado em</th>
                 <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3 text-right">Ações</th>
+                <th className="px-4 py-3 text-right">Acções</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white text-[12px] text-slate-700">
@@ -822,16 +822,16 @@ export function FiscalSettingsPage() {
 
   function changePassword() {
     if (!passwords.current || !passwords.next || !passwords.confirm) {
-      setError('Preenche todos os campos da senha.');
+      setError('Preenche todos os campos da palavra-passe.');
       return;
     }
     if (passwords.next !== passwords.confirm) {
-      setError('A nova senha e a confirmação não coincidem.');
+      setError('A nova palavra-passe e a confirmação não coincidem.');
       return;
     }
     setPasswords({ current: '', next: '', confirm: '' });
     setError('');
-    setMessage('Senha alterada com sucesso.');
+    setMessage('Palavra-passe alterada com sucesso.');
   }
 
   function handlePhotoUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -888,12 +888,12 @@ export function FiscalSettingsPage() {
               </div>
             </div>
             <div className="rounded-md border border-slate-200 p-3">
-              <div className="mb-3 flex items-center gap-2"><Lock className="h-4 w-4 text-slate-500" /><p className="text-[13px] font-semibold text-slate-900">Alterar Senha</p></div>
+              <div className="mb-3 flex items-center gap-2"><Lock className="h-4 w-4 text-slate-500" /><p className="text-[13px] font-semibold text-slate-900">Alterar Palavra-passe</p></div>
               <div className="space-y-3">
-                <TextInput type="password" value={passwords.current} onChange={(e) => setPasswords((prev) => ({ ...prev, current: e.target.value }))} placeholder="Senha actual" />
-                <TextInput type="password" value={passwords.next} onChange={(e) => setPasswords((prev) => ({ ...prev, next: e.target.value }))} placeholder="Nova senha" />
-                <TextInput type="password" value={passwords.confirm} onChange={(e) => setPasswords((prev) => ({ ...prev, confirm: e.target.value }))} placeholder="Confirmar nova senha" />
-                <PrimaryButton type="button" onClick={changePassword}>Alterar Senha</PrimaryButton>
+                <TextInput type="password" value={passwords.current} onChange={(e) => setPasswords((prev) => ({ ...prev, current: e.target.value }))} placeholder="Palavra-passe actual" />
+                <TextInput type="password" value={passwords.next} onChange={(e) => setPasswords((prev) => ({ ...prev, next: e.target.value }))} placeholder="Nova palavra-passe" />
+                <TextInput type="password" value={passwords.confirm} onChange={(e) => setPasswords((prev) => ({ ...prev, confirm: e.target.value }))} placeholder="Confirmar nova palavra-passe" />
+                <PrimaryButton type="button" onClick={changePassword}>Alterar palavra-passe</PrimaryButton>
               </div>
             </div>
           </div>

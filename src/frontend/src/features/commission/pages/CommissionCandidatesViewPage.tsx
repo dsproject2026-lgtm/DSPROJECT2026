@@ -152,7 +152,7 @@ export function CommissionCandidatesViewPage() {
           ? cause.message
           : cause instanceof Error
             ? cause.message
-            : 'Falha ao executar ação do candidato.';
+            : 'Falha ao executar a acção do candidato.';
       toast.danger(message);
     } finally {
       setBusyCandidateId(null);
@@ -181,7 +181,7 @@ export function CommissionCandidatesViewPage() {
           <UiSelect
             value={selectedElectionId}
             onChange={setSelectedElectionId}
-            placeholder="Selecione a eleição"
+            placeholder="Seleccione a eleição"
             ariaLabel="Eleição"
             options={elections.map((item) => ({
               value: item.id,
@@ -194,7 +194,7 @@ export function CommissionCandidatesViewPage() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Pesquisar por nome, id, utilizadorId, código ou email"
+              placeholder="Pesquisar por nome, id, utilizadorId, código ou e-mail"
               className="h-11 w-full rounded-sm border border-[#d1d9e6] bg-white pl-10 pr-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
             />
           </div>
@@ -218,7 +218,7 @@ export function CommissionCandidatesViewPage() {
             { id: 'candidato', label: 'Candidato', className: 'font-semibold' },
             { id: 'codigo', label: 'Código', className: 'font-semibold' },
             { id: 'estado', label: 'Estado', className: 'font-semibold' },
-            { id: 'acoes', label: 'Ações', className: 'font-semibold' },
+            { id: 'accoes', label: 'Acções', className: 'font-semibold' },
           ]}
           rows={
             !selectedElectionId || rowsLoading
@@ -281,7 +281,7 @@ export function CommissionCandidatesViewPage() {
                         disabled={busyCandidateId === row.id}
                         onClick={() => void runCandidateAction(row.id, 'delete')}
                         className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626] disabled:opacity-50"
-                        aria-label="Deletar"
+                        aria-label="Eliminar"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -291,7 +291,7 @@ export function CommissionCandidatesViewPage() {
           }
           emptyMessage={
             !selectedElectionId
-              ? 'Selecione uma eleição para visualizar os candidatos.'
+              ? 'Seleccione uma eleição para visualizar os candidatos.'
               : rowsLoading
                 ? 'A carregar candidatos...'
                 : 'Nenhum candidato encontrado.'
@@ -341,7 +341,7 @@ export function CommissionCandidatesViewPage() {
                 </div>
                 <div className="md:col-span-2">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                    Email
+                    E-mail
                   </p>
                   <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.utilizador.email ?? '-'}</p>
                 </div>

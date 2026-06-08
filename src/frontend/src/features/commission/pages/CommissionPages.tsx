@@ -545,7 +545,7 @@ function AddElectionPanel({ onCreate, initialElection, onCancel }: { onCreate: (
     <section className="rounded-sm bg-white px-6 py-5 shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-[18px] font-semibold text-[#173f1f]">Configurar Processo Eleitoral</h2>
+          <h2 className="text-[18px] font-semibold text-[#173f1f]">Parametrizar Processo Eleitoral</h2>
           <p className="mt-1 text-[12px] text-slate-500">Define os parâmetros, cronograma e um único cargo para a eleição.</p>
         </div>
         {onCancel && <SecondaryButton type="button" onClick={onCancel} className="h-9">Fechar</SecondaryButton>}
@@ -822,7 +822,7 @@ export function CommissionDashboardPage() {
       <DetailsModal
         isOpen={Boolean(selectedElection)}
         title="Detalhes da Eleição"
-        subtitle="Consulta completa do processo eleitoral selecionado."
+        subtitle="Consulta completa do processo eleitoral seleccionado."
         onClose={() => setSelectedElection(null)}
       >
         {selectedElection && (
@@ -860,7 +860,7 @@ export function CommissionElectionsPage() {
   }
 
   return (
-    <AppShell active="elections" title="Configurar Processo Eleitoral">
+    <AppShell active="elections" title="Parametrizar Processo Eleitoral">
       {message && <div className="mb-4 rounded-sm border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">{message}</div>}
       <AddElectionPanel onCreate={saveElection} initialElection={editingElection} onCancel={() => setEditingElection(null)} />
       <div className="mt-6 rounded-sm border border-blue-100 bg-blue-50 px-4 py-3 text-[12px] text-blue-700">
@@ -907,7 +907,7 @@ export function CommissionResultsPage() {
                 <div><p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Taxa de Participação</p><p className="mt-2 text-[24px] font-semibold text-blue-700">{participation}%</p><div className="mt-2 h-1.5 w-full rounded-full bg-slate-200"><div className="h-full rounded-full bg-blue-700" style={{ width: `${Math.min(participation, 100)}%` }} /></div></div>
               </div>
             </PageSection>
-            {selectedElection.status === 'aberta' ? <CountdownCard /> : <div className="flex min-h-[118px] flex-col justify-center rounded-sm bg-slate-800 px-6 py-4 text-white"><div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-slate-300">Estado Final</div><div className="text-[26px] font-semibold">Eleição Encerrada</div><p className="mt-1 text-[11px] text-slate-300">Os resultados abaixo representam a apuração final.</p></div>}
+            {selectedElection.status === 'aberta' ? <CountdownCard /> : <div className="flex min-h-[118px] flex-col justify-center rounded-sm bg-slate-800 px-6 py-4 text-white"><div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-slate-300">Estado Final</div><div className="text-[26px] font-semibold">Eleição Encerrada</div><p className="mt-1 text-[11px] text-slate-300">Os resultados abaixo representam o apuramento final.</p></div>}
           </div>
 
           <div className="mt-8 rounded-sm bg-white p-4 shadow-[0_0_0_1px_rgba(15,23,42,0.04)]">
@@ -1014,7 +1014,7 @@ export function CommissionCandidatesPage() {
             <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.12em] text-slate-500">
               <tr>
                 <th className="px-4 py-3">Candidato</th>
-                <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3">E-mail</th>
                 <th className="px-4 py-3">Cargo</th>
                 <th className="px-4 py-3">Lista</th>
                 <th className="px-4 py-3">Estado</th>
@@ -1067,7 +1067,7 @@ export function CommissionCandidatesPage() {
             <img src={selectedCandidate.image} alt={selectedCandidate.name} className="h-[220px] w-full rounded-md object-cover" />
             <div className="space-y-4">
               <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Nome</p><p className="mt-1 text-[18px] font-semibold text-slate-900">{selectedCandidate.name}</p></div>
-              <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Email</p><p className="mt-1 text-[14px] text-slate-700">{selectedCandidate.email}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">E-mail</p><p className="mt-1 text-[14px] text-slate-700">{selectedCandidate.email}</p></div>
               <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Cargo / Lista</p><p className="mt-1 text-[14px] text-slate-700">{selectedCandidate.role} — {selectedCandidate.listName}</p></div>
               <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Biografia</p><p className="mt-1 text-[14px] leading-7 text-slate-700">{selectedCandidate.biography}</p></div>
               <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Proposta</p><p className="mt-1 text-[14px] leading-7 text-slate-700">{selectedCandidate.proposal}</p></div>
@@ -1199,7 +1199,7 @@ export function CommissionStudentsPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Número</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.id}</p></div>
             <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Nome</p><p className="mt-1 text-[16px] font-semibold text-slate-900">{selectedStudent.name}</p></div>
-            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Email</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.email}</p></div>
+            <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">E-mail</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.email}</p></div>
             <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Ano</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.year}</p></div>
             <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Faculdade</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.faculty}</p></div>
             <div><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Curso</p><p className="mt-1 text-[14px] text-slate-700">{selectedStudent.course}</p></div>
@@ -1265,16 +1265,16 @@ export function CommissionSettingsPage() {
 
   function changePassword() {
     if (!passwords.current || !passwords.next || !passwords.confirm) {
-      setError('Preenche todos os campos da senha.');
+      setError('Preenche todos os campos da palavra-passe.');
       return;
     }
     if (passwords.next !== passwords.confirm) {
-      setError('A nova senha e a confirmação não coincidem.');
+      setError('A nova palavra-passe e a confirmação não coincidem.');
       return;
     }
     setPasswords({ current: '', next: '', confirm: '' });
     setError('');
-    setMessage('Senha alterada com sucesso.');
+    setMessage('Palavra-passe alterada com sucesso.');
   }
 
   function handlePhotoUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -1321,12 +1321,12 @@ export function CommissionSettingsPage() {
               </div>
             </FormField>
             <div className="rounded-md border border-slate-200 p-3">
-              <div className="mb-3 flex items-center gap-2"><Lock className="h-4 w-4 text-slate-500" /><p className="text-[13px] font-semibold text-slate-900">Alterar Senha</p></div>
+              <div className="mb-3 flex items-center gap-2"><Lock className="h-4 w-4 text-slate-500" /><p className="text-[13px] font-semibold text-slate-900">Alterar Palavra-passe</p></div>
               <div className="space-y-3">
-                <TextInput type="password" value={passwords.current} onChange={(e) => setPasswords((prev) => ({ ...prev, current: e.target.value }))} placeholder="Senha actual" />
-                <TextInput type="password" value={passwords.next} onChange={(e) => setPasswords((prev) => ({ ...prev, next: e.target.value }))} placeholder="Nova senha" />
-                <TextInput type="password" value={passwords.confirm} onChange={(e) => setPasswords((prev) => ({ ...prev, confirm: e.target.value }))} placeholder="Confirmar nova senha" />
-                <PrimaryButton type="button" onClick={changePassword}>Alterar Senha</PrimaryButton>
+                <TextInput type="password" value={passwords.current} onChange={(e) => setPasswords((prev) => ({ ...prev, current: e.target.value }))} placeholder="Palavra-passe actual" />
+                <TextInput type="password" value={passwords.next} onChange={(e) => setPasswords((prev) => ({ ...prev, next: e.target.value }))} placeholder="Nova palavra-passe" />
+                <TextInput type="password" value={passwords.confirm} onChange={(e) => setPasswords((prev) => ({ ...prev, confirm: e.target.value }))} placeholder="Confirmar nova palavra-passe" />
+                <PrimaryButton type="button" onClick={changePassword}>Alterar palavra-passe</PrimaryButton>
               </div>
             </div>
           </div>

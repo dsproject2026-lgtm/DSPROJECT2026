@@ -46,7 +46,7 @@ export function PasswordRecoveryPage() {
 
     try {
       await authApi.startPasswordRecovery(codigo.trim());
-      toast.success('Link de recuperação enviado por email.');
+      toast.success('Link de recuperação enviado por e-mail.');
     } catch (cause) {
       if (cause instanceof ApiError) {
         toast.danger(cause.message);
@@ -74,12 +74,12 @@ export function PasswordRecoveryPage() {
     }
 
     if (!novaSenha.trim() || !confirmarSenha.trim()) {
-      toast.warning('Preencha a nova senha e a confirmação.');
+      toast.warning('Preencha a nova palavra-passe e a confirmação.');
       return;
     }
 
     if (novaSenha !== confirmarSenha) {
-      toast.warning('A confirmação da senha não corresponde.');
+      toast.warning('A confirmação da palavra-passe não corresponde.');
       return;
     }
 
@@ -88,13 +88,13 @@ export function PasswordRecoveryPage() {
     try {
       const session = await authApi.finishPasswordRecovery(codeToUse, tokenFromLink, novaSenha);
       sessionStorageService.saveSession(session);
-      toast.success('Senha redefinida com sucesso.');
+      toast.success('Palavra-passe redefinida com sucesso.');
       navigate(getRoleHomeRoute(session.user.perfil), { replace: true });
     } catch (cause) {
       if (cause instanceof ApiError) {
         toast.danger(cause.message);
       } else {
-        toast.danger('Falha ao redefinir a senha.');
+        toast.danger('Falha ao redefinir a palavra-passe.');
       }
     } finally {
       setIsFinishing(false);
@@ -110,9 +110,9 @@ export function PasswordRecoveryPage() {
           <div className="flex items-start gap-3 sm:items-center sm:gap-5">
             <span className="h-10 w-[4px] shrink-0 rounded-full bg-[#2D8AE8]" />
             <div>
-              <h2 className="text-[1.45rem] font-bold leading-tight text-[#1F57D6] sm:text-[1.95rem]">Recuperar Senha</h2>
+              <h2 className="text-[1.45rem] font-bold leading-tight text-[#1F57D6] sm:text-[1.95rem]">Recuperar Palavra-passe</h2>
               <p className="mt-2 text-[0.94rem] text-[#5F6776] sm:text-[1.06rem]">
-                {isResetStep ? 'Defina uma nova senha para continuar.' : 'Receba o link de recuperação no seu email.'}
+                {isResetStep ? 'Defina uma nova palavra-passe para continuar.' : 'Receba o link de recuperação no seu e-mail.'}
               </p>
             </div>
           </div>
@@ -136,11 +136,11 @@ export function PasswordRecoveryPage() {
               disabled={isSendingLink}
               type="submit"
             >
-              {isSendingLink ? 'A enviar...' : 'Enviar link por email'}
+              {isSendingLink ? 'A enviar...' : 'Enviar link por e-mail'}
             </button>
 
             <Link className="mt-4 block text-[1rem] text-[#1F57D6] hover:text-[#1647C0]" to="/login">
-              Voltar para login
+              Voltar ao início de sessão
             </Link>
           </form>
         ) : (
@@ -158,7 +158,7 @@ export function PasswordRecoveryPage() {
             </label>
 
             <label className="flex flex-col gap-2">
-              <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">Nova senha</span>
+              <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">Nova palavra-passe</span>
               <input
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
                 placeholder="Mínimo 8 caracteres"
@@ -170,11 +170,11 @@ export function PasswordRecoveryPage() {
 
             <label className="flex flex-col gap-2">
               <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">
-                Confirmar senha
+                Confirmar palavra-passe
               </span>
               <input
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
-                placeholder="Repita a nova senha"
+                placeholder="Repita a nova palavra-passe"
                 type="password"
                 value={confirmarSenha}
                 onChange={(event) => setConfirmarSenha(event.target.value)}
@@ -186,11 +186,11 @@ export function PasswordRecoveryPage() {
               disabled={isFinishing}
               type="submit"
             >
-              {isFinishing ? 'A concluir...' : 'Redefinir senha'}
+              {isFinishing ? 'A concluir...' : 'Redefinir palavra-passe'}
             </button>
 
             <Link className="mt-4 block text-[1rem] text-[#1F57D6] hover:text-[#1647C0]" to="/login">
-              Voltar para login
+              Voltar ao início de sessão
             </Link>
           </form>
         )}

@@ -4,7 +4,7 @@ export function CommissionSettingsPage() {
   return (
     <SystemSettingsForm
       title="Configurações da Comissão"
-      description="Defina políticas operacionais de votação, resultados e apuramento."
+      description="Defina políticas operacionais de votação e consulta de resultados."
     />
   );
 }

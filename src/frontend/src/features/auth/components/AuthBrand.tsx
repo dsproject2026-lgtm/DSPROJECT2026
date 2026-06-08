@@ -13,7 +13,7 @@ export function AuthBrand({ flicker = false, showText = true }: AuthBrandProps) 
         <>
           <h1 className="mt-4 text-[2.15rem] font-bold tracking-tight text-[#0D1D43] sm:mt-5 sm:text-[2.65rem]">SIVO-UP</h1>
           <p className="mt-2 max-w-[20rem] text-[0.78rem] font-medium uppercase tracking-[0.16em] text-[#8A909D] sm:max-w-[22rem] sm:text-[0.92rem] sm:tracking-[0.27em]">
-            Sistema de votacao da Universidade Pedagogica
+            Sistema de votação da Universidade Pedagógica
           </p>
         </>
       ) : null}

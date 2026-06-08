@@ -147,7 +147,7 @@ export function BackofficeLayout({
     basePath !== 'comissao' && activeItem.segment !== 'candidatos' && activeItem.segment !== 'estudantes';
 
   const userName = session?.user.nome ?? 'Utilizador';
-  const userEmail = session?.user.email ?? 'sem-email@up.ac.mz';
+  const userEmail = session?.user.email ?? 'sem-e-mail@up.ac.mz';
   const userProfile = session?.user.perfil ?? 'Utilizador';
   const userInitials = getInitials(userName);
   const isProfileRoute = location.pathname === `/${basePath}/perfil`;
@@ -168,14 +168,14 @@ export function BackofficeLayout({
     event.preventDefault();
 
     if (passwordForm.novaSenha !== passwordForm.confirmarSenha) {
-      toast.danger('A confirmação da nova senha não corresponde.');
+      toast.danger('A confirmação da nova palavra-passe não corresponde.');
       return;
     }
 
     try {
       setIsChangingPassword(true);
       await authApi.changePassword(passwordForm.senhaAtual, passwordForm.novaSenha);
-      toast.success('Senha alterada com sucesso.');
+      toast.success('Palavra-passe alterada com sucesso.');
       setPasswordForm({ senhaAtual: '', novaSenha: '', confirmarSenha: '' });
       setIsPasswordModalOpen(false);
     } catch (cause) {
@@ -184,7 +184,7 @@ export function BackofficeLayout({
           ? cause.message
           : cause instanceof Error
             ? cause.message
-            : 'Não foi possível alterar a senha.';
+            : 'Não foi possível alterar a palavra-passe.';
       toast.danger(message);
     } finally {
       setIsChangingPassword(false);
@@ -294,7 +294,7 @@ export function BackofficeLayout({
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setIsPasswordModalOpen(true)}>
                   <KeyRound className="h-4 w-4 text-[#64748b]" />
-                  Alterar senha
+                  Alterar palavra-passe
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -352,7 +352,7 @@ export function BackofficeLayout({
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setIsPasswordModalOpen(true)}>
                     <KeyRound className="h-4 w-4 text-[#64748b]" />
-                    Alterar senha
+                    Alterar palavra-passe
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => void handleLogout()}
@@ -420,9 +420,9 @@ export function BackofficeLayout({
           >
             <Card className="rounded-md bg-white shadow-xl">
               <div className="p-5">
-                <h2 className="text-xl font-semibold text-[#0f172a]">Alterar senha</h2>
+                <h2 className="text-xl font-semibold text-[#0f172a]">Alterar palavra-passe</h2>
                 <p className="mt-1 text-sm text-[#64748b]">
-                  Informe a senha atual e escolha uma nova senha.
+                  Informe a palavra-passe actual e escolha uma nova palavra-passe.
                 </p>
 
                 <div className="mt-5 space-y-4">
@@ -433,7 +433,7 @@ export function BackofficeLayout({
                       setPasswordForm((current) => ({ ...current, senhaAtual: event.target.value }))
                     }
                     className="h-11 w-full rounded-sm border border-[#d1d9e6] px-3 text-sm outline-none focus:border-[#0b73c9]"
-                    placeholder="Senha atual"
+                    placeholder="Palavra-passe actual"
                     minLength={8}
                     required
                   />
@@ -444,7 +444,7 @@ export function BackofficeLayout({
                       setPasswordForm((current) => ({ ...current, novaSenha: event.target.value }))
                     }
                     className="h-11 w-full rounded-sm border border-[#d1d9e6] px-3 text-sm outline-none focus:border-[#0b73c9]"
-                    placeholder="Nova senha"
+                    placeholder="Nova palavra-passe"
                     minLength={8}
                     required
                   />
@@ -455,7 +455,7 @@ export function BackofficeLayout({
                       setPasswordForm((current) => ({ ...current, confirmarSenha: event.target.value }))
                     }
                     className="h-11 w-full rounded-sm border border-[#d1d9e6] px-3 text-sm outline-none focus:border-[#0b73c9]"
-                    placeholder="Confirmar nova senha"
+                    placeholder="Confirmar nova palavra-passe"
                     minLength={8}
                     required
                   />

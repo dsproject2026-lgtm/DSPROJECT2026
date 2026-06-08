@@ -43,7 +43,7 @@ export function CodeLoginPage() {
       if (cause instanceof ApiError) {
         toast.danger(cause.message);
       } else {
-        toast.danger('Não foi possível iniciar o login.');
+        toast.danger('Não foi possível iniciar a sessão.');
       }
     } finally {
       setIsLoading(false);
@@ -59,8 +59,8 @@ export function CodeLoginPage() {
           <div className="flex items-start gap-3 sm:items-center sm:gap-5">
             <span className="h-10 w-[4px] shrink-0 rounded-full bg-[#2D8AE8]" />
             <div>
-              <h2 className="text-[1.45rem] font-bold leading-tight text-[#1F57D6] sm:text-[1.95rem]">Acesso a Urna</h2>
-              <p className="mt-2 text-[0.94rem] text-[#5F6776] sm:text-[1.06rem]">Insira suas credenciais institucionais.</p>
+              <h2 className="text-[1.45rem] font-bold leading-tight text-[#1F57D6] sm:text-[1.95rem]">Entrar</h2>
+              <p className="mt-2 text-[0.94rem] text-[#5F6776] sm:text-[1.06rem]">Insira as suas credenciais institucionais.</p>
             </div>
           </div>
         </div>
@@ -68,7 +68,7 @@ export function CodeLoginPage() {
         <form className="space-y-8 sm:space-y-9" onSubmit={handleSubmit}>
           <label className="space-y-3.5">
             <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">
-              Numero de estudante ou username
+              Número de estudante ou nome de utilizador
             </span>
             <input
               className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
@@ -82,7 +82,7 @@ export function CodeLoginPage() {
             className="block pt-2 text-right text-[0.94rem] font-semibold text-[#1F57D6] hover:text-[#1647C0]"
             to={`/recuperar-senha${codigo ? `?codigo=${encodeURIComponent(codigo)}` : ''}`}
           >
-            Esqueci a senha
+            Esqueci a palavra-passe
           </Link>
 
           <button

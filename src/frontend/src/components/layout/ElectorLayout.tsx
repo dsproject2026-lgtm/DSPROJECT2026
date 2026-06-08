@@ -162,7 +162,7 @@ export function ElectorLayout() {
   const hasMountedRef = useRef(false);
   const avatarLabel = session?.user.nome ? `Perfil de ${session.user.nome}` : 'Perfil';
   const userName = session?.user.nome ?? 'Eleitor';
-  const userEmail = session?.user.email ?? 'sem-email@up.ac.mz';
+  const userEmail = session?.user.email ?? 'sem-e-mail@up.ac.mz';
 
   useEffect(() => {
     let isActive = true;
@@ -205,14 +205,14 @@ export function ElectorLayout() {
     event.preventDefault();
 
     if (passwordForm.novaSenha !== passwordForm.confirmarSenha) {
-      toast.danger('A confirmação da nova senha não corresponde.');
+      toast.danger('A confirmação da nova palavra-passe não corresponde.');
       return;
     }
 
     try {
       setIsChangingPassword(true);
       await authApi.changePassword(passwordForm.senhaAtual, passwordForm.novaSenha);
-      toast.success('Senha alterada com sucesso.');
+      toast.success('Palavra-passe alterada com sucesso.');
       setPasswordForm({ senhaAtual: '', novaSenha: '', confirmarSenha: '' });
       setIsPasswordModalOpen(false);
     } catch (cause) {
@@ -221,7 +221,7 @@ export function ElectorLayout() {
           ? cause.message
           : cause instanceof Error
             ? cause.message
-            : 'Não foi possível alterar a senha.';
+            : 'Não foi possível alterar a palavra-passe.';
       toast.danger(message);
     } finally {
       setIsChangingPassword(false);
@@ -285,7 +285,7 @@ export function ElectorLayout() {
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setIsPasswordModalOpen(true)}>
                 <KeyRound className="h-4 w-4 text-[#64748b]" />
-                Alterar senha
+                Alterar palavra-passe
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => void handleLogout()} className="text-[#b42318] focus:bg-[#fef3f2] focus:text-[#b42318]">
@@ -381,8 +381,8 @@ export function ElectorLayout() {
             onSubmit={changePassword}
             className="w-full max-w-sm rounded-md bg-white p-5 shadow-xl"
           >
-            <h2 className="text-xl font-semibold text-[#0f172a]">Alterar senha</h2>
-            <p className="mt-1 text-sm text-[#64748b]">Informe a senha atual e escolha uma nova senha.</p>
+            <h2 className="text-xl font-semibold text-[#0f172a]">Alterar palavra-passe</h2>
+            <p className="mt-1 text-sm text-[#64748b]">Informe a palavra-passe actual e escolha uma nova palavra-passe.</p>
 
             <div className="mt-5 space-y-4">
               <input
@@ -392,7 +392,7 @@ export function ElectorLayout() {
                   setPasswordForm((current) => ({ ...current, senhaAtual: event.target.value }))
                 }
                 className="h-11 w-full rounded-sm border border-[#d1d9e6] px-3 text-sm outline-none focus:border-[#0b73c9]"
-                placeholder="Senha atual"
+                placeholder="Palavra-passe actual"
                 minLength={8}
                 required
               />
@@ -403,7 +403,7 @@ export function ElectorLayout() {
                   setPasswordForm((current) => ({ ...current, novaSenha: event.target.value }))
                 }
                 className="h-11 w-full rounded-sm border border-[#d1d9e6] px-3 text-sm outline-none focus:border-[#0b73c9]"
-                placeholder="Nova senha"
+                placeholder="Nova palavra-passe"
                 minLength={8}
                 required
               />
@@ -414,7 +414,7 @@ export function ElectorLayout() {
                   setPasswordForm((current) => ({ ...current, confirmarSenha: event.target.value }))
                 }
                 className="h-11 w-full rounded-sm border border-[#d1d9e6] px-3 text-sm outline-none focus:border-[#0b73c9]"
-                placeholder="Confirmar nova senha"
+                placeholder="Confirmar nova palavra-passe"
                 minLength={8}
                 required
               />
