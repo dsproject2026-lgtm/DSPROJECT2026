@@ -13,7 +13,7 @@ const startServer = async () => {
       await prisma.$connect();
       console.info('Database connection established.');
     } catch (error) {
-      console.error('Failed to connect to the database.', error);
+      console.error('Falha ao ligar à base de dados.', error);
 
       if (env.NODE_ENV === 'production') {
         process.exit(1);
@@ -24,7 +24,7 @@ const startServer = async () => {
   }
 
   httpServer.listen(env.PORT, env.HOST, () => {
-    console.info(`Backend listening on ${env.HOST}:${env.PORT}.`);
+    console.info(`Servidor a funcionar em ${env.HOST}:${env.PORT}.`);
   });
 };
 

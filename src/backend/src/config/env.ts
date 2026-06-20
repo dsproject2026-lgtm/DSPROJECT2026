@@ -39,7 +39,7 @@ const envSchema = z.object({
   SMTP_USER: z.string().trim().min(1).optional(),
   SMTP_PASS: z.string().trim().min(1).optional(),
   SMTP_FROM: z.string().trim().min(1).optional(),
-  FIRST_ACCESS_TOKEN_EXPIRES_IN_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
+  FIRST_ACCESS_TOKEN_EXPIRES_IN_SECONDS: z.coerce.number().int().min(60).max(900000000).default(900000),
   FIRST_ACCESS_URL: z.string().url().optional(),
   PASSWORD_RECOVERY_URL: z.string().url().optional(),
   REFRESH_TOKEN_EXPIRES_IN_DAYS: z.coerce.number().int().min(1).max(90).default(14),
@@ -58,7 +58,7 @@ const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
   console.error('Invalid environment variables:', parsedEnv.error.flatten().fieldErrors);
-  throw new Error('Environment validation failed.');
+  throw new Error('Falha na validação das variáveis de ambiente.');
 }
 
 export const env = parsedEnv.data;

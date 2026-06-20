@@ -33,6 +33,9 @@ import { generateSecureToken, hashSecureToken, safeEqualTokenHash } from '../uti
 
 type AuthUserRecord = NonNullable<Awaited<ReturnType<typeof authRepository.findUserByCodigo>>>;
 const REFRESH_TOKEN_EXPIRES_IN_SECONDS = env.REFRESH_TOKEN_EXPIRES_IN_DAYS * 24 * 60 * 60;
+const EMAIL_SEND_COOLDOWN_MS = 60_000;
+const recentEmailSendKeys = new Map<string, ReturnType<typeof setTimeout>>();
+const inFlightEmailSends = new Map<string, Promise<void>>();
 
 class AuthService {
   async createUser({
@@ -82,16 +85,10 @@ class AuthService {
       mustSetPassword: resolvedMustSetPassword,
     };
 
-    const createdUser = await authRepository.createUser(data);
-
-    if (createdUser.perfil === 'ELEITOR' && createdUser.activo) {
-      await authRepository.assignElectorAsEligibleInAllElections(createdUser.id);
-    }
-
-    return createdUser;
+    return authRepository.createUser(data);
   }
 
-  async startLogin({ codigo }: LoginStartInput): Promise<LoginStartResult> {
+  async startLogin({ codigo }: LoginStartInput, context?: RequestSecurityContext): Promise<LoginStartResult> {
     const user = await authRepository.findUserByCodigo(codigo);
 
     if (!user) {
@@ -105,7 +102,7 @@ class AuthService {
     }
 
     if (user.mustSetPassword || !user.senhaHash) {
-      await this.issueFirstAccessToken(user);
+      await this.issueFirstAccessToken(user, context);
 
       return {
         nextStep: 'EMAIL_TOKEN',
@@ -120,7 +117,10 @@ class AuthService {
     };
   }
 
-  async startFirstAccess({ codigo }: FirstAccessStartInput): Promise<FirstAccessStartResult> {
+  async startFirstAccess(
+    { codigo }: FirstAccessStartInput,
+    context?: RequestSecurityContext,
+  ): Promise<FirstAccessStartResult> {
     const user = await authRepository.findUserByCodigo(codigo);
 
     if (!user) {
@@ -150,7 +150,7 @@ class AuthService {
       );
     }
 
-    await this.issueFirstAccessToken(user);
+    await this.issueFirstAccessToken(user, context);
 
     return {
       nextStep: 'EMAIL_TOKEN',
@@ -193,37 +193,21 @@ class AuthService {
     };
   }
 
-  private async issueFirstAccessToken(user: AuthUserRecord) {
+  private async issueFirstAccessToken(user: AuthUserRecord, context?: RequestSecurityContext) {
     if (!user.email) {
       throw new AppError('O email do utilizador é obrigatório para o primeiro acesso.', 400, 'AUTH_EMAIL_REQUIRED', {
         codigo: user.codigo,
       });
     }
 
-    const rawToken = generateSecureToken();
-    const tokenHash = hashSecureToken(rawToken);
-    const passwordSetupTokenExpiresAt = new Date(
-      Date.now() + env.FIRST_ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1_000,
+    await this.sendEmailOnce(`first-access:${user.id}`, () =>
+      this.issuePasswordSetupTokenAndSendEmail(user, 'FIRST_ACCESS', context),
     );
-
-    await authRepository.updatePasswordSetupTokenById(
-      user.id,
-      tokenHash,
-      passwordSetupTokenExpiresAt,
-    );
-
-    await emailService.sendFirstAccessEmail({
-      to: user.email,
-      nome: user.nome,
-      codigo: user.codigo,
-      token: rawToken,
-      expiresInSeconds: env.FIRST_ACCESS_TOKEN_EXPIRES_IN_SECONDS,
-    });
   }
 
   async startPasswordRecovery({
     codigo,
-  }: PasswordRecoveryStartInput): Promise<PasswordRecoveryStartResult> {
+  }: PasswordRecoveryStartInput, context?: RequestSecurityContext): Promise<PasswordRecoveryStartResult> {
     const user = await authRepository.findUserByCodigo(codigo);
 
     if (!user) {
@@ -255,25 +239,9 @@ class AuthService {
       );
     }
 
-    const rawToken = generateSecureToken();
-    const tokenHash = hashSecureToken(rawToken);
-    const passwordSetupTokenExpiresAt = new Date(
-      Date.now() + env.FIRST_ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1_000,
+    await this.sendEmailOnce(`password-recovery:${user.id}`, () =>
+      this.issuePasswordSetupTokenAndSendEmail(user, 'PASSWORD_RECOVERY', context),
     );
-
-    await authRepository.updatePasswordSetupTokenById(
-      user.id,
-      tokenHash,
-      passwordSetupTokenExpiresAt,
-    );
-
-    await emailService.sendPasswordRecoveryEmail({
-      to: user.email,
-      nome: user.nome,
-      codigo: user.codigo,
-      token: rawToken,
-      expiresInSeconds: env.FIRST_ACCESS_TOKEN_EXPIRES_IN_SECONDS,
-    });
 
     return {
       nextStep: 'EMAIL_TOKEN',
@@ -318,6 +286,10 @@ class AuthService {
 
   async changePassword(userId: string, { senhaAtual, novaSenha }: ChangePasswordInput) {
     const user = await authRepository.findUserById(userId);
+
+    if (!user) {
+      throw new AppError('Sessão inválida. Inicie sessão novamente.', 401, 'AUTH_USER_NOT_FOUND');
+    }
 
     if (!user) {
       throw new AppError('Utilizador autenticado não encontrado.', 404, 'AUTH_USER_NOT_FOUND');
@@ -549,6 +521,66 @@ class AuthService {
       accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
       refreshTokenExpiresInSeconds: REFRESH_TOKEN_EXPIRES_IN_SECONDS,
     };
+  }
+
+  private async sendEmailOnce(key: string, send: () => Promise<void>) {
+    if (recentEmailSendKeys.has(key)) {
+      return false;
+    }
+
+    const inFlightSend = inFlightEmailSends.get(key);
+    if (inFlightSend) {
+      await inFlightSend;
+      return false;
+    }
+
+    const sendPromise = send();
+    inFlightEmailSends.set(key, sendPromise);
+
+    try {
+      await sendPromise;
+      const timeout = setTimeout(() => {
+        recentEmailSendKeys.delete(key);
+      }, EMAIL_SEND_COOLDOWN_MS);
+      recentEmailSendKeys.set(key, timeout);
+      return true;
+    } finally {
+      inFlightEmailSends.delete(key);
+    }
+  }
+
+  private async issuePasswordSetupTokenAndSendEmail(
+    user: AuthUserRecord,
+    purpose: 'FIRST_ACCESS' | 'PASSWORD_RECOVERY',
+    context?: RequestSecurityContext,
+  ) {
+    const rawToken = generateSecureToken();
+    const tokenHash = hashSecureToken(rawToken);
+    const passwordSetupTokenExpiresAt = new Date(
+      Date.now() + env.FIRST_ACCESS_TOKEN_EXPIRES_IN_SECONDS * 1_000,
+    );
+
+    await authRepository.updatePasswordSetupTokenById(
+      user.id,
+      tokenHash,
+      passwordSetupTokenExpiresAt,
+    );
+
+    const emailPayload = {
+      to: user.email!,
+      nome: user.nome,
+      codigo: user.codigo,
+      token: rawToken,
+      expiresInSeconds: env.FIRST_ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+      ...(context?.requestOrigin !== undefined ? { requestOrigin: context.requestOrigin } : {}),
+    };
+
+    if (purpose === 'FIRST_ACCESS') {
+      await emailService.sendFirstAccessEmail(emailPayload);
+      return;
+    }
+
+    await emailService.sendPasswordRecoveryEmail(emailPayload);
   }
 }
 

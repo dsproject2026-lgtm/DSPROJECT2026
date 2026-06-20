@@ -1,11 +1,11 @@
 import { env } from '@/config/env';
 import { sessionStorageService } from '@/lib/storage/session-storage';
 import type {
-  CandidateListResponse,
-  CandidateItem,
   AuditLogListResponse,
-  CommissionElectionDetailsItem,
+  CandidateItem,
+  CandidateListResponse,
   CandidateUserListResponse,
+  CommissionElectionDetailsItem,
   CommissionElectionListResponse,
   CreateCandidateInput,
   CreateElectionInput,
@@ -33,6 +33,33 @@ function withQuery(path: string, params: Record<string, string | undefined>) {
   return queryString ? `${path}?${queryString}` : path;
 }
 
+async function sendEligibleVotersCsv(path: string, csvContent: string) {
+  const token = sessionStorageService.getAccessToken();
+  const response = await fetch(`${env.apiBaseUrl}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: csvContent,
+  });
+
+  const json = (await response.json().catch(() => null)) as
+    | ApiSuccessResponse<ImportEligibleVotersResult>
+    | ApiErrorResponse
+    | null;
+
+  if (!response.ok || !json || json.success === false) {
+    const message =
+      json && json.success === false
+        ? json.error.message
+        : 'Falha ao processar eleitores elegíveis.';
+    throw new Error(message);
+  }
+
+  return json.data;
+}
+
 export const commissionApi = {
   listPositions() {
     return apiClient.get<PositionListResponse>(endpoints.positions.list, { auth: true });
@@ -44,6 +71,18 @@ export const commissionApi = {
 
   createFaculty(payload: { nome: string; cursos: string[] }) {
     return apiClient.post(endpoints.faculties.create, payload, { auth: true });
+  },
+
+  getFacultyById(facultyId: string) {
+    return apiClient.get(endpoints.faculties.detail(facultyId), { auth: true });
+  },
+
+  updateFaculty(facultyId: string, payload: { nome?: string }) {
+    return apiClient.patch(endpoints.faculties.update(facultyId), payload, { auth: true });
+  },
+
+  deleteFaculty(facultyId: string) {
+    return apiClient.delete(endpoints.faculties.remove(facultyId), { auth: true });
   },
 
   addCourses(facultyId: string, payload: { cursos: string[] }) {
@@ -79,9 +118,9 @@ export const commissionApi = {
     });
   },
 
-  listCandidateUsers(search?: string) {
+  listCandidateUsers(search?: string, electionId?: string) {
     return apiClient.get<CandidateUserListResponse>(
-      withQuery(endpoints.elections.candidateUsers, { search }),
+      withQuery(endpoints.elections.candidateUsers, { search, electionId }),
       { auth: true },
     );
   },
@@ -92,6 +131,17 @@ export const commissionApi = {
 
   updateElection(electionId: string, payload: UpdateElectionInput) {
     return apiClient.patch(endpoints.elections.update(electionId), payload, { auth: true });
+  },
+
+  reopenElectionForTie(
+    electionId: string,
+    payload: { dataInicioVotacao: string; dataFimVotacao: string },
+  ) {
+    return apiClient.post(
+      endpoints.elections.reopenTie(electionId),
+      payload,
+      { auth: true },
+    );
   },
 
   deleteElection(electionId: string) {
@@ -113,50 +163,39 @@ export const commissionApi = {
   },
 
   createCandidate(electionId: string, payload: CreateCandidateInput) {
-    return apiClient.post<CandidateItem>(
-      endpoints.elections.candidates.list(electionId),
-      payload,
-      { auth: true },
-    );
+    return apiClient.post<CandidateItem>(endpoints.elections.candidates.list(electionId), payload, {
+      auth: true,
+    });
   },
 
   updateCandidate(electionId: string, candidateId: string, payload: UpdateCandidateInput) {
-    return apiClient.patch(
-      endpoints.elections.candidates.update(electionId, candidateId),
-      payload,
-      { auth: true },
-    );
+    return apiClient.patch(endpoints.elections.candidates.update(electionId, candidateId), payload, {
+      auth: true,
+    });
   },
 
   approveCandidate(electionId: string, candidateId: string) {
-    return apiClient.patch(
-      endpoints.elections.candidates.approve(electionId, candidateId),
-      {},
-      { auth: true },
-    );
+    return apiClient.patch(endpoints.elections.candidates.approve(electionId, candidateId), {}, {
+      auth: true,
+    });
   },
 
   rejectCandidate(electionId: string, candidateId: string) {
-    return apiClient.patch(
-      endpoints.elections.candidates.reject(electionId, candidateId),
-      {},
-      { auth: true },
-    );
+    return apiClient.patch(endpoints.elections.candidates.reject(electionId, candidateId), {}, {
+      auth: true,
+    });
   },
 
   suspendCandidate(electionId: string, candidateId: string) {
-    return apiClient.patch(
-      endpoints.elections.candidates.suspend(electionId, candidateId),
-      {},
-      { auth: true },
-    );
+    return apiClient.patch(endpoints.elections.candidates.suspend(electionId, candidateId), {}, {
+      auth: true,
+    });
   },
 
   deleteCandidate(electionId: string, candidateId: string) {
-    return apiClient.delete(
-      endpoints.elections.candidates.remove(electionId, candidateId),
-      { auth: true },
-    );
+    return apiClient.delete(endpoints.elections.candidates.remove(electionId, candidateId), {
+      auth: true,
+    });
   },
 
   listEligibleVoters(
@@ -173,33 +212,37 @@ export const commissionApi = {
     );
   },
 
-  async importEligibleVotersCsv(electionId: string, csvContent: string) {
-    const token = sessionStorageService.getAccessToken();
-    const response = await fetch(
-      `${env.apiBaseUrl}${endpoints.elections.eligibleVoters.importCsv(electionId)}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: csvContent,
-      },
+  previewEligibleVotersCsv(electionId: string, csvContent: string) {
+    return sendEligibleVotersCsv(endpoints.elections.eligibleVoters.previewCsv(electionId), csvContent);
+  },
+
+  importEligibleVotersCsv(electionId: string, csvContent: string) {
+    return sendEligibleVotersCsv(endpoints.elections.eligibleVoters.importCsv(electionId), csvContent);
+  },
+
+  updateEligibleVoter(
+    electionId: string,
+    eligibleVoterId: string,
+    payload: { nome?: string; email?: string | null; ano?: number | null },
+  ) {
+    return apiClient.patch(
+      endpoints.elections.eligibleVoters.update(electionId, eligibleVoterId),
+      payload,
+      { auth: true },
     );
+  },
 
-    const json = (await response.json().catch(() => null)) as
-      | ApiSuccessResponse<ImportEligibleVotersResult>
-      | ApiErrorResponse
-      | null;
+  updateEligibleVoterStatus(electionId: string, eligibleVoterId: string, activo: boolean) {
+    return apiClient.patch(
+      endpoints.elections.eligibleVoters.updateStatus(electionId, eligibleVoterId),
+      { activo },
+      { auth: true },
+    );
+  },
 
-    if (!response.ok || !json || json.success === false) {
-      const message =
-        json && json.success === false
-          ? json.error.message
-          : 'Falha ao importar eleitores elegíveis.';
-      throw new Error(message);
-    }
-
-    return json.data;
+  deleteEligibleVoter(electionId: string, eligibleVoterId: string) {
+    return apiClient.delete(endpoints.elections.eligibleVoters.remove(electionId, eligibleVoterId), {
+      auth: true,
+    });
   },
 };

@@ -3,12 +3,14 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { authApi } from '@/api/auth.api';
 import { getRoleHomeRoute } from '@/config/role-navigation';
-import { toast } from '@/components/ui';
+import { PasswordInput, toast } from '@/components/ui';
 import { AuthBrand } from '@/features/auth/components/AuthBrand';
 import { ApiError } from '@/lib/http/api-error';
 import { sessionStorageService } from '@/lib/storage/session-storage';
 
 import { AuthLayout } from '@/components/layout/AuthLayout';
+
+const MIN_PASSWORD_LENGTH = 8;
 
 export function PasswordLoginPage() {
   const navigate = useNavigate();
@@ -29,6 +31,11 @@ export function PasswordLoginPage() {
 
     if (!senha.trim()) {
       toast.warning('Informe a palavra-passe.');
+      return;
+    }
+
+    if (senha.length < MIN_PASSWORD_LENGTH) {
+      toast.warning(`A palavra-passe deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`);
       return;
     }
 
@@ -60,7 +67,7 @@ export function PasswordLoginPage() {
           <div className="flex items-start gap-3 sm:items-center sm:gap-5">
             <span className="h-10 w-[4px] shrink-0 rounded-full bg-[#2D8AE8]" />
             <div>
-              <h2 className="text-[1.45rem] font-bold leading-tight text-[#1F57D6] sm:text-[1.95rem]">Acesso à Urna</h2>
+              <h2 className="text-[1.45rem] font-bold leading-tight text-[#1F57D6] sm:text-[1.95rem]">Acesso à Urna de Votação</h2>
               <p className="mt-2 text-[0.94rem] text-[#5F6776] sm:text-[1.06rem]">Insira as suas credenciais institucionais.</p>
             </div>
           </div>
@@ -69,10 +76,9 @@ export function PasswordLoginPage() {
         <form className="space-y-8 sm:space-y-9" onSubmit={handleSubmit}>
           <label className="space-y-3.5">
             <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">Palavra-passe</span>
-            <input
+            <PasswordInput
               className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
               placeholder="Digite a sua palavra-passe"
-              type="password"
               value={senha}
               onChange={(event) => setSenha(event.target.value)}
             />

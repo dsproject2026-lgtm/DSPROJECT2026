@@ -25,7 +25,7 @@ export function CommissionSegmentTabs({ segment }: CommissionSegmentTabsProps) {
     : config.viewPath;
 
   const tabs = [
-    { label: 'Registar', path: config.registerPath },
+    { label: segment === 'estudantes' ? 'Importar CSV' : 'Registar', path: config.registerPath },
     { label: 'Visualizar', path: config.viewPath },
   ];
 

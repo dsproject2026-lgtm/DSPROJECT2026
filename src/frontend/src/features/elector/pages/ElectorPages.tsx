@@ -453,7 +453,7 @@ export function ElectorResultsPage() {
             // Silently ignore transient refresh failures.
           });
       } catch {
-        // Ignore invalid event payloads.
+        // Ignora mensagens inválidas do evento.
       }
     };
 

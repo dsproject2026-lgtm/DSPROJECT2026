@@ -8,7 +8,7 @@ export const getHealthOverview: RequestHandler = async (request, response) => {
 
   response.status(result.httpStatus).json(
     buildSuccessResponse({
-      message: 'Health overview loaded successfully.',
+      message: 'Visão geral do estado do sistema carregada com sucesso.',
       data: result.payload,
       request,
       statusCode: result.httpStatus,
@@ -19,7 +19,7 @@ export const getHealthOverview: RequestHandler = async (request, response) => {
 export const getLiveness: RequestHandler = (request, response) => {
   response.status(200).json(
     buildSuccessResponse({
-      message: 'Liveness check completed successfully.',
+      message: 'Verificação de funcionamento concluída com sucesso.',
       data: healthService.getLiveness(),
       request,
     }),
@@ -33,8 +33,8 @@ export const getReadiness: RequestHandler = async (request, response) => {
     buildSuccessResponse({
       message:
         result.httpStatus === 200
-          ? 'Readiness check completed successfully.'
-          : 'Readiness check completed with degraded status.',
+          ? 'Verificação de disponibilidade concluída com sucesso.'
+          : 'Verificação de disponibilidade concluída com estado degradado.',
       data: result.payload,
       request,
       statusCode: result.httpStatus,

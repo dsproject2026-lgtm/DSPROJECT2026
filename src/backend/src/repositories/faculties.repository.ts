@@ -32,6 +32,18 @@ class FacultiesRepository {
     });
   }
 
+  async findByName(nome: string) {
+    return prisma.faculdade.findFirst({
+      where: {
+        nome: {
+          equals: nome,
+          mode: 'insensitive',
+        },
+      },
+      select: facultySelect,
+    });
+  }
+
   async create(nome: string, cursos: string[]) {
     return prisma.faculdade.create({
       data: {
@@ -54,6 +66,23 @@ class FacultiesRepository {
     });
 
     return this.findById(faculdadeId);
+  }
+
+  async update(id: string, data: { nome?: string }) {
+    return prisma.faculdade.update({
+      where: { id },
+      data: {
+        ...(data.nome !== undefined ? { nome: data.nome } : {}),
+      },
+      select: facultySelect,
+    });
+  }
+
+  async delete(id: string) {
+    return prisma.faculdade.delete({
+      where: { id },
+      select: facultySelect,
+    });
   }
 }
 

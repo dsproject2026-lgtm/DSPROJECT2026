@@ -40,6 +40,11 @@ export interface UpdateElectionApiInput {
   dataFimVotacao?: string | null | undefined;
 }
 
+export interface ReopenElectionForTieApiInput {
+  dataInicioVotacao: string;
+  dataFimVotacao: string;
+}
+
 
 // OUTPUTS
 

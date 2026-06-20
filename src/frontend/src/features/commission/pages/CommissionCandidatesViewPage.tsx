@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Eye, Search, ShieldCheck, ShieldX, Slash, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Eye, Pencil, Search, ShieldCheck, ShieldX, Slash, Trash2, X } from 'lucide-react';
 
 import { commissionApi } from '@/api/commission.api';
 import { CommissionSegmentTabs } from '@/features/commission/components/CommissionSegmentTabs';
-import { Chip, UiPageSkeleton, UiSelect, UiTable, toast } from '@/components/ui';
+import { Chip, ConfirmDialog, Spinner, UiPageSkeleton, UiSelect, UiTable, toast } from '@/components/ui';
 import { ApiError } from '@/lib/http/api-error';
 import { formatStateLabel, getStateChipColor } from '@/lib/ui/state-chip';
-import type { CandidateItem, CandidateState, CommissionElectionItem } from '@/types/commission';
+import type { CandidateItem, CandidateState, CommissionElectionItem, UpdateCandidateInput } from '@/types/commission';
 
 type CandidateStateFilter = 'TODOS' | CandidateState;
 
@@ -14,6 +14,13 @@ const STATUS_OPTIONS: Array<{ value: CandidateStateFilter; label: string }> = [
   { value: 'TODOS', label: 'Todos os estados' },
   { value: 'PENDENTE', label: 'Pendente' },
   { value: 'APROVADO', label: 'Aprovado' },
+  { value: 'REJEITADO', label: 'Rejeitado' },
+  { value: 'SUSPENSO', label: 'Suspenso' },
+];
+
+const CANDIDATE_STATE_OPTIONS: Array<{ value: CandidateState; label: string }> = [
+  { value: 'APROVADO', label: 'Aprovado' },
+  { value: 'PENDENTE', label: 'Pendente' },
   { value: 'REJEITADO', label: 'Rejeitado' },
   { value: 'SUSPENSO', label: 'Suspenso' },
 ];
@@ -38,6 +45,12 @@ export function CommissionCandidatesViewPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<CandidateStateFilter>('TODOS');
   const [detailCandidate, setDetailCandidate] = useState<CandidateItem | null>(null);
+  const [editCandidate, setEditCandidate] = useState<CandidateItem | null>(null);
+  const [editForm, setEditForm] = useState<UpdateCandidateInput>({});
+  const [confirmAction, setConfirmAction] = useState<null | {
+    candidate: CandidateItem;
+    action: 'suspend' | 'delete';
+  }>(null);
   const [bootLoading, setBootLoading] = useState(true);
   const [rowsLoading, setRowsLoading] = useState(false);
   const [busyCandidateId, setBusyCandidateId] = useState<string | null>(null);
@@ -46,6 +59,13 @@ export function CommissionCandidatesViewPage() {
     () => elections.find((item) => item.id === selectedElectionId) ?? null,
     [elections, selectedElectionId],
   );
+
+  const refreshCandidates = async () => {
+    if (!selectedElectionId) return;
+    const refreshed = await commissionApi.listCandidates(selectedElectionId);
+    setAllRows(refreshed.items);
+    return refreshed.items;
+  };
 
   useEffect(() => {
     let isActive = true;
@@ -59,9 +79,7 @@ export function CommissionCandidatesViewPage() {
         setSelectedElectionId((current) => current || response.items[0]?.id || '');
       } catch (cause) {
         if (!isActive) return;
-        const message =
-          cause instanceof ApiError ? cause.message : 'Não foi possível carregar as eleições.';
-        toast.danger(message);
+        toast.danger(cause instanceof ApiError ? cause.message : 'Não foi possível carregar as eleições.');
       } finally {
         if (isActive) setBootLoading(false);
       }
@@ -89,9 +107,7 @@ export function CommissionCandidatesViewPage() {
         setAllRows(response.items);
       } catch (cause) {
         if (!isActive) return;
-        const message =
-          cause instanceof ApiError ? cause.message : 'Falha ao carregar candidatos.';
-        toast.danger(message);
+        toast.danger(cause instanceof ApiError ? cause.message : 'Falha ao carregar candidatos.');
       } finally {
         if (isActive) setRowsLoading(false);
       }
@@ -135,24 +151,55 @@ export function CommissionCandidatesViewPage() {
         await commissionApi.suspendCandidate(selectedElectionId, candidateId);
         toast.success('Candidato suspenso.');
       } else {
-        const confirmed = window.confirm('Pretende remover este candidato?');
-        if (!confirmed) return;
         await commissionApi.deleteCandidate(selectedElectionId, candidateId);
-        toast.success('Candidato removido.');
+        toast.success('Candidato eliminado.');
       }
 
-      const refreshed = await commissionApi.listCandidates(selectedElectionId);
-      setAllRows(refreshed.items);
+      const refreshed = await refreshCandidates();
       if (detailCandidate?.id === candidateId) {
-        setDetailCandidate(refreshed.items.find((item) => item.id === candidateId) ?? null);
+        setDetailCandidate(refreshed?.find((item) => item.id === candidateId) ?? null);
       }
+      setConfirmAction(null);
     } catch (cause) {
       const message =
         cause instanceof ApiError
           ? cause.message
           : cause instanceof Error
             ? cause.message
-            : 'Falha ao executar a acção do candidato.';
+            : 'Falha ao executar a ação do candidato.';
+      toast.danger(message);
+    } finally {
+      setBusyCandidateId(null);
+    }
+  };
+
+  const openEdit = (candidate: CandidateItem) => {
+    setEditCandidate(candidate);
+    setEditForm({
+      nome: candidate.nome,
+      fotoUrl: candidate.fotoUrl,
+      biografia: candidate.biografia,
+      proposta: candidate.proposta,
+      estado: candidate.estado,
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!selectedElectionId || !editCandidate) return;
+
+    try {
+      setBusyCandidateId(editCandidate.id);
+      await commissionApi.updateCandidate(selectedElectionId, editCandidate.id, editForm);
+      await refreshCandidates();
+      setEditCandidate(null);
+      toast.success('Candidato actualizado com sucesso.');
+    } catch (cause) {
+      const message =
+        cause instanceof ApiError
+          ? cause.message
+          : cause instanceof Error
+            ? cause.message
+            : 'Falha ao actualizar candidato.';
       toast.danger(message);
     } finally {
       setBusyCandidateId(null);
@@ -183,10 +230,7 @@ export function CommissionCandidatesViewPage() {
             onChange={setSelectedElectionId}
             placeholder="Seleccione a eleição"
             ariaLabel="Eleição"
-            options={elections.map((item) => ({
-              value: item.id,
-              label: item.titulo,
-            }))}
+            options={elections.map((item) => ({ value: item.id, label: item.titulo }))}
           />
 
           <div className="relative">
@@ -203,10 +247,7 @@ export function CommissionCandidatesViewPage() {
             value={statusFilter}
             onChange={(value) => setStatusFilter(value as CandidateStateFilter)}
             ariaLabel="Estado do candidato"
-            options={STATUS_OPTIONS.map((option) => ({
-              value: option.value,
-              label: option.label,
-            }))}
+            options={STATUS_OPTIONS}
           />
         </div>
       </div>
@@ -218,7 +259,7 @@ export function CommissionCandidatesViewPage() {
             { id: 'candidato', label: 'Candidato', className: 'font-semibold' },
             { id: 'codigo', label: 'Código', className: 'font-semibold' },
             { id: 'estado', label: 'Estado', className: 'font-semibold' },
-            { id: 'accoes', label: 'Acções', className: 'font-semibold' },
+            { id: 'accoes', label: 'Ações', className: 'font-semibold' },
           ]}
           rows={
             !selectedElectionId || rowsLoading
@@ -241,50 +282,33 @@ export function CommissionCandidatesViewPage() {
                       {formatStateLabel(row.estado)}
                     </Chip>,
                     <div key={`${row.id}:actions`} className="flex flex-wrap gap-1 text-[#64748b]">
-                      <button
-                        type="button"
-                        onClick={() => setDetailCandidate(row)}
-                        className="rounded p-1 transition hover:bg-[#f1f5f9] hover:text-[#0f172a]"
-                        aria-label="Visualizar"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
+                      <IconButton label="Visualizar" onClick={() => setDetailCandidate(row)} icon={<Eye className="h-4 w-4" />} />
+                      <IconButton label="Editar" onClick={() => openEdit(row)} icon={<Pencil className="h-4 w-4" />} />
+                      <IconButton
+                        label="Aprovar"
                         disabled={busyCandidateId === row.id}
                         onClick={() => void runCandidateAction(row.id, 'approve')}
-                        className="rounded p-1 transition hover:bg-[#f0fdf4] hover:text-[#15803d] disabled:opacity-50"
-                        aria-label="Aprovar"
-                      >
-                        <ShieldCheck className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
+                        icon={<ShieldCheck className="h-4 w-4" />}
+                      />
+                      <IconButton
+                        label="Rejeitar"
                         disabled={busyCandidateId === row.id}
                         onClick={() => void runCandidateAction(row.id, 'reject')}
-                        className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626] disabled:opacity-50"
-                        aria-label="Rejeitar"
-                      >
-                        <ShieldX className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
+                        icon={<ShieldX className="h-4 w-4" />}
+                      />
+                      <IconButton
+                        label="Suspender"
                         disabled={busyCandidateId === row.id}
-                        onClick={() => void runCandidateAction(row.id, 'suspend')}
-                        className="rounded p-1 transition hover:bg-[#fffbeb] hover:text-[#b45309] disabled:opacity-50"
-                        aria-label="Suspender"
-                      >
-                        <Slash className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
+                        onClick={() => setConfirmAction({ candidate: row, action: 'suspend' })}
+                        icon={<Slash className="h-4 w-4" />}
+                      />
+                      <IconButton
+                        label="Eliminar"
                         disabled={busyCandidateId === row.id}
-                        onClick={() => void runCandidateAction(row.id, 'delete')}
-                        className="rounded p-1 transition hover:bg-[#fef2f2] hover:text-[#dc2626] disabled:opacity-50"
-                        aria-label="Eliminar"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                        danger
+                        onClick={() => setConfirmAction({ candidate: row, action: 'delete' })}
+                        icon={<Trash2 className="h-4 w-4" />}
+                      />
                     </div>,
                   ],
                 }))
@@ -300,76 +324,206 @@ export function CommissionCandidatesViewPage() {
       </div>
 
       {detailCandidate ? (
+        <CandidateDetailsModal
+          candidate={detailCandidate}
+          votingStart={selectedElection?.dataInicioVotacao ?? null}
+          onClose={() => setDetailCandidate(null)}
+        />
+      ) : null}
+
+      {editCandidate ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/45 px-4 py-6">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-md border border-[#d1d9e6] bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
-              <h3 className="text-lg font-semibold text-[#0f172a]">Detalhes do Candidato</h3>
+              <h3 className="text-lg font-semibold text-[#0f172a]">Editar Candidato</h3>
               <button
                 type="button"
-                onClick={() => setDetailCandidate(null)}
+                onClick={() => setEditCandidate(null)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#d1d9e6] text-[#64748b] transition hover:bg-[#f8fafc]"
                 aria-label="Fechar"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="max-h-[calc(90vh-74px)] overflow-y-auto px-5 py-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94a3b8]">
-                    Nome
-                  </p>
-                  <p className="mt-1 text-base font-semibold text-[#0f172a]">{detailCandidate.nome}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                    Estado
-                  </p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.estado}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                    Utilizador
-                  </p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.utilizador.nome}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                    Código
-                  </p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.utilizador.codigo}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                    E-mail
-                  </p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.utilizador.email ?? '-'}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                    Biografia
-                  </p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.biografia ?? '-'}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                    Proposta
-                  </p>
-                  <p className="mt-1 text-[14px] text-slate-700">{detailCandidate.proposta ?? '-'}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                    Início da votação
-                  </p>
-                  <p className="mt-1 text-[14px] text-slate-700">
-                    {formatDate(selectedElection?.dataInicioVotacao ?? null)}
-                  </p>
-                </div>
+            <div className="max-h-[calc(90vh-74px)] space-y-4 overflow-y-auto px-5 py-5">
+              <TextField
+                label="Nome"
+                value={editForm.nome ?? ''}
+                onChange={(nome) => setEditForm((current) => ({ ...current, nome }))}
+              />
+              <TextField
+                label="URL da fotografia"
+                value={editForm.fotoUrl ?? ''}
+                onChange={(fotoUrl) => setEditForm((current) => ({ ...current, fotoUrl: fotoUrl || null }))}
+              />
+              <TextareaField
+                label="Biografia"
+                value={editForm.biografia ?? ''}
+                onChange={(biografia) => setEditForm((current) => ({ ...current, biografia: biografia || null }))}
+              />
+              <TextareaField
+                label="Proposta"
+                value={editForm.proposta ?? ''}
+                onChange={(proposta) => setEditForm((current) => ({ ...current, proposta: proposta || null }))}
+              />
+              <UiSelect
+                value={editForm.estado ?? 'APROVADO'}
+                onChange={(estado) => setEditForm((current) => ({ ...current, estado: estado as CandidateState }))}
+                ariaLabel="Estado"
+                options={CANDIDATE_STATE_OPTIONS}
+              />
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditCandidate(null)}
+                  className="inline-flex h-10 items-center rounded-[8px] border border-[#d1d9e6] px-4 text-ui-sm font-medium text-[#0f172a] transition hover:bg-[#f8fafc]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void saveEdit()}
+                  disabled={busyCandidateId === editCandidate.id}
+                  className="inline-flex h-10 items-center rounded-[8px] bg-[#1a56db] px-4 text-ui-sm font-medium text-white transition hover:bg-[#1647c0] disabled:opacity-60"
+                >
+                  {busyCandidateId === editCandidate.id ? <Spinner size="sm" className="mr-2 text-white" /> : null}
+                  Guardar
+                </button>
               </div>
             </div>
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={Boolean(confirmAction)}
+        title={confirmAction?.action === 'delete' ? 'Eliminar candidato' : 'Suspender candidato'}
+        description={
+          confirmAction?.action === 'delete'
+            ? `Pretende eliminar "${confirmAction.candidate.nome}" desta eleição?`
+            : `Pretende suspender "${confirmAction?.candidate.nome}"? Candidatos suspensos não aparecem no boletim de voto.`
+        }
+        confirmLabel={confirmAction?.action === 'delete' ? 'Eliminar' : 'Suspender'}
+        tone={confirmAction?.action === 'delete' ? 'danger' : 'warning'}
+        isLoading={confirmAction ? busyCandidateId === confirmAction.candidate.id : false}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={() => {
+          if (!confirmAction) return;
+          void runCandidateAction(confirmAction.candidate.id, confirmAction.action);
+        }}
+      />
     </section>
+  );
+}
+
+function IconButton({
+  label,
+  icon,
+  danger = false,
+  disabled = false,
+  onClick,
+}: {
+  label: string;
+  icon: ReactNode;
+  danger?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`rounded p-1 transition disabled:opacity-50 ${
+        danger ? 'hover:bg-[#fef2f2] hover:text-[#dc2626]' : 'hover:bg-[#f1f5f9] hover:text-[#0f172a]'
+      }`}
+      aria-label={label}
+      title={label}
+    >
+      {icon}
+    </button>
+  );
+}
+
+function CandidateDetailsModal({
+  candidate,
+  votingStart,
+  onClose,
+}: {
+  candidate: CandidateItem;
+  votingStart: string | null;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/45 px-4 py-6">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-md border border-[#d1d9e6] bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-4">
+          <h3 className="text-lg font-semibold text-[#0f172a]">Detalhes do Candidato</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#d1d9e6] text-[#64748b] transition hover:bg-[#f8fafc]"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="max-h-[calc(90vh-74px)] overflow-y-auto px-5 py-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Detail label="Nome" value={candidate.nome} />
+            <Detail label="Estado" value={formatStateLabel(candidate.estado)} />
+            <Detail label="Utilizador" value={candidate.utilizador.nome} />
+            <Detail label="Código" value={candidate.utilizador.codigo} />
+            <Detail label="E-mail" value={candidate.utilizador.email ?? '-'} wide />
+            <Detail label="Biografia" value={candidate.biografia ?? '-'} wide />
+            <Detail label="Proposta" value={candidate.proposta ?? '-'} wide />
+            <Detail label="Início da votação" value={formatDate(votingStart)} wide />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Detail({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+  return (
+    <div className={wide ? 'md:col-span-2' : undefined}>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#64748b]">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap text-sm text-[#0f172a]">{value}</p>
+    </div>
+  );
+}
+
+function TextField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">{label}</span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-11 w-full rounded-sm border border-[#d1d9e6] bg-white px-3 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
+      />
+    </label>
+  );
+}
+
+function TextareaField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">{label}</span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-h-[100px] w-full rounded-sm border border-[#d1d9e6] bg-white px-3 py-2 text-sm text-[#475569] outline-none focus:border-[#0b73c9]"
+      />
+    </label>
   );
 }

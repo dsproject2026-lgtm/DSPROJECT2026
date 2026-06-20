@@ -3,12 +3,14 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { authApi } from '@/api/auth.api';
 import { getRoleHomeRoute } from '@/config/role-navigation';
-import { toast } from '@/components/ui';
+import { PasswordInput, toast } from '@/components/ui';
 import { AuthBrand } from '@/features/auth/components/AuthBrand';
 import { ApiError } from '@/lib/http/api-error';
 import { sessionStorageService } from '@/lib/storage/session-storage';
 
 import { AuthLayout } from '@/components/layout/AuthLayout';
+
+const MIN_PASSWORD_LENGTH = 8;
 
 function getLinkToken(searchParams: URLSearchParams) {
   const raw = searchParams.get('token') ?? searchParams.get('firstAccessToken') ?? '';
@@ -75,6 +77,11 @@ export function FirstAccessPage() {
 
     if (!novaSenha.trim() || !confirmarSenha.trim()) {
       toast.warning('Preencha a nova palavra-passe e a confirmação.');
+      return;
+    }
+
+    if (novaSenha.length < MIN_PASSWORD_LENGTH) {
+      toast.warning(`A nova palavra-passe deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`);
       return;
     }
 
@@ -159,10 +166,9 @@ export function FirstAccessPage() {
 
             <label className="space-y-3.5">
               <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">Palavra-passe</span>
-              <input
+              <PasswordInput
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
                 placeholder="Mínimo 8 caracteres"
-                type="password"
                 value={novaSenha}
                 onChange={(event) => setNovaSenha(event.target.value)}
               />
@@ -172,10 +178,9 @@ export function FirstAccessPage() {
               <span className="text-[0.8rem] font-semibold uppercase tracking-[0.06em] text-[#6C7381] sm:text-[0.92rem] sm:tracking-[0.09em]">
                 Confirme a palavra-passe
               </span>
-              <input
+              <PasswordInput
                 className="h-13 w-full rounded-md border border-[#C9CFDB] bg-[#F3F5F9] px-5 text-[0.96rem] text-[#4B5563] outline-none transition focus:border-[#2D8AE8] focus:ring-2 focus:ring-[#2D8AE8]/20 sm:h-[54px]"
                 placeholder="Repita a nova palavra-passe"
-                type="password"
                 value={confirmarSenha}
                 onChange={(event) => setConfirmarSenha(event.target.value)}
               />

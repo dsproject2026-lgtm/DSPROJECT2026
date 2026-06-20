@@ -19,6 +19,8 @@ type CreatePositionInput = {
   descricao?: string | null;
 };
 
+type UpdatePositionInput = Partial<CreatePositionInput>;
+
 export const positionsApi = {
   list(search?: string) {
     return apiClient.get<PositionListResponse>(
@@ -29,6 +31,14 @@ export const positionsApi = {
 
   create(payload: CreatePositionInput) {
     return apiClient.post<PositionItem>(endpoints.positions.create, payload, { auth: true });
+  },
+
+  getById(positionId: string) {
+    return apiClient.get<PositionItem>(endpoints.positions.detail(positionId), { auth: true });
+  },
+
+  update(positionId: string, payload: UpdatePositionInput) {
+    return apiClient.patch<PositionItem>(endpoints.positions.update(positionId), payload, { auth: true });
   },
 
   delete(positionId: string) {

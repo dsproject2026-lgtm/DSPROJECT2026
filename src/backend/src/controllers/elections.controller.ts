@@ -42,6 +42,12 @@ const listElectionsQuerySchema = z.object({
 
 const listCandidateUsersQuerySchema = z.object({
   search: z.string().trim().optional(),
+  electionId: z.string().uuid().optional(),
+});
+
+const reopenElectionForTieSchema = z.object({
+  dataInicioVotacao: z.string().datetime(),
+  dataFimVotacao: z.string().datetime(),
 });
 
 export const createElection: RequestHandler = async (request, response) => {
@@ -100,7 +106,7 @@ export const listElections: RequestHandler = async (request, response) => {
 
 export const listCandidateUsers: RequestHandler = async (request, response) => {
   const query = listCandidateUsersQuerySchema.parse(request.query);
-  const result = await electionsService.listCandidateUsers(query.search);
+  const result = await electionsService.listCandidateUsers(query.search, query.electionId);
 
   response.status(200).json(
     buildSuccessResponse({
@@ -151,6 +157,32 @@ export const deleteElection: RequestHandler = async (request, response) => {
   await auditService.record({
     utilizadorId: request.auth?.sub,
     accao: 'ELEICAO_ELIMINADA',
+    entidade: 'ELEICAO',
+    entidadeId: id,
+    ip: getClientIp(request),
+  });
+
+  response.status(200).json(
+    buildSuccessResponse({
+      message: result.message,
+      data: result.data,
+      request,
+    }),
+  );
+};
+
+export const reopenElectionForTie: RequestHandler = async (request, response) => {
+  const { id } = request.params as { id?: string | string[] };
+
+  if (!id || Array.isArray(id)) {
+    throw new AppError('ID da eleição não fornecido.', 400, 'ELECTION_ID_REQUIRED');
+  }
+
+  const body = reopenElectionForTieSchema.parse(request.body);
+  const result = await electionsService.reopenElectionForTie(id, body);
+  await auditService.record({
+    utilizadorId: request.auth?.sub,
+    accao: 'ELEICAO_REABERTA_DESEMPATE',
     entidade: 'ELEICAO',
     entidadeId: id,
     ip: getClientIp(request),

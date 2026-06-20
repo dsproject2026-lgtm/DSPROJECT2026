@@ -32,7 +32,7 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, next
     response.status(400).json(
       buildErrorResponse({
         code: 'VALIDATION_ERROR',
-        message: 'Validation error.',
+        message: 'Erro de validação.',
         statusCode: 400,
         details: error.flatten(),
         ...(error instanceof Error ? { error } : {}),
@@ -134,7 +134,7 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, next
       response.status(404).json(
         buildErrorResponse({
           code: 'DATABASE_RECORD_NOT_FOUND',
-          message: 'The requested record was not found.',
+          message: 'O registo solicitado não foi encontrado.',
           statusCode: 404,
           details: {
             prismaCode: error.code,
@@ -206,7 +206,7 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, next
     response.status(500).json(
       buildErrorResponse({
         code: 'DATABASE_UNKNOWN_ERROR',
-        message: 'An unexpected database error occurred.',
+        message: 'Ocorreu um erro inesperado na base de dados.',
         statusCode: 500,
         ...(error instanceof Error ? { error } : {}),
         request,
@@ -228,14 +228,14 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, next
     return;
   }
 
-  const unexpectedError = error instanceof Error ? error : new Error('Unknown error.');
+  const unexpectedError = error instanceof Error ? error : new Error('Erro desconhecido.');
 
   console.error(unexpectedError);
 
   response.status(500).json(
     buildErrorResponse({
       code: 'INTERNAL_SERVER_ERROR',
-      message: 'Internal server error.',
+      message: 'Erro interno do servidor.',
       statusCode: 500,
       ...(unexpectedError instanceof Error ? { error: unexpectedError } : {}),
       request,

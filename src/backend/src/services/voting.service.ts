@@ -17,9 +17,18 @@ class VotingService {
 
     if (!eligibleVoter) {
       throw new AppError(
-        'Utilizador nao elegivel para votar nesta eleicao.',
+        'Utilizador não elegível para votar nesta eleição.',
         403,
         'VOTER_NOT_ELIGIBLE',
+        { electionId, userId },
+      );
+    }
+
+    if (!eligibleVoter.utilizador.activo) {
+      throw new AppError(
+        'Utilizador suspenso não pode votar nesta eleição.',
+        403,
+        'VOTER_SUSPENDED',
         { electionId, userId },
       );
     }
@@ -45,7 +54,10 @@ class VotingService {
 
     await this.resolveEligibleVoter(electionId, userId);
 
-    const candidates = await votingRepository.findApprovedCandidatesByElection(electionId);
+    const candidates = await votingRepository.findApprovedCandidatesByElection(
+      electionId,
+      election.emDesempate ? election.candidatosDesempate : undefined,
+    );
 
     const data: ElectionBallotResponse = {
       election: {
@@ -54,6 +66,8 @@ class VotingService {
         estado: election.estado,
         dataInicioVotacao: election.dataInicioVotacao,
         dataFimVotacao: election.dataFimVotacao,
+        emDesempate: election.emDesempate,
+        numeroRodada: election.numeroRodada,
       },
       candidates,
     };
@@ -104,10 +118,31 @@ class VotingService {
 
     if (candidate.estado !== 'APROVADO') {
       throw new AppError(
-        'So e permitido votar em candidatos aprovados.',
+        'Só é permitido votar em candidatos aprovados.',
         409,
         'VOTE_CANDIDATE_NOT_APPROVED',
         { electionId, candidatoId: input.candidatoId, estado: candidate.estado },
+      );
+    }
+
+    if (
+      election.emDesempate
+      && !election.candidatosDesempate.includes(input.candidatoId)
+    ) {
+      throw new AppError(
+        'Na votação de desempate só é permitido votar nos candidatos empatados.',
+        409,
+        'VOTE_CANDIDATE_NOT_IN_TIEBREAK',
+        { electionId, candidatoId: input.candidatoId },
+      );
+    }
+
+    if (!candidate.utilizador.activo) {
+      throw new AppError(
+        'Candidato suspenso não pode receber votos.',
+        409,
+        'VOTE_CANDIDATE_SUSPENDED',
+        { electionId, candidatoId: input.candidatoId },
       );
     }
 
@@ -116,6 +151,7 @@ class VotingService {
       userId,
       eligibleId: eligibleVoter.id,
       candidateId: input.candidatoId,
+      numeroRodada: election.numeroRodada,
     });
 
     const data: CastVoteResponse = {
@@ -162,7 +198,11 @@ class VotingService {
       };
     }
 
-    const receipt = await votingRepository.findReceiptByElectionAndUser(electionId, userId);
+    const receipt = await votingRepository.findReceiptByElectionAndUser(
+      electionId,
+      userId,
+      election.numeroRodada,
+    );
 
     const data: VoteStatusResponse = {
       electionId,
@@ -200,7 +240,7 @@ class VotingService {
 
     const [candidates, votes, totalEligibleVoters] = await Promise.all([
       votingRepository.findAllCandidatesByElection(electionId),
-      votingRepository.findVotesByElection(electionId),
+      votingRepository.findVotesByElection(electionId, election.numeroRodada),
       votingRepository.countEligibleVotersByElection(electionId),
     ]);
 
@@ -254,6 +294,8 @@ class VotingService {
         id: election.id,
         titulo: election.titulo,
         estado: election.estado,
+        emDesempate: election.emDesempate,
+        numeroRodada: election.numeroRodada,
       },
       summary: {
         totalEligibleVoters,
@@ -262,6 +304,12 @@ class VotingService {
       },
       candidates: candidateResults,
       winner,
+      hasTieForFirstPlace,
+      tiedCandidates: hasTieForFirstPlace && topCandidate
+        ? candidateResults
+            .filter((candidate) => candidate.votes === topCandidate.votes)
+            .map(({ id, nome, votes }) => ({ id, nome, votes }))
+        : [],
     };
 
     return {

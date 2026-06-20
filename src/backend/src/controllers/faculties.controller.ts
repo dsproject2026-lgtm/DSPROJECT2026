@@ -9,6 +9,10 @@ const createFacultySchema = z.object({
   cursos: z.array(z.string().trim().min(2).max(150)).optional(),
 });
 
+const updateFacultySchema = z.object({
+  nome: z.string().trim().min(2).max(150).optional(),
+});
+
 const addCoursesSchema = z.object({
   cursos: z.array(z.string().trim().min(2).max(150)).min(1),
 });
@@ -42,6 +46,46 @@ export const createFaculty: RequestHandler = async (request, response) => {
       data: result.data,
       request,
       statusCode: 201,
+    }),
+  );
+};
+
+export const getFacultyById: RequestHandler = async (request, response) => {
+  const params = facultyIdParamSchema.parse(request.params);
+  const result = await facultiesService.getFacultyById(params.id);
+
+  response.status(200).json(
+    buildSuccessResponse({
+      message: result.message,
+      data: result.data,
+      request,
+    }),
+  );
+};
+
+export const updateFaculty: RequestHandler = async (request, response) => {
+  const params = facultyIdParamSchema.parse(request.params);
+  const body = updateFacultySchema.parse(request.body);
+  const result = await facultiesService.updateFaculty(params.id, body);
+
+  response.status(200).json(
+    buildSuccessResponse({
+      message: result.message,
+      data: result.data,
+      request,
+    }),
+  );
+};
+
+export const deleteFaculty: RequestHandler = async (request, response) => {
+  const params = facultyIdParamSchema.parse(request.params);
+  const result = await facultiesService.deleteFaculty(params.id);
+
+  response.status(200).json(
+    buildSuccessResponse({
+      message: result.message,
+      data: result.data,
+      request,
     }),
   );
 };

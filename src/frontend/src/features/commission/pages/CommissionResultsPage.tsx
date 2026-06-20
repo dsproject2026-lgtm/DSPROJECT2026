@@ -24,6 +24,8 @@ export function CommissionResultsPage() {
   const [results, setResults] = useState<ElectionResults | null>(null);
   const [isBootLoading, setIsBootLoading] = useState(true);
   const [isResultsLoading, setIsResultsLoading] = useState(false);
+  const [isReopening, setIsReopening] = useState(false);
+  const [reopenDates, setReopenDates] = useState({ inicio: '', fim: '' });
 
   useEffect(() => {
     let isActive = true;
@@ -84,6 +86,39 @@ export function CommissionResultsPage() {
     };
   }, [selectedElectionId]);
 
+  const reopenForTie = async () => {
+    if (!selectedElectionId || !reopenDates.inicio || !reopenDates.fim) {
+      toast.danger('Informe as novas datas de início e fim da votação.');
+      return;
+    }
+
+    const inicio = new Date(reopenDates.inicio);
+    const fim = new Date(reopenDates.fim);
+    if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime()) || inicio >= fim) {
+      toast.danger('A data de início deve ser anterior à data de fim.');
+      return;
+    }
+
+    try {
+      setIsReopening(true);
+      await commissionApi.reopenElectionForTie(selectedElectionId, {
+        dataInicioVotacao: inicio.toISOString(),
+        dataFimVotacao: fim.toISOString(),
+      });
+      const electionsResponse = await commissionApi.listElections();
+      setElections(electionsResponse.items);
+      setResults(null);
+      setReopenDates({ inicio: '', fim: '' });
+      toast.success('Eleição reaberta para desempate.');
+    } catch (cause) {
+      toast.danger(
+        cause instanceof ApiError ? cause.message : 'Não foi possível reabrir a eleição.',
+      );
+    } finally {
+      setIsReopening(false);
+    }
+  };
+
   useEffect(() => {
     if (!selectedElectionId) {
       return;
@@ -106,7 +141,7 @@ export function CommissionResultsPage() {
           .then((data) => setResults(data))
           .catch(() => undefined);
       } catch {
-        // Ignore invalid event payloads.
+        // Ignora mensagens inválidas do evento.
       }
     };
 
@@ -229,9 +264,59 @@ export function CommissionResultsPage() {
               Vencedor: <strong>{results.winner.nome}</strong> com {results.winner.votes} voto(s).
             </section>
           ) : (
-            <section className="rounded-sm border border-[#e2e8f0] bg-white px-4 py-3 text-sm text-[#64748b]">
-              Ainda sem vencedor definido.
-            </section>
+            <div className="space-y-4">
+              <section className="rounded-sm border border-[#fbbf24] bg-[#fffbeb] px-4 py-3 text-sm text-[#92400e]">
+                {results.hasTieForFirstPlace
+                  ? `Empate entre: ${results.tiedCandidates.map((candidate) => candidate.nome).join(', ')}.`
+                  : 'Ainda sem vencedor definido.'}
+              </section>
+
+              {results.hasTieForFirstPlace && results.election.estado === 'CONCLUIDA' ? (
+                <section className="rounded-sm border border-[#bfdbfe] bg-[#eff6ff] p-4">
+                  <h2 className="text-sm font-semibold text-[#1e3a8a]">
+                    Reabrir eleição para desempate
+                  </h2>
+                  <p className="mt-1 text-sm text-[#475569]">
+                    Apenas os candidatos empatados aparecerão no boletim. Com participação de
+                    100%, todos os eleitores poderão votar novamente; abaixo de 100%, votam apenas
+                    os eleitores que ainda não participaram.
+                  </p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#64748b]">
+                      Novo início
+                      <input
+                        type="datetime-local"
+                        value={reopenDates.inicio}
+                        onChange={(event) =>
+                          setReopenDates((current) => ({ ...current, inicio: event.target.value }))
+                        }
+                        className="mt-2 h-11 w-full rounded-sm border border-[#cbd5e1] bg-white px-3 text-sm font-normal normal-case tracking-normal text-[#0f172a]"
+                      />
+                    </label>
+                    <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#64748b]">
+                      Novo fim
+                      <input
+                        type="datetime-local"
+                        value={reopenDates.fim}
+                        onChange={(event) =>
+                          setReopenDates((current) => ({ ...current, fim: event.target.value }))
+                        }
+                        className="mt-2 h-11 w-full rounded-sm border border-[#cbd5e1] bg-white px-3 text-sm font-normal normal-case tracking-normal text-[#0f172a]"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void reopenForTie()}
+                    disabled={isReopening}
+                    className="mt-4 inline-flex h-10 items-center rounded-md bg-[#1a56db] px-4 text-sm font-semibold text-white hover:bg-[#1647c0] disabled:opacity-60"
+                  >
+                    {isReopening ? <Spinner size="sm" className="mr-2 text-white" /> : null}
+                    Reabrir para desempate
+                  </button>
+                </section>
+              ) : null}
+            </div>
           )}
         </>
       )}

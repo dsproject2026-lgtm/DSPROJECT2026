@@ -3,6 +3,10 @@ function resolveDefaultApiBaseUrl() {
     return 'http://localhost:4000/api/v1';
   }
 
+  if (window.location.protocol === 'https:') {
+    return '/api/v1';
+  }
+
   return `http://${window.location.hostname}:4000/api/v1`;
 }
 
@@ -12,8 +16,24 @@ const isProduction = import.meta.env.PROD;
 function resolveApiBaseUrl() {
   const configured = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    try {
+      const parsed = new URL(configured);
+
+      if (parsed.protocol === 'http:') {
+        return '/api/v1';
+      }
+    } catch {
+      return configured;
+    }
+  }
+
   if (isProduction) {
     try {
+      if (configured.startsWith('/')) {
+        return configured;
+      }
+
       const parsed = new URL(configured);
 
       if (parsed.protocol !== 'https:') {

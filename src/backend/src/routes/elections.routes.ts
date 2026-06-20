@@ -6,6 +6,7 @@ import {
   getElectionById,
   listCandidateUsers,
   listElections,
+  reopenElectionForTie,
   updateElection,
 } from '../controllers/elections.controller.js';
 import candidatesRouter from './candidates.routes.js';
@@ -16,7 +17,7 @@ import { authenticateAccessToken, requirePerfis } from '../middlewares/auth.midd
 const electionsRouter = Router();
 
 // ─────────────────────────────────────────────
-// PUBLIC ROUTES (read-only for auditors)
+// ROTAS PÚBLICAS (apenas leitura para auditores)
 // ─────────────────────────────────────────────
 
 
@@ -33,6 +34,12 @@ electionsRouter.use('/:electionId/eligible-voters', eligibleVotersRouter);
 electionsRouter.use('/:electionId', votingRouter);
 
 electionsRouter.patch('/:id', authenticateAccessToken, requirePerfis('GESTOR_ELEITORAL'), updateElection);
+electionsRouter.post(
+  '/:id/reopen-tie',
+  authenticateAccessToken,
+  requirePerfis('GESTOR_ELEITORAL'),
+  reopenElectionForTie,
+);
 electionsRouter.get('/:id', getElectionById);
 
 electionsRouter.post('/', authenticateAccessToken, requirePerfis('GESTOR_ELEITORAL'), createElection,);

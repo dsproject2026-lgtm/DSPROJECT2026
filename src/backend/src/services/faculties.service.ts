@@ -22,6 +22,51 @@ class FacultiesService {
     };
   }
 
+  async getFacultyById(id: string) {
+    const faculty = await facultiesRepository.findById(id);
+
+    if (!faculty) {
+      throw new AppError('Faculdade nao encontrada.', 404, 'FACULTY_NOT_FOUND', { id });
+    }
+
+    return {
+      message: 'Faculdade encontrada com sucesso.',
+      data: faculty,
+    };
+  }
+
+  async updateFaculty(id: string, data: { nome?: string | undefined }) {
+    const faculty = await facultiesRepository.findById(id);
+
+    if (!faculty) {
+      throw new AppError('Faculdade nao encontrada.', 404, 'FACULTY_NOT_FOUND', { id });
+    }
+
+    const updatedFaculty = await facultiesRepository.update(id, {
+      ...(data.nome !== undefined ? { nome: data.nome.trim() } : {}),
+    });
+
+    return {
+      message: 'Faculdade actualizada com sucesso.',
+      data: updatedFaculty,
+    };
+  }
+
+  async deleteFaculty(id: string) {
+    const faculty = await facultiesRepository.findById(id);
+
+    if (!faculty) {
+      throw new AppError('Faculdade nao encontrada.', 404, 'FACULTY_NOT_FOUND', { id });
+    }
+
+    await facultiesRepository.delete(id);
+
+    return {
+      message: 'Faculdade eliminada com sucesso.',
+      data: { id, deleted: true },
+    };
+  }
+
   async addCourses(faculdadeId: string, cursos: string[]) {
     const faculty = await facultiesRepository.findById(faculdadeId);
 

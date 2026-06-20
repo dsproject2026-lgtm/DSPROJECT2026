@@ -40,6 +40,9 @@ export interface EleicaoEntity {
   dataFimCandidatura: Nullable<Timestamp>;
   dataInicioVotacao: Nullable<Timestamp>;
   dataFimVotacao: Nullable<Timestamp>;
+  emDesempate?: boolean;
+  candidatosDesempate?: EntityId[];
+  numeroRodada?: number;
 }
 
 export interface UtilizadorEntity {
@@ -84,6 +87,7 @@ export interface VotoEntity {
   candidatoId: EntityId;
   tokenAnonimo: string;
   dataHora: Timestamp;
+  numeroRodada?: number;
 }
 
 export interface ComprovativoEntity {
@@ -92,6 +96,7 @@ export interface ComprovativoEntity {
   eleicaoId: EntityId;
   codigoVerificacao: string;
   emitidoEm: Timestamp;
+  numeroRodada?: number;
 }
 
 export interface LogAuditoriaEntity {

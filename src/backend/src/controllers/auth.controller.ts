@@ -75,6 +75,22 @@ const changePasswordSchema = z.object({
   novaSenha: z.string().min(8).max(255),
 });
 
+function getRequestOrigin(request: Parameters<RequestHandler>[0]) {
+  const forwardedProto = request.headers['x-forwarded-proto'];
+  const forwardedHost = request.headers['x-forwarded-host'];
+  const protocol =
+    typeof forwardedProto === 'string' ? forwardedProto.split(',')[0]?.trim() : request.protocol;
+  const host =
+    typeof forwardedHost === 'string' ? forwardedHost.split(',')[0]?.trim() : request.headers.host;
+
+  return protocol && host ? `${protocol}://${host}` : undefined;
+}
+
+function getRequestOriginContext(request: Parameters<RequestHandler>[0]) {
+  const requestOrigin = getRequestOrigin(request);
+  return requestOrigin ? { requestOrigin } : undefined;
+}
+
 export const registerUser: RequestHandler = async (request, response) => {
   const { nome, codigo, email, faculdadeId, cursoId, ano, senha, perfil, activo, mustSetPassword } = registerUserSchema.parse(
     request.body,
@@ -107,7 +123,7 @@ export const startLogin: RequestHandler = async (request, response) => {
   const { codigo } = loginStartSchema.parse(request.body);
 
   const input: LoginStartInput = { codigo };
-  const result = await authService.startLogin(input);
+  const result = await authService.startLogin(input, getRequestOriginContext(request));
   const message =
     result.nextStep === 'PASSWORD'
       ? 'Fluxo de login iniciado. Introduza a sua senha.'
@@ -127,7 +143,7 @@ export const startFirstAccess: RequestHandler = async (request, response) => {
   const { codigo } = firstAccessStartSchema.parse(request.body);
 
   const input: FirstAccessStartInput = { codigo };
-  const result: FirstAccessStartResult = await authService.startFirstAccess(input);
+  const result: FirstAccessStartResult = await authService.startFirstAccess(input, getRequestOriginContext(request));
 
   response.status(200).json(
     buildSuccessResponse({
@@ -175,7 +191,10 @@ export const startPasswordRecovery: RequestHandler = async (request, response) =
   const { codigo } = passwordRecoveryStartSchema.parse(request.body);
 
   const input: PasswordRecoveryStartInput = { codigo };
-  const result: PasswordRecoveryStartResult = await authService.startPasswordRecovery(input);
+  const result: PasswordRecoveryStartResult = await authService.startPasswordRecovery(
+    input,
+    getRequestOriginContext(request),
+  );
 
   response.status(200).json(
     buildSuccessResponse({

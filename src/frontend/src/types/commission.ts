@@ -30,6 +30,9 @@ export interface CommissionElectionItem {
   dataFimCandidatura: string | null;
   dataInicioVotacao: string | null;
   dataFimVotacao: string | null;
+  emDesempate: boolean;
+  candidatosDesempate: string[];
+  numeroRodada: number;
   cargo: PositionItem;
   faculdade: FacultyItem | null;
 }
@@ -209,10 +212,18 @@ export interface EligibleVoterListResponse {
 
 export interface ImportEligibleVotersResult {
   imported: EligibleVoterItem[];
+  preview: Array<{
+    codigo: string;
+    nome: string;
+    email: string | null;
+    faculdade: string | null;
+  }>;
   skipped: Array<{
     codigo: string;
     reason:
       | 'INVALID_CODE'
+      | 'INVALID_EMAIL'
+      | 'DUPLICATE_IN_FILE'
       | 'USER_NOT_FOUND'
       | 'ALREADY_REGISTERED'
       | 'ELECTION_NOT_PROGRAMMED'

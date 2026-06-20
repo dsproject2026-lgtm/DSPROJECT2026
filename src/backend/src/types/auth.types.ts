@@ -74,6 +74,7 @@ export type AccessTokenPayload = JwtPayload;
 export interface RequestSecurityContext {
   ip?: string;
   userAgent?: string;
+  requestOrigin?: string;
 }
 
 export interface AuthenticatedUser extends UtilizadorPublico {

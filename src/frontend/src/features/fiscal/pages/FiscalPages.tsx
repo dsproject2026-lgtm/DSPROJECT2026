@@ -14,7 +14,7 @@ import {
   Vote,
   X,
 } from 'lucide-react';
-import { UiPagination, UiSelect, toast } from '@/components/ui';
+import { PasswordInput, UiPagination, UiSelect, toast } from '@/components/ui';
 
 type AuditSeverity = 'success' | 'info' | 'warning' | 'danger';
 
@@ -303,7 +303,12 @@ function SecondaryButton({ children, ...props }: React.ButtonHTMLAttributes<HTML
 }
 
 function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[13px] outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${props.className ?? ''}`} />;
+  const className = `h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-[13px] outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${props.className ?? ''}`;
+  if (props.type === 'password') {
+    const { type: _type, ...passwordProps } = props;
+    return <PasswordInput {...passwordProps} className={className} />;
+  }
+  return <input {...props} className={className} />;
 }
 
 function SelectInput(props: React.SelectHTMLAttributes<HTMLSelectElement>) {

@@ -5,7 +5,7 @@ import { Skeleton } from '@heroui/react';
 
 import { candidateApi } from '@/api/candidate.api';
 import { authApi } from '@/api/auth.api';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Spinner, toast } from '@/components/ui';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, PasswordInput, Spinner, toast } from '@/components/ui';
 import { clearElectorVoteReceipt, getElectorVoteReceipt } from '@/features/elector/lib/vote-receipt';
 import { ApiError } from '@/lib/http/api-error';
 import { sessionStorageService } from '@/lib/storage/session-storage';
@@ -385,8 +385,7 @@ export function ElectorLayout() {
             <p className="mt-1 text-sm text-[#64748b]">Informe a palavra-passe actual e escolha uma nova palavra-passe.</p>
 
             <div className="mt-5 space-y-4">
-              <input
-                type="password"
+              <PasswordInput
                 value={passwordForm.senhaAtual}
                 onChange={(event) =>
                   setPasswordForm((current) => ({ ...current, senhaAtual: event.target.value }))
@@ -396,8 +395,7 @@ export function ElectorLayout() {
                 minLength={8}
                 required
               />
-              <input
-                type="password"
+              <PasswordInput
                 value={passwordForm.novaSenha}
                 onChange={(event) =>
                   setPasswordForm((current) => ({ ...current, novaSenha: event.target.value }))
@@ -407,8 +405,7 @@ export function ElectorLayout() {
                 minLength={8}
                 required
               />
-              <input
-                type="password"
+              <PasswordInput
                 value={passwordForm.confirmarSenha}
                 onChange={(event) =>
                   setPasswordForm((current) => ({ ...current, confirmarSenha: event.target.value }))

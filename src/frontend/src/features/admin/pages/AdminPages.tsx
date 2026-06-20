@@ -1013,7 +1013,7 @@ export function AdminCandidatesPage() {
               />
             </div>
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">Ou fazer upload</label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748b]">Ou carregar uma imagem</label>
               <label className="flex h-11 cursor-pointer items-center justify-center rounded-sm border border-dashed border-[#d1d9e6] bg-white px-3 text-sm text-[#475569] hover:bg-[#f8fafc]">
                 <Upload className="mr-2 h-4 w-4" />
                 Escolher imagem

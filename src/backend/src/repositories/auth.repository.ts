@@ -216,40 +216,6 @@ class AuthRepository {
     });
   }
 
-  async assignElectorAsEligibleInAllElections(userId: string) {
-    const user = await prisma.utilizador.findUnique({
-      where: { id: userId },
-      select: { faculdadeId: true },
-    });
-
-    const elections = await prisma.eleicao.findMany({
-      where: {
-        OR: [
-          { escopoEleitores: 'TODOS' },
-          {
-            escopoEleitores: 'FACULDADE',
-            faculdadeId: user?.faculdadeId ?? '__none__',
-          },
-        ],
-      },
-      select: { id: true },
-    });
-
-    if (elections.length === 0) {
-      return 0;
-    }
-
-    const result = await prisma.elegivel.createMany({
-      data: elections.map((election) => ({
-        eleicaoId: election.id,
-        utilizadorId: userId,
-        jaVotou: false,
-      })),
-      skipDuplicates: true,
-    });
-
-    return result.count;
-  }
 }
 
 export const authRepository = new AuthRepository();

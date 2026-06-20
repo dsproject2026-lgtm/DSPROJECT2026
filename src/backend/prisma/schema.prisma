@@ -50,6 +50,9 @@ model Eleicao {
   dataFimCandidatura    DateTime?      @map("data_fim_candidatura") @db.Timestamptz(6)
   dataInicioVotacao     DateTime?      @map("data_inicio_votacao") @db.Timestamptz(6)
   dataFimVotacao        DateTime?      @map("data_fim_votacao") @db.Timestamptz(6)
+  emDesempate           Boolean        @default(false) @map("em_desempate")
+  candidatosDesempate   String[]       @default([]) @map("candidatos_desempate")
+  numeroRodada          Int            @default(1) @map("numero_rodada")
   candidatos            Candidato[]
   comprovativos         Comprovativo[]
   elegiveis             Elegivel[]
@@ -112,7 +115,7 @@ model Candidato {
   fotoUrl      String?         @map("foto_url")
   biografia    String?
   proposta     String?
-  estado       EstadoCandidato @default(PENDENTE)
+  estado       EstadoCandidato @default(APROVADO)
   utilizadorId String          @map("utilizador_id")
   eleicao      Eleicao         @relation(fields: [eleicaoId], references: [id])
   registador   Utilizador?     @relation("RegistadoPor", fields: [registadoPor], references: [id])
@@ -141,8 +144,10 @@ model Voto {
   candidatoId  String    @map("candidato_id")
   tokenAnonimo String    @unique @map("token_anonimo")
   dataHora     DateTime  @default(now()) @map("data_hora") @db.Timestamptz(6)
+  numeroRodada Int       @default(1) @map("numero_rodada")
   candidato    Candidato @relation(fields: [candidatoId], references: [id])
 
+  @@index([numeroRodada])
   @@map("votos")
 }
 
@@ -152,9 +157,11 @@ model Comprovativo {
   eleicaoId         String     @map("eleicao_id")
   codigoVerificacao String     @unique @map("codigo_verificacao")
   emitidoEm         DateTime   @default(now()) @map("emitido_em") @db.Timestamptz(6)
+  numeroRodada      Int        @default(1) @map("numero_rodada")
   eleicao           Eleicao    @relation(fields: [eleicaoId], references: [id])
   utilizador        Utilizador @relation(fields: [utilizadorId], references: [id])
 
+  @@index([eleicaoId, numeroRodada])
   @@map("comprovativos")
 }
 

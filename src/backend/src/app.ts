@@ -43,9 +43,9 @@ export const createApp = () => {
   app.get('/', (request, response) => {
     response.status(200).json(
       buildSuccessResponse({
-        message: 'Backend root loaded successfully.',
+        message: 'Raiz do servidor carregada com sucesso.',
         data: {
-          service: 'DSPROJECT2026 backend',
+          service: 'Servidor DSPROJECT2026',
           apiPrefix: env.API_PREFIX,
           authRegister: `${env.API_PREFIX}/auth/register`,
           authLoginStart: `${env.API_PREFIX}/auth/login/start`,

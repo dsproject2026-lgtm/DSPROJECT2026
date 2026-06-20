@@ -18,7 +18,7 @@ const apiRouter = Router();
 // apiRouter.get('/', (request, response) => {
 //   response.status(200).json(
 //     buildSuccessResponse({
-//       message: 'API root loaded successfully.',
+//       message: 'Raiz da API carregada com sucesso.',
 //       data: {
 //         service: 'DSPROJECT2026 backend',
 //         version: '1.0.0',

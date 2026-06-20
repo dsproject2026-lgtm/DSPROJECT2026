@@ -80,7 +80,7 @@ class CandidatesService {
                 fotoUrl: null,
                 biografia: null,
                 proposta: null,
-                estado: 'PENDENTE',
+                estado: 'APROVADO',
             },
             registadoPor,
         );
@@ -165,6 +165,26 @@ class CandidatesService {
                     409,
                     'CANDIDATE_SELF_UPDATE_CLOSED',
                     { electionId },
+                );
+            }
+
+            const resultingPhoto = partialData.fotoUrl ?? existingCandidate.fotoUrl;
+            if (!resultingPhoto) {
+                throw new AppError(
+                    'O candidato deve carregar uma foto de perfil antes de guardar a candidatura.',
+                    400,
+                    'CANDIDATE_PHOTO_REQUIRED',
+                );
+            }
+
+            if (
+                partialData.fotoUrl
+                && !partialData.fotoUrl.startsWith('data:image/')
+            ) {
+                throw new AppError(
+                    'A foto do candidato deve ser carregada a partir de um ficheiro de imagem.',
+                    400,
+                    'CANDIDATE_PHOTO_UPLOAD_REQUIRED',
                 );
             }
         }
@@ -254,8 +274,12 @@ class CandidatesService {
         registadoPor: string | null;
         registador: unknown;
     } & Record<string, unknown>): CandidateResponse {
-        const { registadoPor: _registadoPor, registador: _registador, ...publicCandidate } = candidate;
-        return publicCandidate as CandidateResponse;
+        const publicCandidate = Object.fromEntries(
+            Object.entries(candidate).filter(
+                ([key]) => key !== 'registadoPor' && key !== 'registador',
+            ),
+        );
+        return publicCandidate as unknown as CandidateResponse;
     }
 
     private isCandidacyWindowOpen(election: {

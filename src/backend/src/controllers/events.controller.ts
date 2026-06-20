@@ -10,7 +10,7 @@ export const openEventStream: RequestHandler = (request, response) => {
 export const getEventStreamStats: RequestHandler = (request, response) => {
   response.status(200).json(
     buildSuccessResponse({
-      message: 'SSE stream statistics loaded successfully.',
+      message: 'Estatísticas do fluxo de eventos carregadas com sucesso.',
       data: sseService.getStats(),
       request,
     }),

@@ -10,7 +10,7 @@ import {
 import { authenticateAccessToken, requirePerfis } from '../middlewares/auth.middleware.js';
 
 const positionsRouter = Router();
-// PUBLIC ROUTES (read-only for auditors)
+// ROTAS PÚBLICAS (apenas leitura para auditores)
 positionsRouter.get('/', listPositions);
 
 

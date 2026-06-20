@@ -43,7 +43,7 @@ class SseService {
     });
 
     this.send(clientId, 'connected', {
-      message: 'SSE stream connected successfully.',
+      message: 'Fluxo de eventos ligado com sucesso.',
       request,
       data: {
         clientId,

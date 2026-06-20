@@ -11,6 +11,9 @@ class VotingRepository {
         estado: true,
         dataInicioVotacao: true,
         dataFimVotacao: true,
+        emDesempate: true,
+        candidatosDesempate: true,
+        numeroRodada: true,
       },
     });
   }
@@ -26,6 +29,11 @@ class VotingRepository {
         eleicaoId: true,
         utilizadorId: true,
         jaVotou: true,
+        utilizador: {
+          select: {
+            activo: true,
+          },
+        },
       },
     });
   }
@@ -41,34 +49,15 @@ class VotingRepository {
     });
   }
 
-  async ensureEligibleVoter(electionId: string, userId: string) {
-    return prisma.elegivel.upsert({
-      where: {
-        eleicaoId_utilizadorId: {
-          eleicaoId: electionId,
-          utilizadorId: userId,
-        },
-      },
-      update: {},
-      create: {
-        eleicaoId: electionId,
-        utilizadorId: userId,
-        jaVotou: false,
-      },
-      select: {
-        id: true,
-        eleicaoId: true,
-        utilizadorId: true,
-        jaVotou: true,
-      },
-    });
-  }
-
-  async findApprovedCandidatesByElection(electionId: string) {
+  async findApprovedCandidatesByElection(electionId: string, candidateIds?: string[]) {
     return prisma.candidato.findMany({
       where: {
         eleicaoId: electionId,
+        ...(candidateIds && candidateIds.length > 0 ? { id: { in: candidateIds } } : {}),
         estado: 'APROVADO',
+        utilizador: {
+          activo: true,
+        },
       },
       select: {
         id: true,
@@ -92,11 +81,22 @@ class VotingRepository {
       select: {
         id: true,
         estado: true,
+        utilizador: {
+          select: {
+            activo: true,
+          },
+        },
       },
     });
   }
 
-  async castVote(params: { electionId: string; userId: string; eligibleId: string; candidateId: string }) {
+  async castVote(params: {
+    electionId: string;
+    userId: string;
+    eligibleId: string;
+    candidateId: string;
+    numeroRodada: number;
+  }) {
     const receiptCode = `RCPT-${generateSecureToken().slice(0, 16).toUpperCase()}`;
 
     return prisma.$transaction(async (tx) => {
@@ -104,6 +104,7 @@ class VotingRepository {
         data: {
           candidatoId: params.candidateId,
           tokenAnonimo: generateSecureToken(),
+          numeroRodada: params.numeroRodada,
         },
         select: {
           id: true,
@@ -122,6 +123,7 @@ class VotingRepository {
           utilizadorId: params.userId,
           eleicaoId: params.electionId,
           codigoVerificacao: receiptCode,
+          numeroRodada: params.numeroRodada,
         },
         select: {
           codigoVerificacao: true,
@@ -136,11 +138,12 @@ class VotingRepository {
     });
   }
 
-  async findReceiptByElectionAndUser(electionId: string, userId: string) {
+  async findReceiptByElectionAndUser(electionId: string, userId: string, numeroRodada: number) {
     return prisma.comprovativo.findFirst({
       where: {
         eleicaoId: electionId,
         utilizadorId: userId,
+        numeroRodada,
       },
       select: {
         codigoVerificacao: true,
@@ -168,12 +171,13 @@ class VotingRepository {
     });
   }
 
-  async findVotesByElection(electionId: string) {
+  async findVotesByElection(electionId: string, numeroRodada: number) {
     return prisma.voto.findMany({
       where: {
         candidato: {
           eleicaoId: electionId,
         },
+        numeroRodada,
       },
       select: {
         candidatoId: true,
@@ -185,6 +189,9 @@ class VotingRepository {
     return prisma.elegivel.count({
       where: {
         eleicaoId: electionId,
+        utilizador: {
+          activo: true,
+        },
       },
     });
   }

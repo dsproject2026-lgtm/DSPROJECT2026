@@ -47,6 +47,8 @@ export interface ElectionBallot {
     estado: BackendElectionState;
     dataInicioVotacao: string | null;
     dataFimVotacao: string | null;
+    emDesempate?: boolean;
+    numeroRodada?: number;
   };
   candidates: BallotCandidate[];
 }
@@ -71,6 +73,8 @@ export interface ElectionResults {
     id: string;
     titulo: string;
     estado: BackendElectionState;
+    emDesempate: boolean;
+    numeroRodada: number;
   };
   summary: {
     totalEligibleVoters: number;
@@ -89,4 +93,10 @@ export interface ElectionResults {
     nome: string;
     votes: number;
   } | null;
+  hasTieForFirstPlace: boolean;
+  tiedCandidates: Array<{
+    id: string;
+    nome: string;
+    votes: number;
+  }>;
 }

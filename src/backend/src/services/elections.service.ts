@@ -1,9 +1,11 @@
 import { electionsRepository } from '../repositories/elections.repository.js';
+import { votingRepository } from '../repositories/voting.repository.js';
 import { settingsService } from './settings.service.js';
 import type {
   CreateElectionApiInput,
   ListElectionsFilters,
   UpdateElectionApiInput,
+  ReopenElectionForTieApiInput,
 } from '../types/eleicoes.types.js';
 import { AppError } from '../utils/app-error.js';
 
@@ -33,10 +35,6 @@ class ElectionsService {
     this.validateElectionDates(data);
 
     const election = await electionsRepository.create(data, registadoPor);
-    await electionsRepository.assignEligibleElectorsForElection(election.id, {
-      escopoEleitores: data.escopoEleitores ?? 'TODOS',
-      faculdadeId: data.faculdadeId ?? null,
-    });
 
     return {
       message: 'Eleição criada com sucesso.',
@@ -71,8 +69,10 @@ class ElectionsService {
     };
   }
 
-  async listCandidateUsers(search?: string) {
-    const users = await electionsRepository.findCandidateUsers(search);
+  async listCandidateUsers(search?: string, electionId?: string) {
+    const users = electionId
+      ? await electionsRepository.findEligibleCandidateUsers(electionId, search)
+      : await electionsRepository.findCandidateUsers(search);
 
     return {
       message: 'Candidatos disponiveis listados com sucesso.',
@@ -138,7 +138,14 @@ class ElectionsService {
     const targetState = partialData.estado ?? existingElection.estado;
 
     if (ACTIVE_ELECTION_STATES.has(targetState)) {
-      const conflictingElection = await electionsRepository.findActiveElectionByCargo(targetCargoId, id);
+      const conflictingElection = await electionsRepository.findActiveElectionByCargo(
+        targetCargoId,
+        {
+          escopoEleitores: targetScope,
+          faculdadeId: targetFacultyId,
+        },
+        id,
+      );
 
       if (conflictingElection) {
         throw new AppError(
@@ -152,6 +159,34 @@ class ElectionsService {
           },
         );
       }
+
+      const [
+        approvedCandidatesCount,
+        approvedCandidatesWithoutPhotoCount,
+        activeEligibleVotersCount,
+      ] = await Promise.all([
+        electionsRepository.countApprovedActiveCandidates(id),
+        electionsRepository.countApprovedActiveCandidatesWithoutPhoto(id),
+        electionsRepository.countActiveEligibleVoters(id),
+      ]);
+
+      if (
+        approvedCandidatesCount === 0
+        || activeEligibleVotersCount === 0
+        || approvedCandidatesWithoutPhotoCount > 0
+      ) {
+        throw new AppError(
+          'A eleição não pode ser aberta sem candidatos aprovados com foto e eleitores activos.',
+          409,
+          'ELECTION_INCOMPLETE',
+          {
+            id,
+            approvedCandidatesCount,
+            approvedCandidatesWithoutPhotoCount,
+            activeEligibleVotersCount,
+          },
+        );
+      }
     }
 
     const updatedElection = await electionsRepository.update(id, partialData);
@@ -159,6 +194,113 @@ class ElectionsService {
     return {
       message: 'Eleicao atualizada com sucesso.',
       data: updatedElection,
+    };
+  }
+
+  async reopenElectionForTie(id: string, input: ReopenElectionForTieApiInput) {
+    const election = await electionsRepository.findById(id);
+
+    if (!election) {
+      throw new AppError('Eleição não encontrada.', 404, 'ELECTION_NOT_FOUND', { id });
+    }
+
+    if (election.estado !== 'CONCLUIDA') {
+      throw new AppError(
+        'Apenas uma eleição concluída pode ser reaberta para desempate.',
+        409,
+        'ELECTION_NOT_CLOSED_FOR_TIEBREAK',
+        { id, estado: election.estado },
+      );
+    }
+
+    const dataInicioVotacao = this.parseOptionalDate(
+      input.dataInicioVotacao,
+      'dataInicioVotacao',
+    );
+    const dataFimVotacao = this.parseOptionalDate(input.dataFimVotacao, 'dataFimVotacao');
+
+    if (!dataInicioVotacao || !dataFimVotacao || dataInicioVotacao >= dataFimVotacao) {
+      throw new AppError(
+        'O início da votação deve ser anterior ao fim da votação.',
+        400,
+        'ELECTION_VOTING_PERIOD_INVALID',
+      );
+    }
+
+    if (dataFimVotacao <= new Date()) {
+      throw new AppError(
+        'A nova data de fim da votação deve estar no futuro.',
+        400,
+        'ELECTION_VOTING_END_MUST_BE_FUTURE',
+      );
+    }
+
+    const conflictingElection = await electionsRepository.findActiveElectionByCargo(
+      election.cargoId,
+      {
+        escopoEleitores: election.escopoEleitores,
+        faculdadeId: election.faculdadeId,
+      },
+      id,
+    );
+    if (conflictingElection) {
+      throw new AppError(
+        'Já existe uma eleição em andamento para este cargo.',
+        409,
+        'ELECTION_ACTIVE_CONFLICT',
+        { cargoId: election.cargoId, electionId: conflictingElection.id },
+      );
+    }
+
+    const [candidates, votes, totalEligibleVoters] = await Promise.all([
+      votingRepository.findAllCandidatesByElection(id),
+      votingRepository.findVotesByElection(id, election.numeroRodada),
+      votingRepository.countEligibleVotersByElection(id),
+    ]);
+
+    const votesByCandidate = votes.reduce<Record<string, number>>((accumulator, vote) => {
+      accumulator[vote.candidatoId] = (accumulator[vote.candidatoId] ?? 0) + 1;
+      return accumulator;
+    }, {});
+    const highestVoteCount = candidates.reduce(
+      (highest, candidate) => Math.max(highest, votesByCandidate[candidate.id] ?? 0),
+      0,
+    );
+    const tiedCandidateIds = candidates
+      .filter((candidate) => (votesByCandidate[candidate.id] ?? 0) === highestVoteCount)
+      .map((candidate) => candidate.id);
+
+    if (highestVoteCount === 0 || tiedCandidateIds.length < 2) {
+      throw new AppError(
+        'A eleição não possui empate no primeiro lugar.',
+        409,
+        'ELECTION_HAS_NO_TIE',
+        { id },
+      );
+    }
+
+    const turnoutPercentage =
+      totalEligibleVoters === 0 ? 0 : (votes.length / totalEligibleVoters) * 100;
+    const resetAllVoters = turnoutPercentage >= 100;
+
+    const reopenedElection = await electionsRepository.reopenForTie({
+      electionId: id,
+      dataInicioVotacao,
+      dataFimVotacao,
+      tiedCandidateIds,
+      resetAllVoters,
+    });
+
+    return {
+      message: resetAllVoters
+        ? 'Eleição reaberta para desempate. Todos os eleitores podem votar novamente.'
+        : 'Eleição reaberta para desempate. Os eleitores que ainda não votaram podem participar.',
+      data: {
+        election: reopenedElection,
+        tiedCandidateIds,
+        previousTurnoutPercentage: Number(turnoutPercentage.toFixed(2)),
+        votersReset: resetAllVoters,
+      },
     };
   }
 

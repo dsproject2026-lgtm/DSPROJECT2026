@@ -20,6 +20,9 @@ const electionWithRelationsSelect = {
   dataFimCandidatura: true,
   dataInicioVotacao: true,
   dataFimVotacao: true,
+  emDesempate: true,
+  candidatosDesempate: true,
+  numeroRodada: true,
   cargo: {
     select: {
       id: true,
@@ -57,7 +60,7 @@ const electionWithRelationsSelect = {
 } as const;
 
 class ElectionsRepository {
-  async create(data: CreateElectionApiInput, registadoPor?: EntityId) {
+  async create(data: CreateElectionApiInput, _registadoPor?: EntityId) {
     const createData = {
       cargoId: data.cargoId,
       ...(data.faculdadeId !== undefined ? { faculdadeId: data.faculdadeId } : {}),
@@ -117,7 +120,7 @@ class ElectionsRepository {
   }
 
   async syncElectionStates(now = new Date()) {
-    const [closedFromOpen, closedFromScheduled, openedFromScheduled] = await prisma.$transaction([
+    const [closedFromOpen, closedFromScheduled] = await prisma.$transaction([
       prisma.eleicao.updateMany({
         where: {
           estado: 'ABERTA',
@@ -140,24 +143,74 @@ class ElectionsRepository {
         },
         data: {
           estado: 'CONCLUIDA',
-        },
-      }),
-      prisma.eleicao.updateMany({
-        where: {
-          estado: 'PROGRAMADA',
-          dataInicioVotacao: {
-            not: null,
-            lte: now,
-          },
-          OR: [{ dataFimVotacao: null }, { dataFimVotacao: { gt: now } }],
-        },
-        data: {
-          estado: 'ABERTA',
         },
       }),
     ]);
 
-    return closedFromOpen.count + closedFromScheduled.count + openedFromScheduled.count;
+    const scheduledElections = await prisma.eleicao.findMany({
+      where: {
+        estado: 'PROGRAMADA',
+        dataInicioVotacao: {
+          not: null,
+          lte: now,
+        },
+        OR: [{ dataFimVotacao: null }, { dataFimVotacao: { gt: now } }],
+        candidatos: {
+          some: {
+            estado: 'APROVADO',
+            utilizador: {
+              activo: true,
+            },
+          },
+        },
+        elegiveis: {
+          some: {
+            utilizador: {
+              activo: true,
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        cargoId: true,
+        escopoEleitores: true,
+        faculdadeId: true,
+      },
+      orderBy: {
+        dataInicioVotacao: 'asc',
+      },
+    });
+
+    let openedCount = 0;
+
+    for (const election of scheduledElections) {
+      const conflict = await this.findActiveElectionByCargo(
+        election.cargoId,
+        {
+          escopoEleitores: election.escopoEleitores,
+          faculdadeId: election.faculdadeId,
+        },
+        election.id,
+      );
+
+      if (conflict) {
+        continue;
+      }
+
+      const result = await prisma.eleicao.updateMany({
+        where: {
+          id: election.id,
+          estado: 'PROGRAMADA',
+        },
+        data: {
+          estado: 'ABERTA',
+        },
+      });
+      openedCount += result.count;
+    }
+
+    return closedFromOpen.count + closedFromScheduled.count + openedCount;
   }
 
   async update(id: EntityId, data: UpdateElectionApiInput) {
@@ -338,58 +391,170 @@ class ElectionsRepository {
     });
   }
 
-  async findActiveElectionByCargo(cargoId: EntityId, excludeElectionId?: EntityId) {
+  async findEligibleCandidateUsers(electionId: EntityId, search?: string) {
+    return prisma.utilizador.findMany({
+      where: {
+        activo: true,
+        elegiveis: {
+          some: {
+            eleicaoId: electionId,
+          },
+        },
+        candidaturas: {
+          none: {
+            eleicaoId: electionId,
+          },
+        },
+        ...(search && search.trim() !== ''
+          ? {
+              OR: [
+                { nome: { contains: search.trim(), mode: 'insensitive' } },
+                { codigo: { contains: search.trim(), mode: 'insensitive' } },
+                { email: { contains: search.trim(), mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        codigo: true,
+        nome: true,
+        email: true,
+        perfil: true,
+        activo: true,
+        faculdade: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
+        curso: {
+          select: {
+            id: true,
+            nome: true,
+            faculdadeId: true,
+          },
+        },
+        ano: true,
+      },
+      orderBy: {
+        nome: 'asc',
+      },
+    });
+  }
+
+  async findActiveElectionByCargo(
+    cargoId: EntityId,
+    scope: {
+      escopoEleitores: 'TODOS' | 'FACULDADE';
+      faculdadeId: EntityId | null;
+    },
+    excludeElectionId?: EntityId,
+  ) {
     return prisma.eleicao.findFirst({
       where: {
         cargoId,
         estado: {
           in: [...ACTIVE_ELECTION_STATES],
         },
+        ...(scope.escopoEleitores === 'FACULDADE'
+          ? {
+              OR: [
+                { escopoEleitores: 'TODOS' },
+                {
+                  escopoEleitores: 'FACULDADE',
+                  faculdadeId: scope.faculdadeId,
+                },
+              ],
+            }
+          : {}),
         ...(excludeElectionId !== undefined ? { id: { not: excludeElectionId } } : {}),
       },
       select: {
         id: true,
         cargoId: true,
+        faculdadeId: true,
+        escopoEleitores: true,
         titulo: true,
         estado: true,
       },
     });
   }
 
-  async assignEligibleElectorsForElection(electionId: EntityId, params: {
-    escopoEleitores: 'TODOS' | 'FACULDADE';
-    faculdadeId?: string | null;
-  }) {
-    const electors = await prisma.utilizador.findMany({
+  async countApprovedActiveCandidates(electionId: EntityId) {
+    return prisma.candidato.count({
       where: {
-        perfil: {
-          in: ['ELEITOR', 'CANDIDATO'],
-        },
-        activo: true,
-        ...(params.escopoEleitores === 'FACULDADE'
-          ? { faculdadeId: params.faculdadeId ?? '__none__' }
-          : {}),
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (electors.length === 0) {
-      return 0;
-    }
-
-    const result = await prisma.elegivel.createMany({
-      data: electors.map((elector) => ({
         eleicaoId: electionId,
-        utilizadorId: elector.id,
-        jaVotou: false,
-      })),
-      skipDuplicates: true,
+        estado: 'APROVADO',
+        utilizador: {
+          activo: true,
+        },
+      },
     });
-
-    return result.count;
   }
+
+  async countApprovedActiveCandidatesWithoutPhoto(electionId: EntityId) {
+    return prisma.candidato.count({
+      where: {
+        eleicaoId: electionId,
+        estado: 'APROVADO',
+        OR: [{ fotoUrl: null }, { fotoUrl: '' }],
+        utilizador: {
+          activo: true,
+        },
+      },
+    });
+  }
+
+  async countActiveEligibleVoters(electionId: EntityId) {
+    return prisma.elegivel.count({
+      where: {
+        eleicaoId: electionId,
+        utilizador: {
+          activo: true,
+        },
+      },
+    });
+  }
+
+  async reopenForTie(params: {
+    electionId: EntityId;
+    dataInicioVotacao: Date;
+    dataFimVotacao: Date;
+    tiedCandidateIds: EntityId[];
+    resetAllVoters: boolean;
+  }) {
+    return prisma.$transaction(async (tx) => {
+      const election = await tx.eleicao.findUniqueOrThrow({
+        where: { id: params.electionId },
+        select: { numeroRodada: true },
+      });
+      const numeroRodada = params.resetAllVoters
+        ? election.numeroRodada + 1
+        : election.numeroRodada;
+
+      if (params.resetAllVoters) {
+        await tx.elegivel.updateMany({
+          where: { eleicaoId: params.electionId },
+          data: { jaVotou: false },
+        });
+      }
+
+      return tx.eleicao.update({
+        where: { id: params.electionId },
+        data: {
+          estado: params.dataInicioVotacao <= new Date() ? 'ABERTA' : 'PROGRAMADA',
+          dataInicioVotacao: params.dataInicioVotacao,
+          dataFimVotacao: params.dataFimVotacao,
+          emDesempate: true,
+          candidatosDesempate: params.tiedCandidateIds,
+          numeroRodada,
+        },
+        select: electionWithRelationsSelect,
+      });
+    });
+  }
+
 }
 
 export const electionsRepository = new ElectionsRepository();

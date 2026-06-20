@@ -29,5 +29,5 @@ const MESSAGES_PT_PT: Record<string, string> = {
 };
 
 export const toPtPtErrorMessage = (code: string, fallbackMessage: string) => {
-  return MESSAGES_PT_PT[code] ?? fallbackMessage;
+  return fallbackMessage || MESSAGES_PT_PT[code] || MESSAGES_PT_PT.UNEXPECTED_ERROR;
 };

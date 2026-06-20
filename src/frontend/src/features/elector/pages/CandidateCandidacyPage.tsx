@@ -60,6 +60,10 @@ export function CandidateCandidacyPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!selected) return;
+    if (!form.fotoUrl) {
+      toast.danger('Carregue uma foto de perfil antes de guardar.');
+      return;
+    }
     try {
       setIsSaving(true);
       await candidateApi.updateMine(selected.eleicaoId, selected.id, {
@@ -85,6 +89,10 @@ export function CandidateCandidacyPage() {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       toast.danger('Seleccione uma imagem válida.');
+      return;
+    }
+    if (file.size > 1_500_000) {
+      toast.danger('A imagem deve ter no máximo 1,5 MB.');
       return;
     }
 
@@ -143,10 +151,14 @@ export function CandidateCandidacyPage() {
               <input
                 type="file"
                 accept="image/*"
+                required={!form.fotoUrl}
                 disabled={!canEditSelected}
                 onChange={(event) => uploadPhoto(event.target.files?.[0] ?? null)}
                 className="block w-full rounded-sm border border-[#d1d9e6] bg-white px-3 py-2 text-sm text-[#475569] file:mr-4 file:rounded-sm file:border-0 file:bg-[#1A56DB] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white disabled:bg-[#f8fafc]"
               />
+              <p className="mt-2 text-xs text-[#64748b]">
+                Formatos de imagem aceites, até 1,5 MB. A foto é obrigatória.
+              </p>
               {form.fotoUrl ? (
                 <img src={form.fotoUrl} alt="Foto do candidato" className="mt-3 h-28 w-28 rounded-sm object-cover" />
               ) : null}

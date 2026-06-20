@@ -74,7 +74,7 @@ export class ApiClient {
       }
 
       throw new ApiError(
-        toPtPtErrorMessage('UNEXPECTED_ERROR', 'Unexpected server error.'),
+        toPtPtErrorMessage('UNEXPECTED_ERROR', result.rawMessage ?? 'Erro inesperado do servidor.'),
         'UNEXPECTED_ERROR',
         result.response.status || 500,
       );
@@ -111,14 +111,25 @@ export class ApiClient {
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
 
-    const json = (await response.json().catch(() => null)) as
+    const contentType = response.headers.get('content-type') ?? '';
+    const payload = contentType.includes('application/json')
+      ? await response.json().catch(() => null)
+      : await response.text().catch(() => null);
+    const json = payload && typeof payload === 'object' ? (payload as
       | ApiSuccessResponse<TData>
       | ApiErrorResponse
-      | null;
+      | null) : null;
+    const rawMessage =
+      typeof payload === 'string'
+        ? payload
+        : payload && typeof payload === 'object' && 'message' in payload && typeof payload.message === 'string'
+          ? payload.message
+          : undefined;
 
     return {
       response,
       json,
+      rawMessage,
     };
   }
 }
